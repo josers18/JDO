@@ -1,0 +1,18 @@
+{
+  "scenes": 28,
+  "checks": [
+    "captured observed history and source category",
+    "dated response selection reload",
+    "exact source followup",
+    "prediction distinct from observations",
+    "actual0input retained",
+    "no invented causal weights or period",
+    "successful empty prediction",
+    "expanded exact plan review",
+    "draftplan excluded",
+    "original service actions retained",
+    "screening for third household"
+  ],
+  "pageErrors": [],
+  "networkWrites": []
+}

@@ -1,0 +1,179 @@
+{
+  "layouts": [
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "growth",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "growth",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "growth",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "intelligence",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "intelligence",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "intelligence",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "work",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "work",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "work",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "growth",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "growth",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "growth",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "intelligence",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "intelligence",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "intelligence",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "work",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "work",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "work",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "growth",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "growth",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "growth",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "intelligence",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "intelligence",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "intelligence",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "work",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "work",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "work",
+      "width": 390
+    }
+  ],
+  "journeys": [
+    "Retail needs, monthly scrubber, opportunity flow",
+    "Wealth household/capital context isolation and leads",
+    "Commercial treasury selection and opportunity",
+    "Retail property/service lenses",
+    "Wealth plan/concentration/liquidity lenses",
+    "Commercial company and independent-source drilldown",
+    "Retail service preparation to persistent local draft",
+    "Wealth review household continuity, packet, local preparation",
+    "Commercial selected-deal preparation and persona-scoped drafts",
+    "Preparation persistence and cross-persona isolation"
+  ],
+  "errors": []
+}

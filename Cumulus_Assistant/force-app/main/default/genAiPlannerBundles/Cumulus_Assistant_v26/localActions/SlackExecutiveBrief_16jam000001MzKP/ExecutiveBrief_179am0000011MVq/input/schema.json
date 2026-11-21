@@ -1,0 +1,19 @@
+{
+  "required" : [ "Input:Account" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "Input:Account" : {
+      "title" : "objectToSummarize",
+      "description" : "The account object to be summarized for this executive brief.",
+      "lightning:type" : "lightning__recordInfoType",
+      "einstein:description" : "The account object to be summarized for this executive brief",
+      "lightning:sObjectInfo" : {
+        "apiName" : "Account"
+      },
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

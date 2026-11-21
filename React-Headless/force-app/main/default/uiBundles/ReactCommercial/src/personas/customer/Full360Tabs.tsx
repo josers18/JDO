@@ -193,7 +193,7 @@ function JourneyTab({ full, detail }: { full: Full360; detail: Customer360Detail
 }
 
 /* ---------- Property (CoreLogic) ---------- */
-function PropertyTab({ full }: { full: Full360 }) {
+export function PropertyTab({ full }: { full: Full360 }) {
   const p = full.property;
   if (!p) {
     return <Panel title="Property"><p style={{ color: 'var(--wp-text-muted)', fontSize: '0.88rem', margin: 0 }}>No property data on file for this client.</p></Panel>;

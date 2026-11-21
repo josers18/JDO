@@ -1,0 +1,427 @@
+‹
+Light (custom)
+COMMAND CENTER
+SECTIONS
+Daily brief
+Key metrics
+Tasks & schedule
+Priority queue
+8
+Recommended actions
+7
+Cross-sell white-space
+Life events
+52
+Risk alerts
+Pipeline
+Leads & referrals
+16
+Portfolio pulse
+PINNED ACCOUNTS
+W
+Williams Household
+Moody's A3 · High risk
+✕
+F
+Fleming Household
+Moody's Baa2 · High risk
+✕
+J
+Johnson Household
+Moody's A3 · High risk
+✕
+TODAY'S ARC
+Speak with Julie Morris about her daughter's 529 account
+2026-10-19
+Follow up with Julie Morris - Business Loans
+2026-10-05
+Follow up with Julie Morris - Business Loans
+2026-09-30
+Follow up with Julie Morris regarding business loans
+2026-09-29
+Insurance Outreach - Alexis S Smith
+2026-09-24
+J
+Jose Sifontes
+Commercial · Cumulus Financial Services
+Relationship Command
+VIEW AS
+My book
+▾
+CURRENT
+COCKPIT
+⌘K
+MA
+Good morning, Jose — borrowers on the credit watchlist.
+AI Daily Brief
+UPDATED TODAY
+View full insights →
+
+borrowers on the credit watchlist. 333 of 5,087 D&B-scored borrowers in your book are on credit watch (Severe failure risk or PAYDEX under 60) and 436 more sit in the High failure-risk tier — covenant-review candidates. 5,082 clients scored for who to call (credit, Gong, outlook, fees, offers), 73 with two or more risk signals. 231 open opportunities worth $18.9B in pipeline. 15 activities scheduled. 8 clients show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in. 8 clients received $10K+ customer payments this week ($233.8K): an excess-cash moment. Market signals (some org-wide): 1 accounts surging on intent, 3 researching a competitor, 14 just raised a round, and 56 lost a champion or primary contact in the last 30 days.
+
+PORTFOLIO PULSE
+View all →
+
+Your book holds $18.9B open pipeline across 231 opportunities. Recent client touchpoints are running light — schedule outreach to keep relationships warm and move stalled deals this quarter.
+
+WINS · 30D
+$0
+ACTIVITY · 7D
+15
+▷ LISTEN
+RIGHT NOW · YOUR FIRST MOVE
+Reach out to Williams Household — credit / covenant review.
+
+PAYDEX 28 (High failure risk), 97 days beyond terms · Moody's Watch (A3) · 28% likely: business checking Open 360
+
+✦ Prep me
+Schedule call
+Snooze
+PIPELINE
+$18.9B
+231 open opportunities
+▲ 0%
+vs last
+LEADS & REFERRALS
+309
+Open leads
+▲ 0%
+vs last
+CREDIT WATCH
+333
+71 Severe failure risk · 333 PAYDEX < 60 · 436 High tier
+▲ 0.6%
+vs last
+NET FLOW
+$199K
+Credits − debits, week of 2026-11-02 · 15 accounts · Snowflake
+Priority Queue
+✦
+Draft all follow-ups
+SORT:
+Priority
+Due date
+▾
+All (8)
+High (8)
+Medium (0)
+Low (0)
+1
+Brandt Holdings LLC — Excess-cash conversation — sweep / money market
+$74.3K ACH receipt from Umbrella Co on 2026-11-06
+High
+Due today
+›
+2
+House Household — Compliance review — enhanced due diligence
+AML rating Low → High · sanctions · US · case WC-2026-90193
+High
+Due today
+›
+3
+Ramos Household — Compliance review — enhanced due diligence
+AML rating Low → High · sanctions · US · case WC-2026-45048
+High
+Due today
+›
+4
+Henry Household — Compliance review — enhanced due diligence
+AML rating Low → High · sanctions · US · case WC-2026-62339
+High
+Due today
+›
+5
+Ross Household — Compliance review — enhanced due diligence
+AML rating Low → High · sanctions · US · case WC-2026-15334
+High
+Due today
+›
+6
+Aguilar Household — Compliance review — enhanced due diligence
+AML rating Low → High · sanctions · US · case WC-2026-94865
+High
+Due today
+›
+7
+Reese Household — Compliance review — enhanced due diligence
+AML rating Low → High · sanctions · AE · case WC-2026-35210
+High
+Due today
+›
+8
+Sandoval-Jordan Industries — Re-establish the relationship
+Champion Elizabeth Smith (CFO) left · now at Northgate Point Group
+High
+Due in 3 days
+›
+View all tasks & alerts
+→
+AGENTFORCE · PRE-DRAFTED
+Recommended Actions
+7 PENDING
+CALL
+Account
+Offer SteelWorks Inc a working-capital line of credit
+
+Next-best action #1 for this client: 22% modeled conversion with outreach vs 2% without. Lead with a call.
+
+✦
+Offer eligibility model · BIZ-LOC · $17.9K expected uplift
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+CALL
+Account
+Offer Chen Family Trust a commercial card
+
+Next-best action #1 for this client: 38% modeled conversion with outreach vs 4% without. Lead with a call.
+
+✦
+Offer eligibility model · BIZ-CARD · $12.5K expected uplift
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+CALL
+Account
+Offer Brandt Holdings LLC a commercial real estate loan
+
+Next-best action #1 for this client: 22% modeled conversion with outreach vs 3% without. Lead with a call.
+
+✦
+Offer eligibility model · BIZ-CRE · $7.8K expected uplift
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+SHOW 3 ACTIONS
+SHOW ALL 7
+3 / 7
+GROWTH-TIER MIX
+ZoomInfo firmographics
+<$1M
+5,071
+$1M-$10M
+5
+$10M-$50M
+9
+$50M-$200M
+2
+UPMARKET $50M+
+2
+PROFILED
+5,087
+
+Employees · 1-10: 5,081 · 11-50: 3 · 51-200: 1 · 201-1000: 2
+
+Global Industries
+Workday → payroll-connected disbursements
+$50M-$200M
+SteelWorks Inc
+Workday → payroll-connected disbursements
+$50M-$200M
+BRANCH & MARKET FOOTPRINT
+ESRI geo · by billing ZIP
+
+998 clients sit in 343 ESRI-profiled ZIPs; 163 bank near a branch flagged for consolidation and 456 in affluent markets (wealth index 120+). Average wealth index 115, foot traffic 110, 6.8 mi to the nearest branch.
+
+CONSOLIDATE
+163
+AFFLUENT ZIPS
+456
+90076 · CA
+Rustbelt Traditions · wealth 101 · traffic 21 · 7.4 mi
+Consolidate · 13
+90044 · CA
+Soccer Moms · wealth 121 · traffic 74 · 5.5 mi
+Optimize · 14
+90039 · CA
+Small Town Sincerity · wealth 126 · traffic 39 · 14.8 mi
+Consolidate · 12
+90078 · CA
+Midlife Constants · wealth 139 · traffic 90 · 5.3 mi
+Optimize · 13
+77061 · TX
+Small Town Sincerity · wealth 97 · traffic 30 · 8.1 mi
+Consolidate · 12
+90003 · CA
+Soccer Moms · wealth 157 · traffic 78 · 5.9 mi
+Optimize · 11
+YOUR DAY
+TOP RISKS & OPPORTUNITIES
+View all →
+63
+Williams Household
+PAYDEX 28 (High failure risk), 97 days beyond terms · Moody's Watch (A3) · 28% likely: business checking
+Health score
+63
+↓ 8
+63
+Fleming Household
+PAYDEX 33 (High failure risk), 83 days beyond terms · Moody's Watch (Baa2) · 26% likely: SBA 7(a) loan
+Health score
+63
+↓ 8
+63
+Johnson Household
+PAYDEX 28 (High failure risk), 94 days beyond terms · Moody's Watch (A3) · 26% likely: business checking
+Health score
+63
+↓ 8
+63
+Cooper Household
+PAYDEX 46 (High failure risk), 44 days beyond terms · Moody's Watch (Baa1) · 25% likely: SBA 7(a) loan
+Health score
+63
+↓ 8
+LIFE EVENTS ACROSS YOUR BOOK
++ New
+View all →
+Manuel E Davidson · Home
+Explore mortgage, HELOC & homeowner coverage.
+NOV 16
+Edward T Peters · Graduation
+Coordinate 529 final distribution & next steps.
+NOV 16
+Dennis Q Schwartz · Job
+Align income transition & benefits rollover.
+NOV 16
+Karina D Howell · Home
+Explore mortgage, HELOC & homeowner coverage.
+NOV 16
+TODAY'S AGENDA
++ ADD
+Speak with Julie Morris about her daughter's 529 account
+Julie E Morris
+2026-10-19
+Follow up with Julie Morris - Business Loans
+Julie E Morris
+2026-10-05
+Follow up with Julie Morris - Business Loans
+Morris Roasters, LLC
+2026-09-30
+Follow up with Julie Morris regarding business loans
+Julie E Morris
+2026-09-29
+Insurance Outreach - Alexis S Smith
+2026-09-24
+Insurance Outreach - Alexis E Smith
+2026-09-24
+Insurance Outreach - Bailey S White
+2026-09-24
+Insurance Outreach - Nigel E Morris
+2026-09-24
+Insurance Outreach - Bailey U White
+2026-09-24
+Follow up with Julie Morris - Business Loans
+Morris Roasters, LLC
+2026-09-23
+Follow up with Julie Morris - Business Loans
+Julie E Morris
+2026-09-23
+Follow up with Julie Morris - Business Loans
+Julie E Morris
+2026-09-22
+Follow up with Julie Morris - Business Loans
+Julie E Morris
+2026-09-22
+Follow up with Julie Morris regarding business loans
+Morris Roasters, LLC
+2026-09-22
+Discuss Commercial Real Estate Lending Opportunity
+Omega, Inc.
+2026-09-17
+ASK AGENTFORCE
+✦
+What changed overnight?
+›
+✦
+Which accounts need attention?
+›
+✦
+What meetings need prep?
+›
+Customer Goals
++ New
+View all →
+Debt Reduction for Qualification
+Rachel E Morris · Due in ~5mo
+Home Emergency Reserve
+Heath C Axworth · Due in ~5mo
+Retirement Emergency Fund
+Mike B Garcia · Due in ~6mo
+Olivia's College
+Jennifer C Blake · Due in ~8mo
+Pipeline Movement
+View all →
+Qualification
+$18.7B
+↑ 0%
+Negotiation
+$106M
+↑ 0%
+Prospecting
+$22.1M
+↑ 0%
+Discovery
+$15.9M
+↑ 0%
+Open Cases
+View all →
+Inbound call with AI Agent
+Unassigned · 1 day open
+MEDIUM
+Inbound call with AI Agent
+Unassigned · 5 days open
+MEDIUM
+Inbound call with AI Agent
+Unassigned · 6 days open
+MEDIUM
+Need to reorder checks
+Douglas Y Moore · 6 days open
+LOW
+Leads & Referrals
++ New
+View all →
+James Barker
+Test · New
+Brandon D Ward
+Owner of Fields Household · refer to Wealth · $5M+ · wealth 100
+Assa Barak
+Salesforce Demo2 · New
+Anthony R Garcia
+Warm intro via Martinez Household · Referral · 95%
+Top Opportunities
+View all →
+United Partners – Innovation Pipeline
+$5.3B · 20% probability
+COOL
+B2B Commerce Lightning Experience Guest Buyer Account – Innovation Pipeline
+$4.5B · 20% probability
+COOL
+Jim Morris Estate – Innovation Pipeline
+$3.4B · 20% probability
+COOL
+IDO House Account – Innovation Pipeline
+$2B · 20% probability
+COOL
+CROSS-SELL · WHITE-SPACE ANALYSIS
+Where the next product lives
+OWNED
+LOW
+HIGH
+▲▼
+MOVED 6 MO
+CLIENT
+OPPORTUNITY DETAIL
+All white-space opportunities
+All
+▲ Rising0
+▼ Falling0
+$0
+0 OPPORTUNITIES
+CLIENT	PRODUCT	SIGNAL	SCORE	6-MO
+↕
+	EST. VALUE	NEXT STEP
+Scoring your book…

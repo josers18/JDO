@@ -1,0 +1,103 @@
+‹
+Cumulus
+COMMAND CENTER
+SECTIONS
+Daily brief
+Key metrics
+Tasks & schedule
+Priority queue
+Recommended actions
+Cross-sell white-space
+Life events
+Risk alerts
+Pipeline
+Leads & referrals
+Portfolio pulse
+TODAY'S ARC
+No meetings today
+?
+Commercial
+Relationship Command
+VIEW AS
+My book
+▾
+CURRENT
+COCKPIT
+⌘K
+MA
+Back to command center
+
+COMMERCIAL COMMAND CENTER
+
+Configuration
+
+Org-level settings shared by everyone using this command center. Changes save instantly.
+
+MODEL PER AI ACTION
+
+Choose which model powers each generative action. “Server default” lets the org decide.Discovering live models — showing a curated list until the first check completes.
+
+Refresh models
+
+Loading…
+
+GENERATION PARAMETERS
+
+Stored, not yet applied. This org’s Apex Models API binding accepts only a model name per request — temperature and max tokens are saved and validated here for when the platform binding supports them.
+
+TEMPERATURE (0–2)
+MAX TOKENS (1–4096)
+BRAND THEME
+
+Paste a site URL to extract a logo and suggested palette. Refine the colors, name it, and apply it across every surface.
+
+SITE URL
+Extract
+ACCENT
+HEX
+RGB
+ACCENT SOFT
+HEX
+RGB
+↻ SUGGEST COMPLEMENTARY SOFT COLOR
+AI ACCENT (AGENTFORCE CHAT, AI BUTTONS)
+HEX
+RGB
+Use distinct color
+
+AI surfaces derive from the accent. Set a distinct color to separate “you act” from “AI acts”.
+
+🎨 Assign colors to elements…
+BRAND NAME (SHOWN IN THE APP)
+THEME NAME
+Save theme
+BASE THEMES
+Light
+Standard light · always available
+Customize
+Apply
+Dark
+Standard dark · always available
+Customize
+Apply
+
+Customize forks a base theme into an editable copy — its surfaces, text, and sidebar all become tunable. The standard Light/Dark above always stay as reset baselines.
+
+SAVED THEMES
+
+No saved themes yet.
+
+DISPLAY SIZE
+
+Scales the whole interface — text, labels, and boxes — for readability and presentations. Applies instantly and is saved to your user, so it follows you across command centers. This is a personal setting; it doesn’t affect other users.
+
+Default
+100%
+✓
+Comfortable
+110%
+Large
+125%
+Extra large
+140%
+Save configuration

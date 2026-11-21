@@ -33,6 +33,42 @@ private class CrmWriteRestTest {
     }
 
     @IsTest
+    static void retryAfterValidationFailureCreatesOneTask() {
+        String key = '14d96232-d579-48f8-998f-9d488d2db97f';
+        setupRequest('{"action":"task","requestId":"' + key + '"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode);
+        String request = '{"action":"task","subject":"Retry task","requestId":"' + key + '"}';
+        setupRequest(request); CrmWriteRest.write();
+        Object id = parseBody().get('id');
+        System.assertNotEquals(null, id);
+        setupRequest(request); CrmWriteRest.write();
+        System.assertEquals(id, parseBody().get('id'));
+        System.assertEquals(1, [SELECT COUNT() FROM Task WHERE Subject = 'Retry task']);
+    }
+
+    @IsTest
+    static void prospectEmailChecksReviewedRecipient() {
+        Lead prospect = new Lead(LastName='Prospect', Company='Test', Email='prospect@example.com');
+        insert prospect;
+        Map<String,Object> request = new Map<String,Object>{
+            'action'=>'email','requestId'=>'9992552e-3050-41b9-933a-f9adff7b2b7c','subject'=>'Reviewed email','description'=>'Banker approved body',
+            'whoId'=>prospect.Id,'ownerId'=>UserInfo.getUserId(),'toAddress'=>'old@example.com'
+        };
+        setupRequest(JSON.serialize(request)); CrmWriteRest.write();
+        System.assertEquals(409, RestContext.response.statusCode);
+        request.put('toAddress',prospect.Email);
+        setupRequest(JSON.serialize(request)); CrmWriteRest.write();
+        System.assertEquals(200, RestContext.response.statusCode);
+        // A replay must return the original receipt before even looking up a recipient.
+        request.put('toAddress','old@example.com');
+        setupRequest(JSON.serialize(request)); CrmWriteRest.write();
+        System.assertEquals(200, RestContext.response.statusCode);
+        System.assertEquals(1, [SELECT COUNT() FROM AtlasActionReceipt__c WITH SYSTEM_MODE]);
+
+    }
+
+    @IsTest
     static void createsTask() {
         setupRequest('{"action":"task","subject":"Follow up call","description":"Ring the client","dueDate":"2026-08-01","priority":"High"}');
         Test.startTest();
@@ -743,6 +779,24 @@ private class CrmWriteRestTest {
         System.assertEquals(12500, o.Amount, 'amount set');
         System.assertEquals(Date.newInstance(2026, 12, 31), o.CloseDate, 'close date set');
         System.assertEquals('Cross-sell grid', o.LeadSource, 'lead source set');
+    }
+
+    @IsTest
+    static void separateGridDraftsResolveToSameOpenOpportunity() {
+        Account household = new Account(Name='Grid Household');
+        insert household;
+        Map<String,Object> proposal = new Map<String,Object>{
+            'action'=>'opportunity','accountId'=>household.Id,'ownerId'=>UserInfo.getUserId(),
+            'name'=>'Managed Account — Grid Household','amount'=>1250,'leadSource'=>'Cross-sell grid',
+            'requestId'=>'b725b358-7146-4849-8aab-5d91c106a000'
+        };
+        setupRequest(JSON.serialize(proposal)); CrmWriteRest.write();
+        System.assertEquals(200, RestContext.response.statusCode);
+        Object original = parseBody().get('id');
+        proposal.put('requestId','b725b358-7146-4849-8aab-5d91c106a001');
+        setupRequest(JSON.serialize(proposal)); CrmWriteRest.write();
+        System.assertEquals(original, parseBody().get('id'));
+        System.assertEquals(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :household.Id]);
     }
 
     @IsTest

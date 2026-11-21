@@ -134,8 +134,8 @@ export interface TxSignalResult<T> { rows: T[]; scope: BookScope; }
 const isoDate = localDay;
 
 /** S5 — each client's largest bonus / tax-refund credit in the last 7 days. */
-export async function fetchLargeInflows(ownerId: string | null | undefined): Promise<TxSignalResult<LargeInflow>> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(largeInflowSql, ownerId, 8);
+export async function fetchLargeInflows(ownerId: string | null | undefined, strictBook = false): Promise<TxSignalResult<LargeInflow>> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(largeInflowSql, ownerId, 8, strictBook);
   return {
     scope: res.scope,
     rows: res.rows.map(r => ({
@@ -151,8 +151,8 @@ export async function fetchLargeInflows(ownerId: string | null | undefined): Pro
 const titleCase = (v: string) => v.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()).replace(/\b(Llc|Inc|Co)\b/g, w => (w === 'Llc' ? 'LLC' : w));
 
 /** S5 (Commercial) — each client's largest $10K+ ACH customer receipt in the last 7 days. */
-export async function fetchBusinessInflows(ownerId: string | null | undefined): Promise<TxSignalResult<LargeInflow>> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(businessInflowSql, ownerId, 8);
+export async function fetchBusinessInflows(ownerId: string | null | undefined, strictBook = false): Promise<TxSignalResult<LargeInflow>> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(businessInflowSql, ownerId, 8, strictBook);
   return {
     scope: res.scope,
     rows: res.rows.map(r => ({
@@ -293,8 +293,8 @@ const callSentimentWeeklySql = (accountFilter: string) => `
 
 /** S1 — book clients whose call sentiment is negative and declining this week,
  *  plus the weekly book count behind the Health KPI (same slice as the rows). */
-export async function fetchCallSentiment(ownerId: string | null | undefined): Promise<CallSentimentResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(callSentimentSql, ownerId, 8);
+export async function fetchCallSentiment(ownerId: string | null | undefined, strictBook = false): Promise<CallSentimentResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(callSentimentSql, ownerId, 8, strictBook);
   // The KPI is additive — if the trend query fails, the queue items still render.
   const weekly = await queryDataCloud<Record<string, unknown>>(callSentimentWeeklySql(res.accountFilter), 10)
     .then(r => r.rows.map(w => ({ week: isoDate(w.week), count: Number(w.n) || 0 })))
@@ -402,8 +402,8 @@ const asRating = (v: unknown): AmlRating | null => (RATINGS.includes(v as AmlRat
 const asBool = (v: unknown) => v === true || v === 'true';
 
 /** S2 — book clients whose AML / PEP / sanctions rating escalated on the latest run. */
-export async function fetchAmlChanges(ownerId: string | null | undefined): Promise<TxSignalResult<AmlChange>> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(amlChangeSql, ownerId, 8);
+export async function fetchAmlChanges(ownerId: string | null | undefined, strictBook = false): Promise<TxSignalResult<AmlChange>> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(amlChangeSql, ownerId, 8, strictBook);
   return {
     scope: res.scope,
     rows: res.rows.map(r => ({

@@ -42,6 +42,7 @@ export interface CrmStageValue extends CrmKpiValue {
 
 export interface CrmKpis {
   scope: 'book' | 'visible';
+  historyDates?: string[];
   pipeline: CrmKpiValue;
   openOpps: CrmKpiValue;
   leads: CrmKpiValue;
@@ -126,8 +127,9 @@ export function weeklySeries(byK: Map<number, number> | undefined, weeks = TREND
   return out;
 }
 
-export async function fetchCrmKpis(effectiveUserId: string | null | undefined, today = new Date()): Promise<CrmKpis> {
+export async function fetchCrmKpis(effectiveUserId: string | null | undefined, today = new Date(), strictBook = false): Promise<CrmKpis> {
   const ownerId = effectiveUserId && SF_ID.test(effectiveUserId) ? effectiveUserId : null;
+  if (strictBook && !ownerId) throw new Error('A verified KPI owner is required.');
   const weeks = TREND_POINTS - 1;
   // Week k's point is "as of the end of today − 7k", i.e. before the start of the next day.
   const ends = Array.from({ length: weeks + 1 }, (_, k) => daysAgo(today, 7 * k - 1));
@@ -136,7 +138,7 @@ export async function fetchCrmKpis(effectiveUserId: string | null | undefined, t
     : Promise.resolve(null);
   let res = await executeGraphQL<Shape>(liveQuery(ownerId));
   const owns = (x: Shape) => one(x.uiapi?.aggregate?.Opp, 'Id', 'count') + one(x.uiapi?.aggregate?.Lead, 'Id', 'count') > 0;
-  const book = !!ownerId && (!!getViewAs() || owns(res));
+  const book = !!ownerId && (strictBook || !!getViewAs() || owns(res));
   if (ownerId && !book) res = await executeGraphQL<Shape>(liveQuery(null));
   const histRows = book ? (await histP)?.rows ?? null : null;
 
@@ -159,6 +161,7 @@ export async function fetchCrmKpis(effectiveUserId: string | null | undefined, t
 
   return {
     scope: book ? 'book' : 'visible',
+    historyDates: histRows ? ends.map((_, k) => daysAgo(today, 7 * k)).reverse() : undefined,
     pipeline: metric('pipeline', one(a?.Opp, 'Amount', 'sum')),
     openOpps: metric('openOpps', one(a?.Opp, 'Id', 'count')),
     leads: metric('leads', one(a?.Lead, 'Id', 'count')),

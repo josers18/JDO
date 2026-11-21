@@ -66,6 +66,8 @@ export interface RightNowItem {
 
 export interface PipelineItem {
   id: string;
+  recordId?: string;
+  clientId?: string;
   clientName: string;
   name: string;
   stage: string;
@@ -243,6 +245,8 @@ export interface CustomerGoal {
 }
 
 export interface HomeDashboard {
+  portfolioActivity?: { wonAmount: number | null; activities: number };
+  unavailableMetrics?: string[];
   bankerName: string;
   dateLabel: string;
   aiBriefHeadline: string;

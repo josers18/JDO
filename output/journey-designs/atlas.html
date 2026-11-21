@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Atlas — Journey & Goals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,300&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --at-bg:        #181a1f;
+    --at-surface:   #1e2028;
+    --at-panel:     #22252e;
+    --at-border:    rgba(255,255,255,0.08);
+    --at-border-s:  rgba(255,255,255,0.04);
+    --at-ink:       #e8eaf0;
+    --at-ink-2:     rgba(232,234,240,0.50);
+    --at-ink-3:     rgba(232,234,240,0.25);
+    --at-teal:      #00c9a7;
+    --at-teal-lt:   rgba(0,201,167,0.12);
+    --at-teal-glow: rgba(0,201,167,0.25);
+    --at-amber:     #f5b942;
+    --at-amber-lt:  rgba(245,185,66,0.12);
+    --at-red:       #ff6b6b;
+    --at-red-lt:    rgba(255,107,107,0.12);
+    --at-muted:     #3a3d47;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: #111318;
+    color: var(--at-ink);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  /* ── SHELL ───────────────────────────────────── */
+  .at-shell {
+    max-width: 940px;
+    margin: 0 auto;
+    border: 1px solid var(--at-border);
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--at-surface);
+    box-shadow: 0 0 80px rgba(0,0,0,0.7);
+  }
+
+  /* ── HEADER ──────────────────────────────────── */
+  .at-header {
+    background: var(--at-panel);
+    border-bottom: 1px solid var(--at-border);
+    padding: 24px 28px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .at-header-left { display: flex; align-items: center; gap: 16px; }
+  .at-avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--at-teal) 0%, #005f50 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800; color: #0a2a24;
+    flex-shrink: 0;
+  }
+  .at-header-text {}
+  .at-eyebrow {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    color: var(--at-teal);
+    margin-bottom: 4px;
+  }
+  .at-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--at-ink);
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+  .at-sub {
+    font-family: 'Source Serif 4', serif;
+    font-size: 12px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--at-ink-3);
+    margin-top: 3px;
+  }
+  .at-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .at-type-toggle {
+    display: flex;
+    background: var(--at-surface);
+    border: 1px solid var(--at-border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .at-type-btn {
+    padding: 6px 16px;
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: none;
+    background: transparent;
+    color: var(--at-ink-3);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .at-type-btn.active {
+    background: var(--at-teal);
+    color: #0a2a24;
+  }
+
+  /* ── SPLIT BODY ──────────────────────────────── */
+  .at-body {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    min-height: 480px;
+  }
+  .at-divider {
+    background: var(--at-border);
+    width: 1px;
+  }
+
+  /* ── LEFT: TIMELINE ──────────────────────────── */
+  .at-timeline {
+    padding: 24px 28px 28px;
+    overflow-y: auto;
+    max-height: 560px;
+  }
+  .at-panel-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--at-ink-3);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .at-panel-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--at-border);
+  }
+
+  /* Zigzag layout */
+  .at-zig {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+  }
+  /* The spine */
+  .at-zig::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 0; bottom: 0;
+    width: 1px;
+    background: repeating-linear-gradient(
+      to bottom,
+      var(--at-border) 0px,
+      var(--at-border) 6px,
+      transparent 6px,
+      transparent 10px
+    );
+  }
+
+  .at-zig-row {
+    display: grid;
+    grid-template-columns: 1fr 24px 1fr;
+    align-items: start;
+    min-height: 64px;
+    position: relative;
+  }
+
+  .at-zig-left {
+    padding: 10px 16px 10px 0;
+    text-align: right;
+  }
+  .at-zig-right {
+    padding: 10px 0 10px 16px;
+    text-align: left;
+  }
+  .at-zig-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 12px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .at-node {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--at-muted);
+    background: var(--at-surface);
+    flex-shrink: 0;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .at-node.done {
+    border-color: var(--at-teal);
+    background: var(--at-teal);
+  }
+  .at-node.now {
+    width: 16px; height: 16px;
+    border-color: var(--at-teal);
+    background: var(--at-teal);
+    box-shadow: 0 0 0 4px var(--at-teal-lt), 0 0 16px var(--at-teal-glow);
+    animation: at-pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes at-pulse {
+    0%,100% { box-shadow: 0 0 0 3px var(--at-teal-lt), 0 0 10px var(--at-teal-glow); }
+    50%      { box-shadow: 0 0 0 6px var(--at-teal-lt), 0 0 24px var(--at-teal-glow); }
+  }
+
+  .at-ev-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--at-ink);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  .at-ev-name.now { color: var(--at-teal); }
+  .at-ev-date {
+    font-family: 'Source Serif 4', serif;
+    font-size: 10px;
+    font-weight: 300;
+    color: var(--at-ink-3);
+    margin-top: 2px;
+    font-style: italic;
+  }
+  .at-ev-count {
+    display: inline-block;
+    background: var(--at-teal-lt);
+    color: var(--at-teal);
+    font-size: 9px;
+    font-weight: 700;
+    border-radius: 20px;
+    padding: 1px 6px;
+    margin-left: 4px;
+  }
+
+  /* ── RIGHT: ORBITAL GOALS ────────────────────── */
+  .at-goals-panel {
+    padding: 24px 28px 28px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .at-orbital-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    position: relative;
+  }
+
+  .at-orbital-svg {
+    width: 100%;
+    max-width: 360px;
+    height: 360px;
+  }
+
+  /* no-goals */
+  .at-no-goals {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 200px;
+  }
+  .at-no-goals-icon { font-size: 32px; opacity: 0.3; }
+  .at-no-goals-text { font-size: 13px; color: var(--at-ink-3); }
+
+  /* legend */
+  .at-legend {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    justify-content: center;
+  }
+  .at-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--at-ink-3);
+    font-family: 'Source Serif 4', serif;
+  }
+  .at-legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── DEMO LABEL ──────────────────────────────── */
+  .demo-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--at-teal);
+    text-align: center;
+    margin-bottom: 20px;
+    opacity: 0.7;
+  }
+
+  /* scrollbar */
+  .at-timeline::-webkit-scrollbar { width: 3px; }
+  .at-timeline::-webkit-scrollbar-track { background: transparent; }
+  .at-timeline::-webkit-scrollbar-thumb { background: var(--at-border); border-radius: 99px; }
+</style>
+</head>
+<body>
+<p class="demo-label">Design Option C — Atlas</p>
+
+<div class="at-shell">
+  <!-- HEADER -->
+  <div class="at-header">
+    <div class="at-header-left">
+      <div class="at-avatar" id="at-avatar">JM</div>
+      <div class="at-header-text">
+        <p class="at-eyebrow" id="at-eyebrow">Life Journey & Goals</p>
+        <h2 class="at-name" id="at-name">Mrs. Julie E Morris</h2>
+        <p class="at-sub" id="at-sub">Person Account · San Francisco, CA</p>
+      </div>
+    </div>
+    <div class="at-header-right">
+      <div class="at-type-toggle">
+        <button class="at-type-btn active" onclick="setType('person',this)">Person</button>
+        <button class="at-type-btn" onclick="setType('business',this)">Business</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPLIT BODY -->
+  <div class="at-body">
+    <!-- LEFT TIMELINE -->
+    <div class="at-timeline" id="at-timeline">
+      <div class="at-panel-title">Timeline</div>
+      <div class="at-zig" id="at-zig"></div>
+    </div>
+    <div class="at-divider"></div>
+
+    <!-- RIGHT ORBITAL -->
+    <div class="at-goals-panel" id="at-goals-panel">
+      <div class="at-panel-title" id="at-goals-title">Goal Constellation</div>
+      <div class="at-orbital-wrap">
+        <svg class="at-orbital-svg" id="at-orbital-svg" viewBox="0 0 360 360"></svg>
+      </div>
+      <div class="at-legend" id="at-legend"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PERSON = {
+  name: 'Mrs. Julie E Morris',
+  initials: 'JM',
+  sub: 'Person Account · San Francisco, CA',
+  eyebrow: 'Life Journey & Goals',
+  goalsTitle: 'Goal Constellation',
+  events: [
+    { year:1993, name:'Birth',                   date:'May 31, 1993',  status:'done', side:'left' },
+    { year:2000, name:'Marriage',                date:'Oct 11, 2000',  status:'done', side:'right' },
+    { year:2018, name:'Purchased Home',          date:'May 2, 2018',   status:'done', side:'left' },
+    { year:2018, name:'Moved to San Francisco',  date:'Apr 9, 2018',   status:'done', side:'right' },
+    { year:2021, name:'Audi Q7',                 date:'Jan 4, 2021',   status:'done', side:'left' },
+    { year:2026, name:'Appointed CEO',           date:'May 4, 2026',   status:'now',  side:'right', count:2 },
+  ],
+  goals: [
+    { name:'Retirement',       amount:'$6.75M', pct:96,  priority:'low',    color:'#5ccb8e' },
+    { name:'Estate Planning',  amount:'$1.5M',  pct:100, priority:'medium', color:'#c9a96e' },
+    { name:"Jack's College",   amount:'$175K',  pct:61,  priority:'high',   color:'#ff6b6b' },
+    { name:'Vacation Home',    amount:'$208K',  pct:32,  priority:'medium', color:'#c9a96e' },
+    { name:"Rachel's Wedding", amount:'$85K',   pct:71,  priority:'high',   color:'#ff9d4d', warn:true },
+    { name:'Charitable Giving',amount:'$15K',   pct:15,  priority:'medium', color:'#7cb9f4' },
+  ]
+};
+
+const BUSINESS = {
+  name: 'Omega, Inc.',
+  initials: 'OI',
+  sub: 'Account · San Francisco, CA',
+  eyebrow: 'Business Milestones',
+  goalsTitle: 'No Goals Recorded',
+  events: [
+    { year:2019, name:'International Expansion', date:'May 12, 2019', status:'done', side:'left', count:3 },
+    { year:2020, name:'New CEO Named',           date:'Oct 5, 2020',  status:'done', side:'right' },
+    { year:2021, name:'New Partnership',         date:'Mar 15, 2021', status:'done', side:'left' },
+    { year:2022, name:'New Product Launch',      date:'Aug 20, 2022', status:'done', side:'right' },
+    { year:2024, name:'Seed Funding Round',      date:'Jan 10, 2024', status:'done', side:'left' },
+    { year:2026, name:'Market Listing Pending',  date:'Jun 1, 2026',  status:'now',  side:'right' },
+  ],
+  goals: []
+};
+
+let currentData = PERSON;
+
+function setType(type, btn) {
+  currentData = type === 'person' ? PERSON : BUSINESS;
+  document.querySelectorAll('.at-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('at-eyebrow').textContent = currentData.eyebrow;
+  document.getElementById('at-name').textContent = currentData.name;
+  document.getElementById('at-sub').textContent = currentData.sub;
+  document.getElementById('at-avatar').textContent = currentData.initials;
+  document.getElementById('at-goals-title').textContent = currentData.goalsTitle;
+  render();
+}
+
+/* ── Zigzag timeline ─────────────────────────── */
+function renderTimeline(events) {
+  return events.map((ev, i) => {
+    const isLeft  = ev.side === 'left';
+    const leftCell  = isLeft ? `
+      <div class="at-ev-name ${ev.status}">${ev.name}${ev.count ? `<span class="at-ev-count">×${ev.count}</span>` : ''}</div>
+      <div class="at-ev-date">${ev.date}</div>` : '';
+    const rightCell = !isLeft ? `
+      <div class="at-ev-name ${ev.status}">${ev.name}${ev.count ? `<span class="at-ev-count">×${ev.count}</span>` : ''}</div>
+      <div class="at-ev-date">${ev.date}</div>` : '';
+    return `
+      <div class="at-zig-row">
+        <div class="at-zig-left">${leftCell}</div>
+        <div class="at-zig-center">
+          <div class="at-node ${ev.status}"></div>
+        </div>
+        <div class="at-zig-right">${rightCell}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ── Orbital goals SVG ───────────────────────── */
+function renderOrbital(goals) {
+  const goalsPanel = document.getElementById('at-goals-panel');
+  const legend = document.getElementById('at-legend');
+
+  if (!goals.length) {
+    document.getElementById('at-orbital-svg').innerHTML = '';
+    document.getElementById('at-orbital-svg').style.display = 'none';
+    legend.innerHTML = '';
+    const wrap = document.querySelector('.at-orbital-wrap');
+    wrap.innerHTML = `<div class="at-no-goals">
+      <div class="at-no-goals-icon">◎</div>
+      <div class="at-no-goals-text">No goals recorded for this account</div>
+    </div>`;
+    return;
+  }
+
+  // restore SVG if coming back from business
+  const wrap = document.querySelector('.at-orbital-wrap');
+  if (!wrap.querySelector('svg')) {
+    wrap.innerHTML = '<svg class="at-orbital-svg" id="at-orbital-svg" viewBox="0 0 360 360"></svg>';
+  }
+
+  const svg = document.getElementById('at-orbital-svg');
+  const cx = 180, cy = 180;
+  const baseR = 40;
+  const radii = [52, 72, 92, 112, 132, 150];
+
+  let svgContent = '';
+
+  // Center
+  svgContent += `
+    <circle cx="${cx}" cy="${cy}" r="28" fill="#1e2028" stroke="rgba(0,201,167,0.15)" stroke-width="1" />
+    <text x="${cx}" y="${cy - 6}" text-anchor="middle" font-family="Syne" font-size="8" fill="rgba(232,234,240,0.35)" font-weight="700" letter-spacing="2">GOALS</text>
+    <text x="${cx}" y="${cy + 7}" text-anchor="middle" font-family="Syne" font-size="9" fill="rgba(0,201,167,0.6)" font-weight="700">${goals.length}</text>
+  `;
+
+  goals.forEach((g, i) => {
+    const r = radii[i] || 150 + i * 20;
+    const CIRC = 2 * Math.PI * r;
+
+    // Orbit track
+    svgContent += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1" />`;
+
+    // Filled arc (counter-clockwise from top) — rotate -90deg on the whole group
+    const fillLen = (g.pct / 100) * CIRC;
+    const gapLen = CIRC - fillLen;
+    const strokeDash = `${fillLen} ${gapLen}`;
+
+    svgContent += `
+      <circle
+        cx="${cx}" cy="${cy}" r="${r}"
+        fill="none"
+        stroke="${g.color}"
+        stroke-width="${g.warn ? 4 : 2.5}"
+        stroke-linecap="round"
+        stroke-dasharray="${strokeDash}"
+        stroke-dashoffset="${CIRC * 0.25}"
+        opacity="${g.warn ? 0.9 : 0.7}"
+      />
+    `;
+
+    // Warning pulse ring
+    if (g.warn) {
+      svgContent += `
+        <circle cx="${cx}" cy="${cy}" r="${r}"
+          fill="none" stroke="${g.color}" stroke-width="1.5"
+          stroke-dasharray="${strokeDash}"
+          stroke-dashoffset="${CIRC * 0.25}"
+          opacity="0.3"
+        >
+          <animate attributeName="stroke-width" values="1;4;1" dur="2.5s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2.5s" repeatCount="indefinite" />
+        </circle>`;
+    }
+
+    // Goal dot at end of arc
+    const angle = ((g.pct / 100) * 360 - 90) * (Math.PI / 180);
+    const dx = cx + r * Math.cos(angle);
+    const dy = cy + r * Math.sin(angle);
+
+    svgContent += `
+      <circle cx="${dx}" cy="${dy}" r="5" fill="${g.color}" />
+      <circle cx="${dx}" cy="${dy}" r="3" fill="${g.pct === 100 ? '#1e2028' : g.color}" />
+    `;
+
+    // Amount label near dot
+    const lx = cx + (r + 14) * Math.cos(angle);
+    const ly = cy + (r + 14) * Math.sin(angle);
+    const anchor = lx < cx ? 'end' : 'start';
+    svgContent += `
+      <text x="${lx}" y="${ly + 4}" text-anchor="${anchor}"
+        font-family="Source Serif 4, serif"
+        font-size="9" fill="rgba(232,234,240,0.50)"
+      >${g.amount}</text>
+    `;
+  });
+
+  svg.innerHTML = svgContent;
+
+  // Legend
+  legend.innerHTML = goals.map(g => `
+    <div class="at-legend-item">
+      <div class="at-legend-dot" style="background:${g.color}"></div>
+      ${g.name} · ${g.pct}%${g.warn ? ' ⚠' : ''}
+    </div>
+  `).join('');
+}
+
+function render() {
+  document.getElementById('at-zig').innerHTML = renderTimeline(currentData.events);
+  renderOrbital(currentData.goals);
+}
+
+render();
+</script>
+</body>
+</html>

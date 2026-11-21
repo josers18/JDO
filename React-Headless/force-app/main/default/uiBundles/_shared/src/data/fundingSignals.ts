@@ -70,8 +70,8 @@ const numOrNull = (v: unknown): number | null => {
 };
 
 /** Harmonic — the book's biggest recent funding rounds this month, plus a count. */
-export async function fetchFundingSignals(ownerId: string | null | undefined): Promise<FundingSignalResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(fundingRowsSql, ownerId, FETCH_ROWS);
+export async function fetchFundingSignals(ownerId: string | null | undefined, strictBook = false): Promise<FundingSignalResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(fundingRowsSql, ownerId, FETCH_ROWS, strictBook);
   // The count is additive — if the summary query fails, the rows still render.
   const total = await queryDataCloud<Record<string, unknown>>(fundingSummarySql(res.accountFilter), 1)
     .then(r => r.rows[0] ?? {})

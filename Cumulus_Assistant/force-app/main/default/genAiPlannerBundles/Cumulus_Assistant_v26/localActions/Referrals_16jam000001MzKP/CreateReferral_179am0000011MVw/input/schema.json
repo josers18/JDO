@@ -1,0 +1,36 @@
+{
+  "required" : [ "recordId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "introductionComments" : {
+      "title" : "introductionComments",
+      "description" : "Any comments to include from the context of how the referral was created. Summarize the context or comments to be one to three sentences max.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "recordId" : {
+      "title" : "recordId",
+      "description" : "Record ID of the related account.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "referralCreatedOn" : {
+      "title" : "referralCreatedOn",
+      "description" : "Date and time the referral was created. This is already set to current date and time by default so need to provide input here.",
+      "lightning:type" : "lightning__dateTimeStringType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "targetLOB" : {
+      "title" : "targetLOB",
+      "description" : "Target line of business the referral is for. The picklist values for this input are any one of these options: CMC, Consumer Investments, Wealth, Private Bank, Business Banking, Commercial Bank, Global Markets, Lending, Mortgage.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

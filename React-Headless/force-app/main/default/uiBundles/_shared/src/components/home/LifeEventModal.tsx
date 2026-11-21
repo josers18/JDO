@@ -12,16 +12,18 @@ export function LifeEventModal({
   onClose,
   event,
   onSaved,
+  ownerId,
 }: {
   open: boolean;
   onClose: () => void;
   event: LifeEventItem | null;
   onSaved?: () => void;
+  ownerId?: string;
 }) {
   // Defer to an inner component once `event` is non-null so the hooks that need
   // Salesforce context (useCrmAction → useToast) never run for the empty state.
   if (!event) return null;
-  return <LifeEventModalContent open={open} onClose={onClose} event={event} onSaved={onSaved} />;
+  return <LifeEventModalContent open={open} onClose={onClose} event={event} onSaved={onSaved} ownerId={ownerId} />;
 }
 
 function LifeEventModalContent({
@@ -29,11 +31,13 @@ function LifeEventModalContent({
   onClose,
   event,
   onSaved,
+  ownerId,
 }: {
   open: boolean;
   onClose: () => void;
   event: LifeEventItem;
   onSaved?: () => void;
+  ownerId?: string;
 }) {
   const creating = !!event.create;
   // Both create and edit write; a life event surfaced from CRM always has a
@@ -143,7 +147,7 @@ function LifeEventModalContent({
             <LookupField
               value={person}
               onChange={setPerson}
-              search={searchContacts}
+              search={ownerId === undefined ? searchContacts : (term: string, limit?: number) => searchContacts(term, limit, ownerId)}
               placeholder="Search customers by name…"
             />
           </Field>

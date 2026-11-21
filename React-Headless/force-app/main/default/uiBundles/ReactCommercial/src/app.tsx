@@ -18,10 +18,11 @@ const rawBasePath = (globalThis as any).SFDC_ENV?.basePath;
 const basename =
   typeof rawBasePath === 'string' ? rawBasePath.replace(/\/+$/, '') : undefined;
 const router = createBrowserRouter(routes, { basename });
+if (import.meta.env.MODE === 'atlas') document.title = 'React Commercial V2';
 
 // Apply the user's active brand theme (if any) once at load. Fire-and-forget:
 // renders the persona default first, swaps to the brand on resolve (never blocks paint).
-void applyActiveThemeOnLoad();
+void applyActiveThemeOnLoad(import.meta.env.MODE === 'atlas' ? 'commercial' : undefined);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -83,8 +83,8 @@ export interface TradingPulseResult {
 }
 
 /** W5 — nine calendar weeks of buys vs sells plus the latest week's net sellers. */
-export async function fetchTradingPulse(ownerId: string | null | undefined): Promise<TradingPulseResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(weeklySql, ownerId, 20);
+export async function fetchTradingPulse(ownerId: string | null | undefined, strictBook = false): Promise<TradingPulseResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(weeklySql, ownerId, 20, strictBook);
   const sellers = await queryDataCloud<Record<string, unknown>>(sellersSql(res.accountFilter), 4)
     .then(r => r.rows)
     .catch((): Record<string, unknown>[] => []);

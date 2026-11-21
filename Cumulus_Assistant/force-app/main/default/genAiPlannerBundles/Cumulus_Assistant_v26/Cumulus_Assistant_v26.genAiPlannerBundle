@@ -1,0 +1,1685 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPlannerBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Cumulus Bank employee assistant for wealth advisors, retail bankers, commercial bankers, and treasury managers. Helps advisors view client financial accounts, query transactions and holdings, access client life events and financial goals, create and manage referrals, look up product information, draft emails, create cases, and manage CRM records across Financial Services Cloud. For transaction summaries, there is no default 30-day window; when no date range is provided, the agent fetches the most recent available transactions (entire available history) and only reports &apos;no transactions&apos; if the tool returns zero rows.</description>
+    <localTopicLinks>
+        <genAiPluginName>Client_Insights_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>CommunicateWithCustomers_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>Create_a_Case_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>Create_a_new_Case_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>Financial_Accounts_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>GeneralCRM_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>GeneralFAQ_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>GeneralWebSearch_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>ProactiveNotification_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>Product_Offers_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>Product_Questions_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>RecordManagement_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>Referrals_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>SalesRecordCreation_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>SemanticDataAnalysis_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>SlackExecutiveBrief_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>WealthAdvisorClientMeeting_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>WealthAdvisorClientPostMeetingFollowUp_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>agent_router_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>ambiguous_question_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>off_topic_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>personalizedRecommendations_16jam000001MzKP</genAiPluginName>
+    </localTopicLinks>
+    <localTopics>
+        <fullName>Client_Insights_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>View client life events, financial goals, interaction history, and open cases for FSC clients</description>
+        <developerName>Client_Insights_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MVm</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MVm</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>IdentifyRecordByName_179am0000011MVm</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>QueryRecords_179am0000011MVm</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>QueryRecords_179am0000011MVm</fullName>
+            <description>Finds and retrieves Salesforce CRM records based on user input and specific conditions, such as field values. This action automatically identifies the correct records and object type.</description>
+            <developerName>QueryRecords_179am0000011MVm</developerName>
+            <invocationTarget>queryRecords</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>QueryRecords</localDeveloperName>
+            <masterLabel>Query Records</masterLabel>
+            <source>EmployeeCopilot__QueryRecords</source>
+        </localActions>
+        <localActions>
+            <fullName>IdentifyRecordByName_179am0000011MVm</fullName>
+            <description>Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs.</description>
+            <developerName>IdentifyRecordByName_179am0000011MVm</developerName>
+            <invocationTarget>identifyRecordByName</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>IdentifyRecordByName</localDeveloperName>
+            <masterLabel>Identify Record by Name</masterLabel>
+            <source>EmployeeCopilot__IdentifyRecordByName</source>
+        </localActions>
+        <localDeveloperName>Client_Insights</localDeveloperName>
+        <masterLabel>Client Insights</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>WealthAdvisorClientPostMeetingFollowUp_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Help wealth advisors manage post meeting tasks by creating financial plans, goals, action plans, interest tags, and life events. Structure and organize meeting notes. Extract financial plans, goals, action plans, and life events from the meeting notes. Classify follow-up tasks into categories such as financial planning or documenting outcomes. If meeting notes are available, use this topic.</description>
+        <developerName>WealthAdvisorClientPostMeetingFollowUp_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MVl</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MVl</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>StructureFinancialAdvisorMeetingNotes_179am0000011MVl</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>CreateActionPlan_179am0000011MVl</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>CreateFinancialGoal_179am0000011MVl</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>ExtractPersonLifeEvents_179am0000011MVl</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>ExtractFinancialGoals_179am0000011MVl</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>IdentifyRecordByName_179am0000011MVl</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>CreateActionPlanItem_179am0000011MVl</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>ExtractActionPlans_179am0000011MVl</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>CreateInterestTag_179am0000011MVl</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>ExtractFinancialPlans_179am0000011MVl</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>CreateFinancialPlan_179am0000011MVl</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>CreatePersonLifeEvent_179am0000011MVl</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>StructureFinancialAdvisorMeetingNotes_179am0000011MVl</fullName>
+            <description>Structure and organize meeting notes. Identify the key client details, needs, concerns, and next steps for a follow-up meeting.</description>
+            <developerName>StructureFinancialAdvisorMeetingNotes_179am0000011MVl</developerName>
+            <invocationTarget>wealthagent__FinancialAdvisorMeetingNotes</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>StructureFinancialAdvisorMeetingNotes</localDeveloperName>
+            <masterLabel>Structure Financial Advisor Meeting Notes</masterLabel>
+            <source>wealthagent__StructureFinancialAdvisorMeetingNotes</source>
+        </localActions>
+        <localActions>
+            <fullName>ExtractActionPlans_179am0000011MVl</fullName>
+            <description>Extract action plans from meeting notes. Identify one or more action plans, statuses, and start dates for wealth management advisors.</description>
+            <developerName>ExtractActionPlans_179am0000011MVl</developerName>
+            <invocationTarget>wealthagent__ExtractActionPlans</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>ExtractActionPlans</localDeveloperName>
+            <masterLabel>Extract Action Plans</masterLabel>
+            <source>wealthagent__ExtractActionPlans</source>
+        </localActions>
+        <localActions>
+            <fullName>CreateFinancialPlan_179am0000011MVl</fullName>
+            <description>Collect the account ID, name, start date, status, and type. Create a financial plan related to the account.</description>
+            <developerName>CreateFinancialPlan_179am0000011MVl</developerName>
+            <invocationTarget>wealthagent__StdFSCCreaFinclPlan</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>CreateFinancialPlan</localDeveloperName>
+            <masterLabel>Create Financial Plan</masterLabel>
+            <source>wealthagent__CreateFinancialPlan</source>
+        </localActions>
+        <localActions>
+            <fullName>CreatePersonLifeEvent_179am0000011MVl</fullName>
+            <description>Collect the account ID, name, date and type. Create a person life event related to the account.</description>
+            <developerName>CreatePersonLifeEvent_179am0000011MVl</developerName>
+            <invocationTarget>wealthagent__StdFSCCreaPersLifeEvnt</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>CreatePersonLifeEvent</localDeveloperName>
+            <masterLabel>Create Person Life Event</masterLabel>
+            <source>wealthagent__CreatePersonLifeEvent</source>
+        </localActions>
+        <localActions>
+            <fullName>CreateInterestTag_179am0000011MVl</fullName>
+            <description>Extract interest tags from the meeting notes. Show the extracted interest tags to the user, who can then select the interest tags to create.</description>
+            <developerName>CreateInterestTag_179am0000011MVl</developerName>
+            <invocationTarget>wealthagent__ExtractInterestTags</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>CreateInterestTag</localDeveloperName>
+            <masterLabel>Create Interest Tag</masterLabel>
+            <source>wealthagent__CreateInterestTag</source>
+        </localActions>
+        <localActions>
+            <fullName>CreateActionPlan_179am0000011MVl</fullName>
+            <description>Creates an action plan for a client, leveraging meeting notes if present, or proceeding without them.</description>
+            <developerName>CreateActionPlan_179am0000011MVl</developerName>
+            <invocationTarget>wealthagent__StdFSCCreaActnPlan</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>CreateActionPlan</localDeveloperName>
+            <masterLabel>Create Action Plan</masterLabel>
+            <source>wealthagent__CreateActionPlan</source>
+        </localActions>
+        <localActions>
+            <fullName>ExtractPersonLifeEvents_179am0000011MVl</fullName>
+            <description>Extract person life events from meeting notes. Identify life events, types, and dates for wealth management advisors.</description>
+            <developerName>ExtractPersonLifeEvents_179am0000011MVl</developerName>
+            <invocationTarget>wealthagent__ExtractPersonLifeEvents</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>ExtractPersonLifeEvents</localDeveloperName>
+            <masterLabel>Extract Person Life Events</masterLabel>
+            <source>wealthagent__ExtractPersonLifeEvents</source>
+        </localActions>
+        <localActions>
+            <fullName>CreateActionPlanItem_179am0000011MVl</fullName>
+            <description>Create an action plan item for an action plan. Enter the item name, status, priority, and due date.</description>
+            <developerName>CreateActionPlanItem_179am0000011MVl</developerName>
+            <invocationTarget>wealthagent__StdFSCCreaActnPlanItem</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>CreateActionPlanItem</localDeveloperName>
+            <masterLabel>Create Action Plan Item</masterLabel>
+            <source>wealthagent__CreateActionPlanItem</source>
+        </localActions>
+        <localActions>
+            <fullName>ExtractFinancialPlans_179am0000011MVl</fullName>
+            <description>Extract financial plans from meeting notes.  Identify financial plans, types, statuses, priorities, start dates, target amounts, and target dates for wealth management advisors.</description>
+            <developerName>ExtractFinancialPlans_179am0000011MVl</developerName>
+            <invocationTarget>wealthagent__ExtractFinancialPlans</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>ExtractFinancialPlans</localDeveloperName>
+            <masterLabel>Extract Financial Plans</masterLabel>
+            <source>wealthagent__ExtractFinancialPlans</source>
+        </localActions>
+        <localActions>
+            <fullName>IdentifyRecordByName_179am0000011MVl</fullName>
+            <description>Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs.</description>
+            <developerName>IdentifyRecordByName_179am0000011MVl</developerName>
+            <invocationTarget>identifyRecordByName</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>IdentifyRecordByName</localDeveloperName>
+            <masterLabel>Identify Record by Name</masterLabel>
+            <source>EmployeeCopilot__IdentifyRecordByName</source>
+        </localActions>
+        <localActions>
+            <fullName>ExtractFinancialGoals_179am0000011MVl</fullName>
+            <description>Extract financial goals from meeting notes.  Identify financial goals, types, statuses, priorities, start dates, target amounts, and target dates for wealth management advisors.</description>
+            <developerName>ExtractFinancialGoals_179am0000011MVl</developerName>
+            <invocationTarget>wealthagent__ExtractFinancialGoals</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>ExtractFinancialGoals</localDeveloperName>
+            <masterLabel>Extract Financial Goals</masterLabel>
+            <source>wealthagent__ExtractFinancialGoals</source>
+        </localActions>
+        <localActions>
+            <fullName>CreateFinancialGoal_179am0000011MVl</fullName>
+            <description>Collect the account ID, start date, status, type, target amount, priority, target date and name. Create a financial goal for the account.</description>
+            <developerName>CreateFinancialGoal_179am0000011MVl</developerName>
+            <invocationTarget>wealthagent__StdFSCCreaFinclGoal</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>CreateFinancialGoal</localDeveloperName>
+            <masterLabel>Create Financial Goal</masterLabel>
+            <source>wealthagent__CreateFinancialGoal</source>
+        </localActions>
+        <localDeveloperName>WealthAdvisorClientPostMeetingFollowUp</localDeveloperName>
+        <masterLabel>Wealth Advisor Client Post Meeting Follow Up</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>GeneralWebSearch_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>This subagent is about enabling the agent to perform real-time web searches to obtain specific information about things but not about company policy, rules or anything related to this company. Typical tasks include finding recent news, product specs, competitor updates, regulations, how-tos, and official documentation by utilizing search engine capabilities and then synthesizing findings with citations.</description>
+        <developerName>GeneralWebSearch_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MVo</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MVo</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>WebSearch_179am0000011MVo</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>WebSearch_179am0000011MVo</fullName>
+            <description>Retrieves real-time or external information that isn&apos;t available in Salesforce CRM. Use it for questions about news, market trends, competitor details, and product comparisons, or when Salesforce answers need added context from the web.</description>
+            <developerName>WebSearch_179am0000011MVo</developerName>
+            <invocationTarget>webSearchStream</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>WebSearch</localDeveloperName>
+            <masterLabel>Search The Web</masterLabel>
+            <progressIndicatorMessage>Searching the web</progressIndicatorMessage>
+            <source>EmployeeCopilot__WebSearch</source>
+        </localActions>
+        <localDeveloperName>GeneralWebSearch</localDeveloperName>
+        <masterLabel>General Web Search</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>WealthAdvisorClientMeeting_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Help wealth advisors create record alerts and agenda drafts, summarize client and household data, summarize financial plans and goals, summarize portfolio performance, review asset allocation, retrieve client life events, and prepare for client meetings.</description>
+        <developerName>WealthAdvisorClientMeeting_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MW0</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MW0</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>SummarizeHouseholdFinancialDetails_179am0000011MW0</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>SummarizeAccountFinancialDetails_179am0000011MW0</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>CreateOrUpdateAgendaDraft_179am0000011MW0</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>SummarizeAccountRecordAlerts_179am0000011MW0</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>SummarizePortfolioPerformance_179am0000011MW0</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>ReviewAllocation_179am0000011MW0</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>CreateRecordAlert_179am0000011MW0</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>SummarizeAgendaDrafts_179am0000011MW0</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>IdentifyRecordByName_179am0000011MW0</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>SummarizeFinancialPlansAndGoals_179am0000011MW0</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>GetClientLifeEvents_179am0000011MW0</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>IdentifyRecordByName_179am0000011MW0</fullName>
+            <description>Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs.</description>
+            <developerName>IdentifyRecordByName_179am0000011MW0</developerName>
+            <invocationTarget>identifyRecordByName</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>IdentifyRecordByName</localDeveloperName>
+            <masterLabel>Identify Record by Name</masterLabel>
+            <source>EmployeeCopilot__IdentifyRecordByName</source>
+        </localActions>
+        <localActions>
+            <fullName>SummarizeHouseholdFinancialDetails_179am0000011MW0</fullName>
+            <description>Provide wealth advisors with a real-time summary of a household&apos;s financial profile within Salesforce Financial Services Cloud.</description>
+            <developerName>SummarizeHouseholdFinancialDetails_179am0000011MW0</developerName>
+            <invocationTarget>wealthagent__SummarizeHouseholdFinancialDetails</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>SummarizeHouseholdFinancialDetails</localDeveloperName>
+            <masterLabel>Summarize Household Financial Details</masterLabel>
+            <source>wealthagent__SummarizeHouseholdFinancialDetails</source>
+        </localActions>
+        <localActions>
+            <fullName>GetClientLifeEvents_179am0000011MW0</fullName>
+            <description>Provide wealth advisors with a list of past and upcoming life events within Salesforce Financial Services Cloud.</description>
+            <developerName>GetClientLifeEvents_179am0000011MW0</developerName>
+            <invocationTarget>wealthagent__StdFSCGetRcntUpcomingEvnt</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>GetClientLifeEvents</localDeveloperName>
+            <masterLabel>Get Client Life Events</masterLabel>
+            <source>wealthagent__GetClientLifeEvents</source>
+        </localActions>
+        <localActions>
+            <fullName>CreateOrUpdateAgendaDraft_179am0000011MW0</fullName>
+            <description>Collect the note ID and agenda draft. Create or update the agenda draft.</description>
+            <developerName>CreateOrUpdateAgendaDraft_179am0000011MW0</developerName>
+            <invocationTarget>wealthagent__StdFSCCreaUpdtAgendaDrft</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>CreateOrUpdateAgendaDraft</localDeveloperName>
+            <masterLabel>Create or Update Agenda Draft</masterLabel>
+            <source>wealthagent__CreateOrUpdateAgendaDraft</source>
+        </localActions>
+        <localActions>
+            <fullName>SummarizeAgendaDrafts_179am0000011MW0</fullName>
+            <description>Summarize agenda drafts for client meetings.</description>
+            <developerName>SummarizeAgendaDrafts_179am0000011MW0</developerName>
+            <invocationTarget>wealthagent__SummarizeAgendaDrafts</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>SummarizeAgendaDrafts</localDeveloperName>
+            <masterLabel>Summarize Agenda Drafts</masterLabel>
+            <source>wealthagent__SummarizeAgendaDrafts</source>
+        </localActions>
+        <localActions>
+            <fullName>SummarizeFinancialPlansAndGoals_179am0000011MW0</fullName>
+            <description>Finds and retrieves financial plans and financial goals records based on user input and specific conditions such as field values. This action identifies the correct records and object.</description>
+            <developerName>SummarizeFinancialPlansAndGoals_179am0000011MW0</developerName>
+            <invocationTarget>wealthagent__ClientFinancialPlansAndGoalsProgress</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>SummarizeFinancialPlansAndGoals</localDeveloperName>
+            <masterLabel>Summarize Financial Plans and Goals</masterLabel>
+            <source>wealthagent__SummarizeFinancialPlansAndGoals</source>
+        </localActions>
+        <localActions>
+            <fullName>SummarizeAccountRecordAlerts_179am0000011MW0</fullName>
+            <description>Provide wealth advisors with a real-time summary of an account&apos;s record alerts within Salesforce Financial Services Cloud.</description>
+            <developerName>SummarizeAccountRecordAlerts_179am0000011MW0</developerName>
+            <invocationTarget>wealthagent__SummarizeAccountRecordAlerts</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>SummarizeAccountRecordAlerts</localDeveloperName>
+            <masterLabel>Summarize Account Record Alerts</masterLabel>
+            <source>wealthagent__SummarizeAccountRecordAlerts</source>
+        </localActions>
+        <localActions>
+            <fullName>CreateRecordAlert_179am0000011MW0</fullName>
+            <description>Collect the account ID, start date, description, and subject. Create a record alert for the account.</description>
+            <developerName>CreateRecordAlert_179am0000011MW0</developerName>
+            <invocationTarget>wealthagent__StdFSCCreaRecordAlerts</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>CreateRecordAlert</localDeveloperName>
+            <masterLabel>Create Record Alert</masterLabel>
+            <source>wealthagent__CreateRecordAlert</source>
+        </localActions>
+        <localActions>
+            <fullName>ReviewAllocation_179am0000011MW0</fullName>
+            <description>Provide wealth advisors with a comparison of an account&apos;s current portfolio asset allocation with their target allocation.</description>
+            <developerName>ReviewAllocation_179am0000011MW0</developerName>
+            <invocationTarget>einstein_gpt__summarizeTargetAllocation</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>ReviewAllocation</localDeveloperName>
+            <masterLabel>Review Asset Allocation</masterLabel>
+            <source>wealthagent__ReviewAllocation</source>
+        </localActions>
+        <localActions>
+            <fullName>SummarizeAccountFinancialDetails_179am0000011MW0</fullName>
+            <description>Provide wealth advisors with real-time summary of an account&apos;s financial profile within Salesforce Financial Services Cloud.</description>
+            <developerName>SummarizeAccountFinancialDetails_179am0000011MW0</developerName>
+            <invocationTarget>wealthagent__SummarizeAccountFinancialDetails</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>SummarizeAccountFinancialDetails</localDeveloperName>
+            <masterLabel>Summarize Account Financial Details</masterLabel>
+            <source>wealthagent__SummarizeAccountFinancialDetails</source>
+        </localActions>
+        <localActions>
+            <fullName>SummarizePortfolioPerformance_179am0000011MW0</fullName>
+            <description>Provide wealth advisors with a summary of an account&apos;s portfolio performance within Salesforce Financial Services Cloud.</description>
+            <developerName>SummarizePortfolioPerformance_179am0000011MW0</developerName>
+            <invocationTarget>einstein_gpt__summarizeInvestmentPerformanceReview</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>SummarizePortfolioPerformance</localDeveloperName>
+            <masterLabel>Summarize Portfolio Performance</masterLabel>
+            <source>wealthagent__SummarizePortfolioPerformance</source>
+        </localActions>
+        <localDeveloperName>WealthAdvisorClientMeeting</localDeveloperName>
+        <masterLabel>Wealth Advisor Client Meeting Preparation</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>SalesRecordCreation_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Collects data from inbound prospect to generate a lead.</description>
+        <developerName>SalesRecordCreation_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MVn</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MVn</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>CreateSalesLeadRecord_179am0000011MVn</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>CreateSalesLeadRecord_179am0000011MVn</fullName>
+            <description>Searches for a matching Lead record. If one is not found, creates a new Lead record.</description>
+            <developerName>CreateSalesLeadRecord_179am0000011MVn</developerName>
+            <invocationTarget>sales_sfa_flows__CreateSalesLead</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>CreateSalesLeadRecord</localDeveloperName>
+            <masterLabel>Create Sales Lead Record</masterLabel>
+            <source>sales_sdr_agent__CreateSalesLeadRecord</source>
+        </localActions>
+        <localDeveloperName>SalesRecordCreation</localDeveloperName>
+        <masterLabel>Sales Record Creation</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>SlackExecutiveBrief_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Allows agents to use a Salesforce prompt template to create executive brief canvases in Slack.</description>
+        <developerName>SlackExecutiveBrief_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MVq</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MVq</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>UpdateSlackCanvas_179am0000011MVq</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>ShareSlackCanvas_179am0000011MVq</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>IdentifyRecordByName_179am0000011MVq</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>GetRecordDetails_179am0000011MVq</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>CreateSlackCanvas_179am0000011MVq</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>ExecutiveBrief_179am0000011MVq</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>CreateSlackCanvas_179am0000011MVq</fullName>
+            <description>Create a Slack canvas document with the provided markdown content.
+You can add sections, include links, references, and any other information you deem relevant.
+When asked to create a canvas with prior content, ask the user whether there is a desired outline with sections, formatting, and sequencing preferred before creating the canvas.
+Upon successful completion, provide the user a friendly confirmation including the canvas link in markdown.</description>
+            <developerName>CreateSlackCanvas_179am0000011MVq</developerName>
+            <invocationTarget>slackAgentCreateCanvas</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>CreateSlackCanvas</localDeveloperName>
+            <masterLabel>Create a Slack Canvas</masterLabel>
+            <progressIndicatorMessage>Creating Slack canvas...</progressIndicatorMessage>
+            <source>Slack__CreateSlackCanvas</source>
+        </localActions>
+        <localActions>
+            <fullName>ExecutiveBrief_179am0000011MVq</fullName>
+            <description>Given an Account record, generate an executive brief of that account grounded with details present in the account object using a prompt template</description>
+            <developerName>ExecutiveBrief_179am0000011MVq</developerName>
+            <invocationTarget>Slack__ExecutiveBriefPromptTemplate</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>ExecutiveBrief</localDeveloperName>
+            <masterLabel>Create an Account Executive Brief</masterLabel>
+            <progressIndicatorMessage>Creating the executive brief...</progressIndicatorMessage>
+            <source>Slack__ExecutiveBrief</source>
+        </localActions>
+        <localActions>
+            <fullName>GetRecordDetails_179am0000011MVq</fullName>
+            <description>Generates a text blob containing record details, including object fields and values and records from related lists.</description>
+            <developerName>GetRecordDetails_179am0000011MVq</developerName>
+            <invocationTarget>getDataForGrounding</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>GetRecordDetails</localDeveloperName>
+            <masterLabel>Get Record Details</masterLabel>
+            <progressIndicatorMessage>Getting details</progressIndicatorMessage>
+            <source>EmployeeCopilot__GetRecordDetails</source>
+        </localActions>
+        <localActions>
+            <fullName>UpdateSlackCanvas_179am0000011MVq</fullName>
+            <description>Append markdown content to a Slack canvas document.
+Always append new content and never duplicate content that was added in earlier prompts.
+If no canvas ID is provided or it is ambiguous in the session context, confirm which canvas ID the user intends to update.
+Upon successful completion, provide the user a friendly confirmation with a link to the canvas (in markdown).</description>
+            <developerName>UpdateSlackCanvas_179am0000011MVq</developerName>
+            <invocationTarget>slackAgentUpdateCanvas</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>UpdateSlackCanvas</localDeveloperName>
+            <masterLabel>Update a Slack Canvas</masterLabel>
+            <progressIndicatorMessage>Updating Slack canvas...</progressIndicatorMessage>
+            <source>Slack__UpdateSlackCanvas</source>
+        </localActions>
+        <localActions>
+            <fullName>ShareSlackCanvas_179am0000011MVq</fullName>
+            <description>Shares a Slack Canvas with a set of users and/or channels.
+If neither a list of Slack Users nor Slack Channels to to add to the channel is provided, ask the user for a list of Slack Users and/or Slack Channels to share the Canvas with.
+If the user does not provide an access level for the shared Canvas, ask the user for it.
+Upon successful completion, provide the user a friendly confirmation with a link to the canvas (in markdown) and at-mentions for the channels and/or Users the Canvas was shared with.</description>
+            <developerName>ShareSlackCanvas_179am0000011MVq</developerName>
+            <invocationTarget>slackAgentDynamic__ShareSlackCanvas</invocationTarget>
+            <invocationTargetType>slack</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>ShareSlackCanvas</localDeveloperName>
+            <masterLabel>Share a Slack Canvas</masterLabel>
+            <progressIndicatorMessage>Sharing a Slack canvas...</progressIndicatorMessage>
+            <source>Slack__ShareSlackCanvas</source>
+        </localActions>
+        <localActions>
+            <fullName>IdentifyRecordByName_179am0000011MVq</fullName>
+            <description>Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs.</description>
+            <developerName>IdentifyRecordByName_179am0000011MVq</developerName>
+            <invocationTarget>identifyRecordByName</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>IdentifyRecordByName</localDeveloperName>
+            <masterLabel>Identify Record by Name</masterLabel>
+            <source>EmployeeCopilot__IdentifyRecordByName</source>
+        </localActions>
+        <localDeveloperName>SlackExecutiveBrief</localDeveloperName>
+        <masterLabel>Create an Executive Brief in Slack</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>off_topic_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Redirect conversation to relevant topics when user request goes off-topic</description>
+        <developerName>off_topic_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MW2</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MW2</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localDeveloperName>off_topic</localDeveloperName>
+        <masterLabel>Off Topic</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>agent_router_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Welcome the user and determine the appropriate subagent based on user input</description>
+        <developerName>agent_router_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}
+
+{{state.AgentScriptInternal_agent_instructions}}</description>
+            <developerName>instruction0_179am0000011MVp</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MVp</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localDeveloperName>agent_router</localDeveloperName>
+        <masterLabel>Agent Router</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>ProactiveNotification_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Handles targeted, person-specific notifications and direct messages sent through Slack. Use this topic when the user wants to notify or message a specific person (or set of named users) about sales activities, deal updates, or important events. This includes any request that involves: - Identifying a user from a Salesforce User record (by name or Salesforce User ID), and - Sending a direct/DM-style message to that user in Slack. If the primary goal is &quot;tell this person something in Slack&quot; or &quot;notify this user,&quot; choose this topic.</description>
+        <developerName>ProactiveNotification_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MW1</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MW1</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>GetSlackUser_179am0000011MW1</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>IdentifyRecordByName_179am0000011MW1</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>SendMessageAsAgent_179am0000011MW1</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>SendMessageAsAgent_179am0000011MW1</fullName>
+            <description>Use to send notifications or messages to specific Slack users in a direct message from the agent.
+Messages may be sent in plain text or formatted using Markdown.
+This action is intended to send notifications, inform or message specific Slack Users.
+This action cannot be used to send messages to channels.
+Upon successful completion, provide the user a friendly confirmation with a link to the message (in markdown).</description>
+            <developerName>SendMessageAsAgent_179am0000011MW1</developerName>
+            <invocationTarget>slackAgentDynamic__SendMessageAsAgent</invocationTarget>
+            <invocationTargetType>slack</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>SendMessageAsAgent</localDeveloperName>
+            <masterLabel>Start a Slack conversation with an Agent</masterLabel>
+            <progressIndicatorMessage>Starting a Slack conversation with an Agent...</progressIndicatorMessage>
+            <source>Slack__SendMessageAsAgent</source>
+        </localActions>
+        <localActions>
+            <fullName>IdentifyRecordByName_179am0000011MW1</fullName>
+            <description>Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs.</description>
+            <developerName>IdentifyRecordByName_179am0000011MW1</developerName>
+            <invocationTarget>identifyRecordByName</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>IdentifyRecordByName</localDeveloperName>
+            <masterLabel>Identify Record by Name</masterLabel>
+            <source>EmployeeCopilot__IdentifyRecordByName</source>
+        </localActions>
+        <localActions>
+            <fullName>GetSlackUser_179am0000011MW1</fullName>
+            <description>Given a Salesforce user ID, looks up the corresponding Slack user ID.</description>
+            <developerName>GetSlackUser_179am0000011MW1</developerName>
+            <invocationTarget>slackAgentGetUser</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>GetSlackUser</localDeveloperName>
+            <masterLabel>Look Up a Slack User</masterLabel>
+            <progressIndicatorMessage>Looking Up a Slack user...</progressIndicatorMessage>
+            <source>Slack__GetSlackUser</source>
+        </localActions>
+        <localDeveloperName>ProactiveNotification</localDeveloperName>
+        <masterLabel>Proactive Notification</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>Product_Questions_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>This agent searches and returns information about Cumulus Banks products and services, such as product details, features, fees, requirements, etc</description>
+        <developerName>Product_Questions_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MVs</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MVs</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>DC_Product_Feature_Brochure_179am0000011MVs</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>DC_Product_Feature_Brochure_179am0000011MVs</fullName>
+            <description>The goal of this action is to answer questions related to products and processes including product features, requirements, processes, fees, recommendations</description>
+            <developerName>DC_Product_Feature_Brochure_179am0000011MVs</developerName>
+            <invocationTarget>Product_Feature_Brochure</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>DC_Product_Feature_Brochure</localDeveloperName>
+            <masterLabel>DC_Product_Feature_Brochure</masterLabel>
+            <progressIndicatorMessage>Retrieving Product Details...</progressIndicatorMessage>
+            <source>DC_Product_Feature_Brochure</source>
+        </localActions>
+        <localDeveloperName>Product_Questions</localDeveloperName>
+        <masterLabel>Product Questions</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>CommunicateWithCustomers_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Questions related to a user&apos;s query to get personalized and crisp communication involving written contact and communication such as email or follow ups with a customer. This could involve sending meeting requests, scheduling a meeting via email, writing to a contact, or creating documents for customers.</description>
+        <developerName>CommunicateWithCustomers_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MW4</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MW4</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>IdentifyRecordByName_179am0000011MW4</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>SendMeetingRequest_179am0000011MW4</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>QueryRecords_179am0000011MW4</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>IdentifyObjectByName_179am0000011MW4</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>DraftOrReviseEmail_179am0000011MW4</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>IdentifyRecordByName_179am0000011MW4</fullName>
+            <description>Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs.</description>
+            <developerName>IdentifyRecordByName_179am0000011MW4</developerName>
+            <invocationTarget>identifyRecordByName</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>IdentifyRecordByName</localDeveloperName>
+            <masterLabel>Identify Record by Name</masterLabel>
+            <source>EmployeeCopilot__IdentifyRecordByName</source>
+        </localActions>
+        <localActions>
+            <fullName>QueryRecords_179am0000011MW4</fullName>
+            <description>Finds and retrieves Salesforce CRM records based on user input and specific conditions, such as field values. This action automatically identifies the correct records and object type. e.g. &apos;Find all open opportunities created in the last 5 days sorted by created date.&apos;</description>
+            <developerName>QueryRecords_179am0000011MW4</developerName>
+            <invocationTarget>queryRecords</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>QueryRecords</localDeveloperName>
+            <masterLabel>Query Records</masterLabel>
+            <source>EmployeeCopilot__QueryRecords</source>
+        </localActions>
+        <localActions>
+            <fullName>SendMeetingRequest_179am0000011MW4</fullName>
+            <description>Drafts a message to the recipient with possible time slots or a link to access the calendar of the sender to schedule a sales meeting.</description>
+            <developerName>SendMeetingRequest_179am0000011MW4</developerName>
+            <invocationTarget>sendMeetingRequest</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>SendMeetingRequest</localDeveloperName>
+            <masterLabel>Send Meeting Request</masterLabel>
+            <progressIndicatorMessage>Drafting your meeting request</progressIndicatorMessage>
+            <source>Sales__SendMeetingRequest</source>
+        </localActions>
+        <localActions>
+            <fullName>IdentifyObjectByName_179am0000011MW4</fullName>
+            <description>Finds the Salesforce object API name by extracting an object name from the user input.</description>
+            <developerName>IdentifyObjectByName_179am0000011MW4</developerName>
+            <invocationTarget>identifyObject</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>IdentifyObjectByName</localDeveloperName>
+            <masterLabel>Identify Object by Name</masterLabel>
+            <source>EmployeeCopilot__IdentifyObjectByName</source>
+        </localActions>
+        <localActions>
+            <fullName>DraftOrReviseEmail_179am0000011MW4</fullName>
+            <description>Creates an email draft or revises the latest generated email based on user input.</description>
+            <developerName>DraftOrReviseEmail_179am0000011MW4</developerName>
+            <invocationTarget>getDraftOrReviseEmailPrompt</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>DraftOrReviseEmail</localDeveloperName>
+            <masterLabel>Draft or Revise Email</masterLabel>
+            <progressIndicatorMessage>Crafting your email</progressIndicatorMessage>
+            <source>EmployeeCopilot__DraftOrReviseEmail</source>
+        </localActions>
+        <localDeveloperName>CommunicateWithCustomers</localDeveloperName>
+        <masterLabel>Communicate With Customers</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>SemanticDataAnalysis_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Answer analytical questions grounded in a semantic data model, dashboard, or metric — including a client&apos;s fraud-pattern risk, high-risk merchant-category (MCC) exposure, flagged transactions, flagged amounts, and risk-tier drivers. Use for &apos;what&apos;s driving the risk&apos;, &apos;why is this client flagged&apos;, and breakdown/trend/ranking questions about transaction risk.</description>
+        <developerName>SemanticDataAnalysis_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MVr</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MVr</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>AnalyzeSemanticData_179am0000011MVr</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>AnalyzeSemanticData_179am0000011MVr</fullName>
+            <description>Answer analytical questions grounded in a semantic data model, dashboard, or metric — including a client&apos;s fraud-pattern risk, high-risk merchant-category (MCC) exposure, flagged transactions, flagged amounts, and risk-tier drivers. Use for &apos;what&apos;s driving the risk&apos;, &apos;why is this client flagged&apos;, and breakdown/trend/ranking questions about transaction risk.</description>
+            <developerName>AnalyzeSemanticData_179am0000011MVr</developerName>
+            <invocationTarget>analyzeSemanticData</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>AnalyzeSemanticData</localDeveloperName>
+            <masterLabel>Analyze Data</masterLabel>
+            <progressIndicatorMessage>Analyzing your data</progressIndicatorMessage>
+            <source>Analytics__AnalyzeSemanticData</source>
+        </localActions>
+        <localDeveloperName>SemanticDataAnalysis</localDeveloperName>
+        <masterLabel>Data Analysis</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>ambiguous_question_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Redirect conversation to relevant topics when user request is too ambiguous</description>
+        <developerName>ambiguous_question_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MW3</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MW3</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localDeveloperName>ambiguous_question</localDeveloperName>
+        <masterLabel>Ambiguous Question</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>Create_a_new_Case_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Create a new Salesforce Case using parameters obtained during the chat.</description>
+        <developerName>Create_a_new_Case_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MVu</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MVu</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>AddCaseComment_179am0000011MVu</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>CreateCase_179am0000011MVu</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>AddCaseComment_179am0000011MVu</fullName>
+            <description>Let a customer add a comment to an existing case.</description>
+            <developerName>AddCaseComment_179am0000011MVu</developerName>
+            <invocationTarget>SvcCopilotTmpl__AddCaseComment</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>AddCaseComment</localDeveloperName>
+            <masterLabel>Add Case Comment</masterLabel>
+            <source>SvcCopilotTmpl__AddCaseComment</source>
+        </localActions>
+        <localActions>
+            <fullName>CreateCase_179am0000011MVu</fullName>
+            <description>Let a customer create a case.</description>
+            <developerName>CreateCase_179am0000011MVu</developerName>
+            <invocationTarget>SvcCopilotTmpl__CreateCase</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>CreateCase</localDeveloperName>
+            <masterLabel>Create Case</masterLabel>
+            <source>SvcCopilotTmpl__CreateCase</source>
+        </localActions>
+        <localDeveloperName>Create_a_new_Case</localDeveloperName>
+        <masterLabel>Create a new Case</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>Financial_Accounts_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>View financial accounts, balances, transactions, and investment holdings for Cumulus Bank clients. Handles queries about checking, savings, credit cards, mortgages, investment accounts, and brokerage holdings using FinancialAccount, FinancialAccountParty, FinancialAccountTransaction, and SecuritiesHolding objects.</description>
+        <developerName>Financial_Accounts_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MW6</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MW6</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>IdentifyRecordByName_179am0000011MW6</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>QueryRecords_179am0000011MW6</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>IdentifyRecordByName_179am0000011MW6</fullName>
+            <description>Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs.</description>
+            <developerName>IdentifyRecordByName_179am0000011MW6</developerName>
+            <invocationTarget>identifyRecordByName</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>IdentifyRecordByName</localDeveloperName>
+            <masterLabel>Identify Record by Name</masterLabel>
+            <source>EmployeeCopilot__IdentifyRecordByName</source>
+        </localActions>
+        <localActions>
+            <fullName>QueryRecords_179am0000011MW6</fullName>
+            <description>Finds and retrieves Salesforce CRM records based on user input and specific conditions, such as field values. This action automatically identifies the correct records and object type. e.g. &apos;Find all open opportunities created in the last 5 days sorted by created date.&apos;</description>
+            <developerName>QueryRecords_179am0000011MW6</developerName>
+            <invocationTarget>queryRecords</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>QueryRecords</localDeveloperName>
+            <masterLabel>Query Records</masterLabel>
+            <source>EmployeeCopilot__QueryRecords</source>
+        </localActions>
+        <localDeveloperName>Financial_Accounts</localDeveloperName>
+        <masterLabel>Financial Accounts</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>Product_Offers_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Search and retrieve product offer information from Data Cloud for Cumulus Bank clients. Uses the Product Offers Retriever to find relevant product details, features, rates, and eligibility based on client queries. Handles requests about bank products including checking accounts, savings accounts, credit cards, loans, mortgages, investment products, and insurance offerings.</description>
+        <developerName>Product_Offers_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MVt</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MVt</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>Product_Offers_179am0000011MVt</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>Product_Offers_179am0000011MVt</fullName>
+            <description>The goal of this action is to answer questions related to product offers and promotions</description>
+            <developerName>Product_Offers_179am0000011MVt</developerName>
+            <invocationTarget>Product_Offers</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>Product_Offers</localDeveloperName>
+            <masterLabel>Product Offers</masterLabel>
+            <progressIndicatorMessage>Retrieving Product Offers...</progressIndicatorMessage>
+        </localActions>
+        <localDeveloperName>Product_Offers</localDeveloperName>
+        <masterLabel>Product Offers</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>RecordManagement_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Executes confirmed field modifications and retrieves records across CRM entities such as accounts, contacts, and opportunities. Implements final updates through designated action endpoints after user confirmation. This topic is invoked specifically for execution, not for generating update suggestions.</description>
+        <developerName>RecordManagement_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MW5</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MW5</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>ExtractFieldsAndValuesFromUserInput_179am0000011MW5</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>UpdateAiGenActionItem_179am0000011MW5</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>QueryRecords_179am0000011MW5</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>IdentifyRecordByName_179am0000011MW5</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>UpdateRecordFields_179am0000011MW5</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>IdentifyRecordByName_179am0000011MW5</fullName>
+            <description>Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs.</description>
+            <developerName>IdentifyRecordByName_179am0000011MW5</developerName>
+            <invocationTarget>identifyRecordByName</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>IdentifyRecordByName</localDeveloperName>
+            <masterLabel>Identify Record by Name</masterLabel>
+            <source>EmployeeCopilot__IdentifyRecordByName</source>
+        </localActions>
+        <localActions>
+            <fullName>ExtractFieldsAndValuesFromUserInput_179am0000011MW5</fullName>
+            <description>Extracts Salesforce CRM record fields and their corresponding field values from the user input. This action must run before updateRecord to convert user input to a Salesforce sObject.</description>
+            <developerName>ExtractFieldsAndValuesFromUserInput_179am0000011MW5</developerName>
+            <invocationTarget>getRecordFieldsAndValues</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>ExtractFieldsAndValuesFromUserInput</localDeveloperName>
+            <masterLabel>Extract Fields And Values From User Input</masterLabel>
+            <progressIndicatorMessage>Preparing your changes</progressIndicatorMessage>
+            <source>EmployeeCopilot__ExtractFieldsAndValuesFromUserInput</source>
+        </localActions>
+        <localActions>
+            <fullName>UpdateRecordFields_179am0000011MW5</fullName>
+            <description>Updates fields on a Salesforce CRM record. The action ExtractFieldsAndValuesFromUserInput must be called prior to this action to extract the record&apos;s fields and values.</description>
+            <developerName>UpdateRecordFields_179am0000011MW5</developerName>
+            <invocationTarget>einsteinCopilotUpdateRecord</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>UpdateRecordFields</localDeveloperName>
+            <masterLabel>Update Record</masterLabel>
+            <progressIndicatorMessage>Making updates</progressIndicatorMessage>
+            <source>EmployeeCopilot__UpdateRecordFields</source>
+        </localActions>
+        <localActions>
+            <fullName>UpdateAiGenActionItem_179am0000011MW5</fullName>
+            <description>Updates the status of an AI-generated action item record. Uses aiGenActionItemId and aiGenActionItemStatus to track the lifecycle and completion state of recommendations and tasks that the Sales agent generates.</description>
+            <developerName>UpdateAiGenActionItem_179am0000011MW5</developerName>
+            <invocationTarget>updateAiGenActionItem</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+            <localDeveloperName>UpdateAiGenActionItem</localDeveloperName>
+            <masterLabel>Update AI-Generated Action Item Record</masterLabel>
+            <source>SalesMgmt__UpdateAiGenActionItem</source>
+        </localActions>
+        <localActions>
+            <fullName>QueryRecords_179am0000011MW5</fullName>
+            <description>Finds and retrieves Salesforce CRM records based on user input and specific conditions, such as field values. This action automatically identifies the correct records and object type. e.g. &apos;Find all open opportunities created in the last 5 days sorted by created date.&apos;</description>
+            <developerName>QueryRecords_179am0000011MW5</developerName>
+            <invocationTarget>queryRecords</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>QueryRecords</localDeveloperName>
+            <masterLabel>Query Records</masterLabel>
+            <source>EmployeeCopilot__QueryRecords</source>
+        </localActions>
+        <localDeveloperName>RecordManagement</localDeveloperName>
+        <masterLabel>Record Management</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>Referrals_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Handles referral creation directly without lead creation or record search. Creates a referral for the current record context without creating Leads or searching records by name.</description>
+        <developerName>Referrals_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MVw</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MVw</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>CreateReferral_179am0000011MVw</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>CreateReferral_179am0000011MVw</fullName>
+            <description>Use this action when the user asks to create a referral to another line of business. Common requests can sound like &quot;create a referral to our wealth department&quot; or &quot;create a referral to our lending department&quot; with other insights or contexts included.</description>
+            <developerName>CreateReferral_179am0000011MVw</developerName>
+            <invocationTarget>Create_Referral</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>CreateReferral</localDeveloperName>
+            <masterLabel>Create Referral</masterLabel>
+            <progressIndicatorMessage>Creating referral...</progressIndicatorMessage>
+            <source>Create_Referral</source>
+        </localActions>
+        <localDeveloperName>Referrals</localDeveloperName>
+        <masterLabel>Referrals</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>GeneralCRM_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Engages and interacts with the user about any request that could be CRM data related. This could be tasks such as identify and summarize records, answer queries, aggregate data, find and query objects, update records, or drafting and refining emails.</description>
+        <developerName>GeneralCRM_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MVv</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MVv</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>QueryRecordsWithAggregate_179am0000011MVv</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>GetActivityDetails_179am0000011MVv</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>IdentifyRecordByName_179am0000011MVv</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>QueryRecords_179am0000011MVv</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>create_task_179am0000011MVv</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>IdentifyObjectByName_179am0000011MVv</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>get_lead_snapshot_179am0000011MVv</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>GetRecordDetails_179am0000011MVv</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>UpdateRecordFields_179am0000011MVv</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>get_account_snapshot_179am0000011MVv</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>DraftOrReviseEmail_179am0000011MVv</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>GetActivitiesTimeline_179am0000011MVv</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>get_opportunity_snapshot_179am0000011MVv</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>ExtractFieldsAndValuesFromUserInput_179am0000011MVv</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>IdentifyRecordByName_179am0000011MVv</fullName>
+            <description>Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs.</description>
+            <developerName>IdentifyRecordByName_179am0000011MVv</developerName>
+            <invocationTarget>identifyRecordByName</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>IdentifyRecordByName</localDeveloperName>
+            <masterLabel>Identify Record by Name</masterLabel>
+            <source>EmployeeCopilot__IdentifyRecordByName</source>
+        </localActions>
+        <localActions>
+            <fullName>GetActivityDetails_179am0000011MVv</fullName>
+            <description>Provides data about an activity record, including its content and other key details. The record type is strictly limited to a Call, Email, Event, or Task.</description>
+            <developerName>GetActivityDetails_179am0000011MVv</developerName>
+            <invocationTarget>getActivityDetails</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>GetActivityDetails</localDeveloperName>
+            <masterLabel>Get Activity Details</masterLabel>
+            <progressIndicatorMessage>Getting activity details</progressIndicatorMessage>
+            <source>EmployeeCopilot__GetActivityDetails</source>
+        </localActions>
+        <localActions>
+            <fullName>ExtractFieldsAndValuesFromUserInput_179am0000011MVv</fullName>
+            <description>Extracts Salesforce CRM record fields and their corresponding field values from the user input. This action must run before updateRecord to convert user input to a Salesforce sObject.</description>
+            <developerName>ExtractFieldsAndValuesFromUserInput_179am0000011MVv</developerName>
+            <invocationTarget>getRecordFieldsAndValues</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>ExtractFieldsAndValuesFromUserInput</localDeveloperName>
+            <masterLabel>Extract Fields And Values From User Input</masterLabel>
+            <progressIndicatorMessage>Preparing your changes</progressIndicatorMessage>
+            <source>EmployeeCopilot__ExtractFieldsAndValuesFromUserInput</source>
+        </localActions>
+        <localActions>
+            <fullName>DraftOrReviseEmail_179am0000011MVv</fullName>
+            <description>Creates an email draft or revises the latest generated email based on user input.</description>
+            <developerName>DraftOrReviseEmail_179am0000011MVv</developerName>
+            <invocationTarget>getDraftOrReviseEmailPrompt</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>DraftOrReviseEmail</localDeveloperName>
+            <masterLabel>Draft or Revise Email</masterLabel>
+            <progressIndicatorMessage>Crafting your email</progressIndicatorMessage>
+            <source>EmployeeCopilot__DraftOrReviseEmail</source>
+        </localActions>
+        <localActions>
+            <fullName>UpdateRecordFields_179am0000011MVv</fullName>
+            <description>Updates fields on a Salesforce CRM record. The action ExtractFieldsAndValuesFromUserInput must be called prior to this action to extract the record&apos;s fields and values.</description>
+            <developerName>UpdateRecordFields_179am0000011MVv</developerName>
+            <invocationTarget>einsteinCopilotUpdateRecord</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>UpdateRecordFields</localDeveloperName>
+            <masterLabel>Update Record</masterLabel>
+            <progressIndicatorMessage>Making updates</progressIndicatorMessage>
+            <source>EmployeeCopilot__UpdateRecordFields</source>
+        </localActions>
+        <localActions>
+            <fullName>get_account_snapshot_179am0000011MVv</fullName>
+            <description>Get an Account by Id or name with its open pipeline; shown to the user as an Account card</description>
+            <developerName>get_account_snapshot_179am0000011MVv</developerName>
+            <invocationTarget>AFD360AccountSnapshot</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>get_account_snapshot</localDeveloperName>
+            <masterLabel>Get Account Snapshot</masterLabel>
+            <progressIndicatorMessage>Looking up the account...</progressIndicatorMessage>
+        </localActions>
+        <localActions>
+            <fullName>create_task_179am0000011MVv</fullName>
+            <description>Create a Task with a subject, optionally related to a record and a contact or lead; shown to the user as a Task card</description>
+            <developerName>create_task_179am0000011MVv</developerName>
+            <invocationTarget>AFD360CreateTask</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>create_task</localDeveloperName>
+            <masterLabel>Create Task</masterLabel>
+            <progressIndicatorMessage>Creating the task...</progressIndicatorMessage>
+        </localActions>
+        <localActions>
+            <fullName>QueryRecordsWithAggregate_179am0000011MVv</fullName>
+            <description>Answers aggregation questions (such as count, sum, max, min, or average) about Salesforce CRM data based on the user input and specific conditions, such as field values. For example &apos;Find the number of open opportunities created in the last 5 days.&apos;</description>
+            <developerName>QueryRecordsWithAggregate_179am0000011MVv</developerName>
+            <invocationTarget>queryRecordsWithAggregate</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>QueryRecordsWithAggregate</localDeveloperName>
+            <masterLabel>Query Records with Aggregate</masterLabel>
+            <source>EmployeeCopilot__QueryRecordsWithAggregate</source>
+        </localActions>
+        <localActions>
+            <fullName>GetRecordDetails_179am0000011MVv</fullName>
+            <description>Generates a text blob containing record details, including object fields and values and records from related lists.</description>
+            <developerName>GetRecordDetails_179am0000011MVv</developerName>
+            <invocationTarget>getDataForGrounding</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>GetRecordDetails</localDeveloperName>
+            <masterLabel>Get Record Details</masterLabel>
+            <progressIndicatorMessage>Getting details</progressIndicatorMessage>
+            <source>EmployeeCopilot__GetRecordDetails</source>
+        </localActions>
+        <localActions>
+            <fullName>GetActivitiesTimeline_179am0000011MVv</fullName>
+            <description>Retrieve a timeline of all CRM activities associated with one record, including past and future activities.</description>
+            <developerName>GetActivitiesTimeline_179am0000011MVv</developerName>
+            <invocationTarget>getActivitiesTimeline</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>GetActivitiesTimeline</localDeveloperName>
+            <masterLabel>Get Activities Timeline</masterLabel>
+            <progressIndicatorMessage>Retrieving activities</progressIndicatorMessage>
+            <source>EmployeeCopilot__GetActivitiesTimeline</source>
+        </localActions>
+        <localActions>
+            <fullName>IdentifyObjectByName_179am0000011MVv</fullName>
+            <description>Finds the Salesforce object API name by extracting an object name from the user input.</description>
+            <developerName>IdentifyObjectByName_179am0000011MVv</developerName>
+            <invocationTarget>identifyObject</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>IdentifyObjectByName</localDeveloperName>
+            <masterLabel>Identify Object by Name</masterLabel>
+            <source>EmployeeCopilot__IdentifyObjectByName</source>
+        </localActions>
+        <localActions>
+            <fullName>get_opportunity_snapshot_179am0000011MVv</fullName>
+            <description>Get an Opportunity by Id or name, or an Account&apos;s largest open Opportunity from its Account Id; shown as an Opportunity card</description>
+            <developerName>get_opportunity_snapshot_179am0000011MVv</developerName>
+            <invocationTarget>AFD360OpportunitySnapshot</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>get_opportunity_snapshot</localDeveloperName>
+            <masterLabel>Get Opportunity Snapshot</masterLabel>
+            <progressIndicatorMessage>Looking up the opportunity...</progressIndicatorMessage>
+        </localActions>
+        <localActions>
+            <fullName>get_lead_snapshot_179am0000011MVv</fullName>
+            <description>Get a Lead by Id or name; shown to the user as a Lead card</description>
+            <developerName>get_lead_snapshot_179am0000011MVv</developerName>
+            <invocationTarget>AFD360LeadSnapshot</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>get_lead_snapshot</localDeveloperName>
+            <masterLabel>Get Lead Snapshot</masterLabel>
+            <progressIndicatorMessage>Looking up the lead...</progressIndicatorMessage>
+        </localActions>
+        <localActions>
+            <fullName>QueryRecords_179am0000011MVv</fullName>
+            <description>Finds and retrieves Salesforce CRM records based on user input and specific conditions, such as field values. This action automatically identifies the correct records and object type. e.g. &apos;Find all open opportunities created in the last 5 days sorted by created date.&apos;</description>
+            <developerName>QueryRecords_179am0000011MVv</developerName>
+            <invocationTarget>queryRecords</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>QueryRecords</localDeveloperName>
+            <masterLabel>Query Records</masterLabel>
+            <source>EmployeeCopilot__QueryRecords</source>
+        </localActions>
+        <localDeveloperName>GeneralCRM</localDeveloperName>
+        <masterLabel>General CRM</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>GeneralFAQ_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>This topic is for helping answer customer&apos;s questions by searching through the knowledge articles and providing information from those articles. The questions can be about the company and its products, policies or business procedures</description>
+        <developerName>GeneralFAQ_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MVy</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MVy</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localDeveloperName>GeneralFAQ</localDeveloperName>
+        <masterLabel>General FAQ</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>personalizedRecommendations_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Summarizes a client&apos;s recent transactions, spending patterns, and key insights, and provides product recommendations grounded strictly in retrieved data (no fabrication). Uses the current record context and only surfaces values returned by actions.</description>
+        <developerName>personalizedRecommendations_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MVx</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MVx</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>Product_Offers_179am0000011MVx</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>DC_Financial_Transactions_Summary_179am0000011MVx</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>Product_Offers_179am0000011MVx</fullName>
+            <description>Retrieves relevant product offers and promotions to consider for the client.</description>
+            <developerName>Product_Offers_179am0000011MVx</developerName>
+            <invocationTarget>Product_Offers</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+            <localDeveloperName>Product_Offers</localDeveloperName>
+            <masterLabel>Product Offers</masterLabel>
+        </localActions>
+        <localActions>
+            <fullName>DC_Financial_Transactions_Summary_179am0000011MVx</fullName>
+            <description>Summarize a customer’s financial transactions. If no date range is provided, default to the last 30 days to return recent, real data quickly. Only if the last 30 days returns zero rows should the query expand to a larger window. Do not default to full available history to avoid timeouts. Never fabricate or infer transactions; report only the rows returned by the tool.</description>
+            <developerName>DC_Financial_Transactions_Summary_179am0000011MVx</developerName>
+            <invocationTarget>DC_Financial_Transactions_Summary</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>DC_Financial_Transactions_Summary</localDeveloperName>
+            <masterLabel>DC_Financial_Transactions_Summary</masterLabel>
+            <progressIndicatorMessage>Fetching Transactional Data</progressIndicatorMessage>
+            <source>DC_Financial_Transactions_Summary</source>
+        </localActions>
+        <localDeveloperName>personalizedRecommendations</localDeveloperName>
+        <masterLabel>Personalized Recommendations</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>Create_a_Case_16jam000001MzKP</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Create a Salesforce case when prompted to do so. An example of a user request is &quot;I want to make a claim&quot;</description>
+        <developerName>Create_a_Case_16jam000001MzKP</developerName>
+        <genAiPluginInstructions>
+            <description>You are an AI Agent.
+
+The user&apos;s current context is:
+Current App Name: {{state.currentAppName}}
+Current Object Name: {{state.currentObjectApiName}}
+Current Page Type: {{state.currentPageType}}
+Current Record ID: {{state.currentRecordId}}</description>
+            <developerName>instruction0_179am0000011MVz</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MVz</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>CreateCase_179am0000011MVz</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>CreateCase_179am0000011MVz</fullName>
+            <description>Let a customer create a case.</description>
+            <developerName>CreateCase_179am0000011MVz</developerName>
+            <invocationTarget>SvcCopilotTmpl__CreateCase</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>CreateCase</localDeveloperName>
+            <masterLabel>Create Case</masterLabel>
+            <source>SvcCopilotTmpl__CreateCase</source>
+        </localActions>
+        <localDeveloperName>Create_a_Case</localDeveloperName>
+        <masterLabel>Create a Case</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <masterLabel>Cumulus Assistant</masterLabel>
+    <plannerSurfaces>
+        <adaptiveResponseAllowed>true</adaptiveResponseAllowed>
+        <callRecordingAllowed>false</callRecordingAllowed>
+        <surface>SurfaceAction__Slack</surface>
+        <surfaceType>Slack</surfaceType>
+    </plannerSurfaces>
+    <plannerType>Atlas__ConcurrentMultiAgentOrchestration</plannerType>
+</GenAiPlannerBundle>

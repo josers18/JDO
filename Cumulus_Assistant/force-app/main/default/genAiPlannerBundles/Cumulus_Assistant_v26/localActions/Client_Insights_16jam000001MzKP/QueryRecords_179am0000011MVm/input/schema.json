@@ -1,0 +1,22 @@
+{
+  "required" : [ "query" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "query" : {
+      "title" : "query",
+      "description" : "Natural-language question mentioning relevant objects (e.g., Case, Task, Event, EmailMessage, PersonLifeEvent, FinancialGoal). No SOQL.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "customizationInstructions" : {
+      "title" : "customizationInstructions",
+      "description" : "Optional additional guidance for scoping and formatting.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

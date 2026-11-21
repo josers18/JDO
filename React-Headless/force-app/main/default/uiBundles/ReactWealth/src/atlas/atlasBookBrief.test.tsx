@@ -1,0 +1,24 @@
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, expect, it, vi } from 'vitest';
+import { AtlasBookBrief } from '@shared/components/atlas/AtlasBookBrief';
+import { generateText } from '@shared/data/aiGenerateClient';
+const { speak } = vi.hoisted(() => ({speak:vi.fn()}));
+vi.mock('@shared/components/home/useSpeech', () => ({useSpeech:() => ({supported:true,speaking:false,toggle:speak,stop:vi.fn()})}));
+vi.mock('@shared/data/aiGenerateClient', () => ({generateText:vi.fn()}));
+vi.mock('@shared/data/configCache', () => ({loadCenterConfig:vi.fn(async () => ({models:{freeform:'selected'},params:{}}))}));
+afterEach(cleanup);
+it.each(['retail','wealth'] as const)('reads the visible %s brief and resets it when the selected book changes', async persona => {
+  vi.mocked(generateText).mockResolvedValueOnce({text:'Review the open pipeline.',source:'model'}).mockRejectedValueOnce(new Error());
+  const page=render(<AtlasBookBrief ownerId="first" persona={persona} facts="Two open opportunities." />);
+  fireEvent.click(screen.getByRole('button',{name:'Generate briefing'}));
+  await screen.findByText('Review the open pipeline.');
+  expect(generateText).toHaveBeenCalledWith(expect.objectContaining({modelName:'selected',context:expect.stringContaining('Two open opportunities.')}));
+  fireEvent.click(screen.getByRole('button',{name:'Listen to briefing'}));
+  expect(speak).toHaveBeenLastCalledWith('Review the open pipeline.');
+  page.rerender(<AtlasBookBrief ownerId="second" persona={persona} facts="One open task." />);
+  expect(screen.queryByText('Review the open pipeline.')).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'Generate briefing'}));
+  await screen.findByRole('status');
+  fireEvent.click(screen.getByRole('button',{name:'Listen to briefing'}));
+  expect(speak).toHaveBeenLastCalledWith('One open task.');
+});

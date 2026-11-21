@@ -172,10 +172,11 @@ export default function HomePage() {
   );
 }
 
-function HomeContent() {
+export type BookReviewTab = 'portfolio' | 'agenda' | 'actions';
+export function HomeContent({ review }: { review?: BookReviewTab }) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data, loading, refetch } = useHomeData();
+  const { data, loading, error, refetch } = useHomeData();
   const [modal, setModal] = useState<ModalState>({ type: 'none' });
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const speech = useSpeech();
@@ -222,13 +223,14 @@ function HomeContent() {
   // Bridge to the left sidebar's pinned-accounts block (lives in the layout,
   // outside this component). A pin click bumps `pinnedRequest`; we resolve it
   // into a full client selection below.
-  const { pinnedRequest, navRequest } = useWorkspaceSelection();
+  const { pinnedRequest, navRequest, pinned, selectClient } = useWorkspaceSelection();
 
   // Home layout mode. "current" = the classic stacked sections; "cockpit" = a
   // compact, column-dense grid. The selection lives in the app chrome (top-bar
   // segmented control) and is shared down through HomeViewProvider — see
   // HomeLayout — persisted per-persona in sessionStorage there.
-  const { view } = useHomeView();
+  const homeView = useHomeView();
+  const view = review ? (review === 'actions' ? 'cockpit' : 'current') : homeView.view;
 
   // Org-level command-center config (model per AI action + generation params).
   // Cached module-side; failures degrade to DEFAULT_CONFIG so an AI action is
@@ -388,6 +390,7 @@ function HomeContent() {
   );
   const recsReveal = useReveal(visibleRecs, 3);
 
+  if (error && !data) return <div role="alert">The book could not be loaded. <button className="secondary" onClick={refetch}>Retry</button></div>;
   if (loading || !data) {
     return <div className="animate-pulse p-8 text-muted">Loading your book…</div>;
   }
@@ -400,6 +403,7 @@ function HomeContent() {
   // persona's default account — the same id Customer360Page itself defaults to
   // when the route param is absent, so the 360 always opens.
   const openFull = (id?: string) => {
+    if (review && !id) { toast('Company unavailable', 'This record has no linked company.'); return; }
     navigate(`/client/${id ?? DEFAULT_ACCOUNT_ID}`);
   };
 
@@ -523,7 +527,9 @@ function HomeContent() {
         { label: 'Stage', value: p.stage },
         { label: 'Close Date', value: p.closeDate || '—' },
       ],
-      actions: [{ label: 'View client →', variant: 'accent', onClick: () => { setDetailView(null); open('quickview', p.clientName); } }],
+      actions: review && p.recordId
+        ? [{ label: 'Open opportunity', variant: 'accent', onClick: () => navigate('/pipeline?deal=' + p.recordId) }]
+        : [{ label: 'View client →', variant: 'accent', onClick: () => { setDetailView(null); open('quickview', p.clientName, p.clientId); } }],
     });
   };
 
@@ -589,9 +595,9 @@ function HomeContent() {
       note: pct == null
         ? `${m.label} pipeline is at ${formatValue(m.amount, 'currencyCompact')} across open opportunities. There's no weekly Data 360 history for this stage yet.`
         : `${m.label} pipeline ${up ? 'grew' : 'declined'} ${pct}% week over week, now at ${formatValue(m.amount, 'currencyCompact')}.`,
-      sectionTitle: 'Product line',
+      sectionTitle: 'Opportunity stage',
       fields: [
-        { label: 'Product line', value: m.label },
+        { label: 'Opportunity stage', value: m.label },
         { label: 'Current value', value: formatValue(m.amount, 'currencyCompact') },
         { label: 'WoW change', value: pct == null ? '—' : `${up ? '+' : '−'}${pct}%` },
       ],
@@ -843,6 +849,11 @@ function HomeContent() {
     const opps = data.kpis.find(k => k.key === 'openOpps');
     const pipeStr = pipe ? formatValue(pipe.value, pipe.format) : '—';
     const oppStr = opps ? formatValue(opps.value, opps.format) : '—';
+    if (review) {
+      if (data.unavailableMetrics?.includes('pipeline')) return 'Open pipeline totals are unavailable for this book.';
+      const activity = data.portfolioActivity?.activities;
+      return `Your book holds ${pipeStr} in open pipeline across ${oppStr} opportunities.${activity == null ? '' : ' Your calendar and task list contain ' + activity.toLocaleString() + ' activities dated in the last seven days.'}`;
+    }
     return `Your book holds ${pipeStr} open pipeline across ${oppStr} opportunities. Recent client touchpoints are running light — schedule outreach to keep relationships warm and move stalled deals this quarter.`;
   };
 
@@ -904,6 +915,16 @@ function HomeContent() {
   // KPI card (or the pulse inlay) opens the matching drill-in explorer; in the
   // classic stacked view it smooth-scrolls to the full-page section as before.
   const kpiClick = (key: string) => {
+    if (review) {
+      const destination: Record<string, string> = {
+        atRisk: '/health?focus=watch', callTone: '/intelligence?q=Gong', outlook: '/intelligence?q=Moody',
+        leadership: '/intelligence?q=BoardEx', esg: '/intelligence?q=MSCI', uplift: '/growth?view=offers',
+        upmarket: '/health?focus=growth', branchRisk: '/health?focus=market', netFlow: '/?flow=weekly',
+      };
+      if (destination[key]) { navigate(destination[key]); return; }
+      setExplorer(key === 'openCases' ? 'cases' : KPI_EXPLORER[key] ?? 'activity');
+      return;
+    }
     if (view === 'cockpit') {
       const target = KPI_EXPLORER[key];
       if (target) { setExplorer(target); return; }
@@ -1174,7 +1195,7 @@ function HomeContent() {
         </button>
       }
     >
-      {data.lifeEvents.map(e => (
+      {(review === 'agenda' ? data.lifeEvents.slice(0, 5) : data.lifeEvents).map(e => (
         <LifeRow key={e.id} event={e} onClick={() => (view === 'cockpit' ? selectClientPanel(e.clientName, e.clientId) : showLifeEventDetail(e))} />
       ))}
     </SectionPanel>
@@ -1570,7 +1591,7 @@ function HomeContent() {
             <button
               key={cs.id}
               type="button"
-              onClick={() => selectClientPanel(cs.clientName || cs.subject, cs.clientId)}
+              onClick={() => review === 'agenda' ? open('quickview', cs.clientName || cs.subject, cs.clientId) : selectClientPanel(cs.clientName || cs.subject, cs.clientId)}
               className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
             >
               <span className={`grid h-7 w-7 flex-none place-items-center rounded-[8px] ${st.chip}`}>
@@ -1645,7 +1666,7 @@ function HomeContent() {
             <button
               key={p.id}
               type="button"
-              onClick={() => selectOpportunityPanel(p)}
+              onClick={() => review === 'agenda' ? showPipelineDetail(p) : selectOpportunityPanel(p)}
               className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
             >
               <span className={`grid h-7 w-7 flex-none place-items-center rounded-[8px] ${chipClass}`}>
@@ -1665,7 +1686,40 @@ function HomeContent() {
   );
 
   return (
-    <div className="pb-24">
+    <div className={review ? 'ca-review-content' : 'pb-24'}>
+      {review === 'portfolio' && <>
+        <section className="ca-panel"><header><h2>Portfolio pulse</h2><button className="secondary" onClick={() => speakOrToast(pipelineNarrative())}>{speech.speaking ? 'Stop listening' : 'Listen to pulse'}</button></header>
+          <p>{pipelineNarrative()}</p><div className="ca-book-distribution">
+            <div><strong>{data.portfolioActivity?.wonAmount != null ? formatValue(data.portfolioActivity.wonAmount, 'currencyCompact') : '—'}</strong><span>Closed-won value · last 30 days</span></div>
+            <div><strong>{data.portfolioActivity?.activities?.toLocaleString() ?? '—'}</strong><span>Tasks and meetings dated in the last 7 days</span></div>
+          </div><button className="text-button" onClick={() => setExplorer('pipelineMovement')}>Explore pipeline movement</button>
+        </section>
+        <section className="ca-panel"><header><h2>Book metrics</h2><DataFreshnessMeter freshness={data.dataFreshness} /></header>
+          <div className="ca-metric-grid">{data.kpis.map(k => {
+            const missing = data.unavailableMetrics?.includes(k.key);
+            return <button type="button" key={k.key} onClick={() => kpiClick(k.key)}><span>{k.label}</span><strong>{missing ? '—' : formatValue(k.value, k.format)}</strong>
+              {k.trend && !missing && <Sparkline points={k.trend} height={24} />}<small>{missing ? 'Source unavailable' : k.note}</small></button>;
+          })}</div>
+        </section>
+      </>}
+      {review === 'agenda' && <>
+        <section className="ca-panel"><header><h2>Tasks &amp; schedule</h2>{scheduleControls}</header>{scheduleBody}</section>
+        {supportingBand}
+        <section className="ca-panel"><header><h2>Life events &amp; live signals</h2><button className="secondary" onClick={() => setExplorer('lifeEvents')}>View life events</button></header>{lifeEventsBody}</section>
+        <section className="ca-panel"><header><h2>Active goals</h2><button className="secondary" onClick={() => setExplorer('goals')}>View attainment</button></header>
+          {data.bankerGoals.length ? <dl className="ca-book-distribution">{data.bankerGoals.map(g => <div key={g.id}><dt>{g.name}</dt><dd>{formatValue(g.current, g.format)} of {formatValue(g.target, g.format)}</dd></div>)}</dl> : <p>No active banker goals returned.</p>}
+        </section>
+      </>}
+      {review === 'actions' && <>
+        <section className="ca-panel"><header><h2>Daily briefing</h2><DataFreshnessMeter freshness={data.dataFreshness} /></header><p>{data.aiBrief}</p>
+          <div className="ca-actions"><button className="primary" onClick={() => openAi('queue_rationale', 'Full insights', 'Summarize the risks, growth opportunities and priorities across my Commercial book.', queueContext(), queueFallback())}>View full insights</button>
+          <button className="secondary" onClick={() => speakOrToast(data.aiBrief)}>{speech.speaking ? 'Stop listening' : 'Listen to brief'}</button></div></section>
+        <div className="ca-review-workspace"><section><PriorityQueueCard items={queueItems} controls={queueControls} onOpen={c => selectClientPanel(c.clientName, c.clientId)} onViewAll={() => setExplorer('atRisk')} />
+          <ColumnCard id="actions" eyebrow="Prepared for your review" title="Recommended actions" controls={actionsControls}>{buildActionsBody(true)}</ColumnCard></section>
+          <aside><div className="ca-panel"><header><h2>Pinned companies</h2></header>{pinned.length ? <div className="ca-actions">{pinned.map(c => <button className="secondary" key={c.id ?? c.name} onClick={() => selectClient(c.name, c.id)}>{c.name}</button>)}</div> : <p>Select a company in the queue to pin it here.</p>}</div>
+          <WorkspacePanel selection={selection} brief={workspaceBrief} handlers={panelHandlers} /></aside></div>
+      </>}
+      {!review && <>
       {/* ---------- DAILY BRIEF (classic view only — the cockpit uses a compact
            strip inside its left column so the context panel can align to the top) ---------- */}
       {view !== 'cockpit' && (
@@ -1887,6 +1941,8 @@ function HomeContent() {
         </>
       )}
 
+      </>}
+
       {/* ---------- MODALS ---------- */}
       {modal.type === 'task' && (
         <TaskModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject} onSaved={refetch} />
@@ -1930,10 +1986,10 @@ function HomeContent() {
         open={explorer === 'pipelineMovement'}
         onClose={() => setExplorer(null)}
         title="Pipeline Movement"
-        subtitle="Week-over-week change by product line"
+        subtitle="Week-over-week change by opportunity stage"
         icon={<Icon name="metrics" size={17} />}
         rows={data.pipelineMovement}
-        searchPlaceholder="Search product lines…"
+        searchPlaceholder="Search opportunity stages…"
         searchText={m => m.label}
         rowKey={m => m.id}
         onRowClick={m => showPipelineMovementDetail(m)}
@@ -1943,7 +1999,7 @@ function HomeContent() {
           { key: 'down', label: 'Declining', test: m => m.deltaPct != null && m.deltaPct < 0 },
         ]}
         columns={[
-          { key: 'label', label: 'Product line', render: m => <span className="font-medium text-fg">{m.label}</span> },
+          { key: 'label', label: 'Stage', render: m => <span className="font-medium text-fg">{m.label}</span> },
           { key: 'amount', label: 'Value', align: 'right', render: m => <span className="font-semibold">{formatValue(m.amount, 'currencyCompact')}</span> },
           { key: 'delta', label: 'Change', align: 'right', render: m => m.deltaPct == null ? <span className="text-faint">—</span> : (
             <span className={`font-mono ${m.deltaPct >= 0 ? 'text-ok' : 'text-risk'}`}>{m.deltaPct >= 0 ? '↑' : '↓'} {Math.abs(Math.round(m.deltaPct * 100))}%</span>

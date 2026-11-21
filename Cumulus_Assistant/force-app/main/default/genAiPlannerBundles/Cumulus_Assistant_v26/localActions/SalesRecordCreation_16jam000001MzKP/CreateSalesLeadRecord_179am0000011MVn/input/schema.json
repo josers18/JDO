@@ -1,0 +1,15 @@
+{
+  "required" : [ "leadRecord" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "leadRecord" : {
+      "title" : "Lead Record",
+      "description" : "The Lead record to identify or create.",
+      "lightning:type" : "lightning__recordInfoType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

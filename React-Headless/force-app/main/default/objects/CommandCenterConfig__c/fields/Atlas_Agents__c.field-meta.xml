@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Atlas_Agents__c</fullName>
+    <description>Selected employee agent IDs by V2 banking application.</description>
+    <externalId>false</externalId>
+    <label>Atlas Agents</label>
+    <length>131072</length>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>12</visibleLines>
+</CustomField>

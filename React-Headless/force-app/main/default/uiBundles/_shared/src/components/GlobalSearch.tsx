@@ -101,10 +101,12 @@ async function runSearch(term: string): Promise<SearchHit[]> {
 export function GlobalSearch({
   onSelectAccount,
   placeholder = 'Search clients, accounts, insights…',
+  appearance,
 }: {
   /** In-app navigation to a Customer 360 page (wired by the shell to react-router). */
   onSelectAccount?: (accountId: string) => void;
   placeholder?: string;
+  appearance?: 'atlas';
 }) {
   const [term, setTerm] = useState('');
   const [hits, setHits] = useState<SearchHit[]>([]);
@@ -169,10 +171,11 @@ export function GlobalSearch({
     window.open(lexRecordUrl(h.object, h.id), '_top');
   }
 
+  const atlas = appearance === 'atlas';
   const showDropdown = open && term.trim().length >= 2;
 
   return (
-    <div ref={rootRef} style={{ position: 'relative', marginLeft: 'auto', flex: 1, maxWidth: 440 }}>
+    <div ref={rootRef} className={atlas ? 'wp-global-search atlas-shell-search' : 'wp-global-search'} style={{ position: 'relative', marginLeft: 'auto', flex: 1, maxWidth: 440 }}>
       <div
         style={{
           display: 'flex',
@@ -185,18 +188,20 @@ export function GlobalSearch({
           color: 'var(--wp-text-faint)',
         }}
       >
-        <Icon name="search" size={16} />
+        {!atlas && <Icon name="search" size={16} />}
         <input
           value={term}
           onChange={e => setTerm(e.target.value)}
           onFocus={() => hits.length && setOpen(true)}
           placeholder={placeholder}
+          aria-label={placeholder.replace(/…$/, '')}
           style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--wp-text)', fontSize: '0.86rem' }}
         />
+        {atlas && <Icon name="search" size={16} />}
         {loading ? (
           <span style={{ fontSize: '0.7rem', color: 'var(--wp-text-faint)' }}>…</span>
         ) : (
-          <span style={{ fontSize: '0.7rem', border: '1px solid var(--wp-border)', borderRadius: 5, padding: '0 0.3rem' }}>⌘K</span>
+          <span className={atlas ? 'atlas-search-shortcut' : undefined} style={{ fontSize: '0.7rem', border: '1px solid var(--wp-border)', borderRadius: 5, padding: '0 0.3rem' }}>⌘K</span>
         )}
       </div>
 

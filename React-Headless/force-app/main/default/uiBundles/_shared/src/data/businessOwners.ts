@@ -91,8 +91,8 @@ const angleOf = (revenueBand: string, employeeBand: string): OwnerAngle =>
     : 'succession';
 
 /** W6 — the book's clients who own a business (top five + counts). */
-export async function fetchBusinessOwners(ownerId: string | null | undefined): Promise<BusinessOwnersResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(ownerRowsSql, ownerId, 5);
+export async function fetchBusinessOwners(ownerId: string | null | undefined, strictBook = false): Promise<BusinessOwnersResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(ownerRowsSql, ownerId, 5, strictBook);
   const total = await queryDataCloud<Record<string, unknown>>(ownerSummarySql(res.accountFilter), 1)
     .then(r => r.rows[0] ?? {})
     .catch((): Record<string, unknown> => ({}));
@@ -167,8 +167,8 @@ export interface OwnerHandoffResult {
 }
 
 /** C6 — owners of my business clients with personal-wealth potential. */
-export async function fetchOwnerWealthHandoffs(ownerId: string | null | undefined): Promise<OwnerHandoffResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(handoffRowsSql, ownerId, 4);
+export async function fetchOwnerWealthHandoffs(ownerId: string | null | undefined, strictBook = false): Promise<OwnerHandoffResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(handoffRowsSql, ownerId, 4, strictBook);
   const total = await queryDataCloud<Record<string, unknown>>(handoffSummarySql(res.accountFilter), 1)
     .then(r => r.rows[0] ?? {})
     .catch((): Record<string, unknown> => ({}));

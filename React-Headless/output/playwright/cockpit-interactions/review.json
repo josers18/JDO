@@ -1,0 +1,884 @@
+{
+  "checks": [
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "today",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "today",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "today",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "relationships",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "relationships",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "relationships",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "pipeline",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "pipeline",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "pipeline",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "journey",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "journey",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "journey",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "growth",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "growth",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "growth",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "intelligence",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "intelligence",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "intelligence",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "work",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "work",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "work",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "config",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "config",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "section": "config",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "today",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "today",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "today",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "relationships",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "relationships",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "relationships",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "pipeline",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "pipeline",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "pipeline",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "journey",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "journey",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "journey",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "growth",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "growth",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "growth",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "intelligence",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "intelligence",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "intelligence",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "work",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "work",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "work",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "config",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "config",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "section": "config",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "today",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "today",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "today",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "relationships",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "relationships",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "relationships",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "pipeline",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "pipeline",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "pipeline",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "journey",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "journey",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "journey",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "growth",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "growth",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "growth",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "intelligence",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "intelligence",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "intelligence",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "work",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "work",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "work",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "config",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "config",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "section": "config",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "today",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "today",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "today",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "relationships",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "relationships",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "relationships",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "pipeline",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "pipeline",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "pipeline",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "journey",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "journey",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "journey",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "growth",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "growth",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "growth",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "intelligence",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "intelligence",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "intelligence",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "work",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "work",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "work",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "config",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "config",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "section": "config",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "today",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "today",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "today",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "relationships",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "relationships",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "relationships",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "pipeline",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "pipeline",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "pipeline",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "journey",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "journey",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "journey",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "growth",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "growth",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "growth",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "intelligence",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "intelligence",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "intelligence",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "work",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "work",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "work",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "config",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "config",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "section": "config",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "today",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "today",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "today",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "relationships",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "relationships",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "relationships",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "pipeline",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "pipeline",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "pipeline",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "journey",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "journey",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "journey",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "growth",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "growth",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "growth",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "intelligence",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "intelligence",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "intelligence",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "work",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "work",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "work",
+      "width": 390
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "config",
+      "width": 1512
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "config",
+      "width": 768
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "section": "config",
+      "width": 390
+    }
+  ],
+  "errors": [],
+  "journeys": [
+    "map selection",
+    "relationship comparison",
+    "map lens",
+    "deal plot",
+    "scale",
+    "scenario isolation",
+    "planning draft",
+    "drag/drop",
+    "scenario reset",
+    "milestone year",
+    "milestone record",
+    "goal funding",
+    "balance filters"
+  ]
+}

@@ -1,0 +1,585 @@
+{
+  "dossiers": [
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "tab": "overview",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "tab": "finances",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "tab": "journey",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "tab": "engagement",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "tab": "growth",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "wealth",
+      "tab": "tools",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "tab": "overview",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "tab": "finances",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "tab": "journey",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "tab": "engagement",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "tab": "growth",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "retail",
+      "tab": "tools",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "tab": "overview",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "tab": "finances",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "tab": "journey",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "tab": "engagement",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "tab": "growth",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "tab": "tools",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "panorama",
+      "persona": "commercial",
+      "tab": "intel",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "tab": "overview",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "tab": "finances",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "tab": "journey",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "tab": "engagement",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "tab": "growth",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "tab": "tools",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "tab": "overview",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "tab": "finances",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "tab": "journey",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "tab": "engagement",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "tab": "growth",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "tab": "tools",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "tab": "overview",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "tab": "finances",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "tab": "journey",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "tab": "engagement",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "tab": "growth",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "tab": "tools",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "tab": "intel",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "wealth",
+      "tab": "overview",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "wealth",
+      "tab": "finances",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "wealth",
+      "tab": "journey",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "wealth",
+      "tab": "engagement",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "wealth",
+      "tab": "growth",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "wealth",
+      "tab": "tools",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "retail",
+      "tab": "overview",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "retail",
+      "tab": "finances",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "retail",
+      "tab": "journey",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "retail",
+      "tab": "engagement",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "retail",
+      "tab": "growth",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "retail",
+      "tab": "tools",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "commercial",
+      "tab": "overview",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "commercial",
+      "tab": "finances",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "commercial",
+      "tab": "journey",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "commercial",
+      "tab": "engagement",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "commercial",
+      "tab": "growth",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "commercial",
+      "tab": "tools",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    },
+    {
+      "style": "focus",
+      "persona": "commercial",
+      "tab": "intel",
+      "widths": [
+        1512,
+        768,
+        390
+      ]
+    }
+  ],
+  "forms": [
+    "task",
+    "meeting",
+    "email",
+    "case",
+    "goal",
+    "life",
+    "lead",
+    "opportunity"
+  ],
+  "errors": []
+}

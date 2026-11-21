@@ -60,8 +60,9 @@ export interface CampaignTouchResult { rows: CampaignTouch[]; scope: BookScope; 
 export async function fetchCampaignTouches(
   ownerId: string | null | undefined,
   persona: CampaignPersona,
+  strictBook = false,
 ): Promise<CampaignTouchResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(campaignTouchSql(persona), ownerId, 8);
+  const res = await queryDataCloudForBook<Record<string, unknown>>(campaignTouchSql(persona), ownerId, 8, strictBook);
   return {
     scope: res.scope,
     rows: res.rows.map(r => ({

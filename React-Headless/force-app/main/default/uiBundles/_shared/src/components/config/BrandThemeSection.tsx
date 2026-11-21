@@ -1,9 +1,10 @@
+import type { PersonaKey } from '../../theme/themes';
 import { useEffect, useState } from 'react';
 import { GlassCard } from '../GlassCard';
 import { Button } from '../Button';
 import { Pill } from '../Pill';
 import { Modal } from '../Modal';
-import { Field, TextInput } from '../home/fields';
+import { Field, SelectInput, TextInput } from '../home/fields';
 import { useToast } from '../Toast';
 import {
   fetchBrandLogo,
@@ -150,6 +151,7 @@ function overrideFromTheme(t: BrandTheme): BrandOverride {
     negColor: t.negColor?.trim() || undefined,
     linkColor: t.linkColor?.trim() || undefined,
     logoBase64: t.logoBase64,
+    logoContentType: t.logoContentType,
     brandName: t.brandName?.trim() || t.name,
     // A forked Light/Dark theme carries a structural mode; a URL-extracted
     // brand leaves it undefined (stays holistic, inherits the app mode).
@@ -235,7 +237,7 @@ function nameFromUrl(url: string): string {
  * D1: gradient/glow are DERIVED via buildGradient/buildGlow(accent) for the
  * live preview only — never stored on the theme, never sent to saveTheme.
  */
-export function BrandThemeSection({ index }: { index?: number }) {
+export function BrandThemeSection({ index, workspace }: { index?: number; workspace?: PersonaKey }) {
   const { toast } = useToast();
   const [url, setUrl] = useState('');
   const [extracting, setExtracting] = useState(false);
@@ -284,7 +286,7 @@ export function BrandThemeSection({ index }: { index?: number }) {
 
   useEffect(() => {
     let alive = true;
-    listThemes()
+    listThemes(workspace)
       .then(res => {
         if (!alive) return;
         setThemes(res.themes);
@@ -438,7 +440,7 @@ export function BrandThemeSection({ index }: { index?: number }) {
         ...(prunePalette(structural) ? { structural: prunePalette(structural)! } : {}),
         ...(prunePalette(sidebar) ? { sidebar: prunePalette(sidebar)! } : {}),
       };
-      const res = await saveTheme(theme);
+      const res = await saveTheme(theme, workspace);
       setThemes(res.themes);
       setActiveThemeId(res.activeThemeId);
       // If we just edited the theme that's currently active, push the new
@@ -459,7 +461,7 @@ export function BrandThemeSection({ index }: { index?: number }) {
   async function onApply(theme: BrandTheme) {
     setBusyId(theme.id);
     try {
-      await setActiveTheme(theme.id);
+      await setActiveTheme(theme.id, workspace);
       setActiveThemeId(theme.id);
       setBrandOverride(overrideFromTheme(theme));
       toast('Theme applied', theme.name);
@@ -470,10 +472,24 @@ export function BrandThemeSection({ index }: { index?: number }) {
     }
   }
 
+  async function restorePersona() {
+    setBusyId('persona');
+    try {
+      await setActiveTheme(null, workspace);
+      setActiveThemeId(null);
+      setBrandOverride(null);
+      toast('Workspace palette restored');
+    } catch {
+      toast('Could not restore the workspace palette');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function onApplyDefault(theme: DefaultTheme) {
     setBusyId(theme.id);
     try {
-      await setActiveTheme(theme.id);
+      await setActiveTheme(theme.id, workspace);
       setActiveThemeId(theme.id);
       // Defaults carry a structural mode (dark|light) and no logo.
       setBrandOverride({
@@ -493,10 +509,10 @@ export function BrandThemeSection({ index }: { index?: number }) {
   async function onDelete(theme: BrandTheme) {
     setBusyId(theme.id);
     try {
-      const res = await deleteTheme(theme.id);
+      const res = await deleteTheme(theme.id, workspace);
       setThemes(res.themes);
       setActiveThemeId(res.activeThemeId);
-      if (activeThemeId === theme.id) setBrandOverride(null);
+      if (activeThemeId === theme.id) { setBrandOverride(null); }
       // If the deleted theme was loaded in the composer, drop back to a fresh
       // form so Save can't recreate it under the same (now-stale) id.
       if (editingId === theme.id) resetForm();
@@ -734,6 +750,20 @@ export function BrandThemeSection({ index }: { index?: number }) {
 
   return (
     <GlassCard title="Brand theme" index={index}>
+      {workspace && <Field label="Active theme">
+        <SelectInput aria-label="Active theme" value={activeThemeId ?? ''} disabled={!!busyId} onChange={event => {
+          const id = event.target.value;
+          if (!id) { void restorePersona(); return; }
+          const base = DEFAULT_THEMES.find(theme => theme.id === id);
+          const saved = themes.find(theme => theme.id === id);
+          if (base) void onApplyDefault(base);
+          else if (saved) void onApply(saved);
+        }}>
+          <option value="">{({ commercial: 'Commercial green', retail: 'Retail ocean blue', wealth: 'Wealth gold' })[workspace]} (workspace default)</option>
+          <optgroup label="Base themes">{DEFAULT_THEMES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</optgroup>
+          <optgroup label="Saved themes">{themes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</optgroup>
+        </SelectInput>
+      </Field>}
       <p className="mb-4 text-[12.5px] text-muted">
         Paste a site URL to extract a logo and suggested palette. Refine the colors, name it, and
         apply it across every surface.
@@ -982,6 +1012,7 @@ export function BrandThemeSection({ index }: { index?: number }) {
       </div>
 
       <div className="mt-5">
+        
         <span className="mb-2.5 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
           Saved themes
         </span>

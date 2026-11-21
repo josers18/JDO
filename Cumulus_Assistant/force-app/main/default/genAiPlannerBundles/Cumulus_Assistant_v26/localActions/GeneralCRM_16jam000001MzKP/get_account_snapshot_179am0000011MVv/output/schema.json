@@ -1,0 +1,14 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "account" : {
+      "title" : "Account",
+      "description" : "Account snapshot, shown to the user as an Account card",
+      "lightning:type" : "c__afd360AccountSnapshotCard",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

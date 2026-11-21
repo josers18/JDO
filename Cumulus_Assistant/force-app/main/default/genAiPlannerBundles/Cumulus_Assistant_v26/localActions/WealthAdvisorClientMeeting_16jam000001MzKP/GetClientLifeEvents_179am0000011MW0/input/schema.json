@@ -1,0 +1,22 @@
+{
+  "required" : [ "recordId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "recordId" : {
+      "title" : "Record Id",
+      "description" : "The ID of the record to get recent and upcoming life events.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "when" : {
+      "title" : "When",
+      "description" : "If the user asks for only past life events return \"past\", if the user asks only for future life events return \"future\", otherwise return \"all\"",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

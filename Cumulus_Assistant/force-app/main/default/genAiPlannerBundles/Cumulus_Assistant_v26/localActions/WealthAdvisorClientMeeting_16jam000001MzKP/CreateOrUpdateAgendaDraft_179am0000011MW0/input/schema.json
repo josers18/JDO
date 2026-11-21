@@ -1,0 +1,29 @@
+{
+  "required" : [ "recordId", "agendaDraftBody" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "recordId" : {
+      "title" : "Record ID",
+      "description" : "The ID of the parent record of the associated agenda draft record.",
+      "lightning:type" : "lightning__recordIdType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "agendaDraftBody" : {
+      "title" : "Notes",
+      "description" : "The body of the agenda draft. Don't include verbs similar to add, include, or update.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "noteId" : {
+      "title" : "Note ID",
+      "description" : "The ID of the created or updated agenda draft record. Retrieve the noteId from the context when available.",
+      "lightning:type" : "lightning__recordIdType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

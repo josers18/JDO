@@ -1,0 +1,22 @@
+{
+  "required" : [ "Input:MeetingNotes", "Input:InputData" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "Input:MeetingNotes" : {
+      "title" : "Meeting Notes",
+      "description" : "The meeting notes text from which to create interest tags and tag categories.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "Input:InputData" : {
+      "title" : "Record Id",
+      "description" : "The record ID associated with the interest tags.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

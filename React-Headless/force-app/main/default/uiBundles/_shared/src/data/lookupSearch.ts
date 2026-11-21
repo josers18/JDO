@@ -85,12 +85,14 @@ export async function searchAccounts(term: string, limit = 8): Promise<LookupHit
  * IS picking the customer. Filtered to plans that have an Account so the created
  * goal always attributes to a client (and appears on the plan-linked card).
  */
-export async function searchFinancialPlans(term: string, limit = 8): Promise<LookupHit[]> {
+export async function searchFinancialPlans(term: string, limit = 8, ownerId?: string): Promise<LookupHit[]> {
+  if (ownerId !== undefined && !/^005[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?$/.test(ownerId)) return [];
+  const scope = ownerId ? `, Account: { OwnerId: { eq: "${ownerId}" }, IsPersonAccount: { eq: true } }` : '';
   const t = escapeTerm(term);
   if (t.length < 2) return [];
   const query = `query FinancialPlanSearch {
     uiapi { query {
-      FinancialPlan(first: ${limit}, where: { and: [ { Name: { like: "%${t}%" } }, { AccountId: { ne: null } } ] }, orderBy: { Name: { order: ASC } }) {
+      FinancialPlan(first: ${limit}, where: { and: [ { Name: { like: "%${t}%" } }, { AccountId: { ne: null } } ]${scope} }, orderBy: { Name: { order: ASC } }) {
         edges { node { Id Name @optional { value } } }
       }
     } }
@@ -112,12 +114,14 @@ export async function searchFinancialPlans(term: string, limit = 8): Promise<Loo
  * Contact IS picking the customer. This is the life-event analogue of
  * searchFinancialPlans on the goal flow.
  */
-export async function searchContacts(term: string, limit = 8): Promise<LookupHit[]> {
+export async function searchContacts(term: string, limit = 8, ownerId?: string): Promise<LookupHit[]> {
+  if (ownerId !== undefined && !/^005[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?$/.test(ownerId)) return [];
+  const scope = ownerId ? `, Account: { OwnerId: { eq: "${ownerId}" }, IsPersonAccount: { eq: true } }` : '';
   const t = escapeTerm(term);
   if (t.length < 2) return [];
   const query = `query ContactSearch {
     uiapi { query {
-      Contact(first: ${limit}, where: { Name: { like: "%${t}%" } }, orderBy: { Name: { order: ASC } }) {
+      Contact(first: ${limit}, where: { Name: { like: "%${t}%" }${scope} }, orderBy: { Name: { order: ASC } }) {
         edges { node { Id Name @optional { value } } }
       }
     } }

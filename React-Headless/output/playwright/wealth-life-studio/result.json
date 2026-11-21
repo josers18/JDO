@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "events": 31,
+  "providerPlans": 73,
+  "crmGoals": 4,
+  "widths": [
+    1512,
+    1024,
+    768,
+    390
+  ],
+  "errors": [],
+  "writes": []
+}

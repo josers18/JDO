@@ -167,6 +167,6 @@ export function logoutUrl(): string {
 
 /** Which React persona bundle is currently rendering (from the URL), if any. */
 export function currentPersonaDevName(): string | null {
-  const m = window.location.pathname.match(/c__React(Retail|Wealth|Commercial|Headless)/i);
-  return m ? `React${m[1]}` : null;
+  const m = window.location.pathname.match(/c__React(Retail|Wealth|Commercial|Headless)(V2)?(?=[/]|$)/i);
+  return m ? `React${m[1]}${m[2] ?? ''}` : null;
 }

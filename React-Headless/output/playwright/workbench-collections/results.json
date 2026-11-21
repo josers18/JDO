@@ -1,0 +1,222 @@
+{
+  "layouts": [
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "sub": "tasks",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "sub": "tasks",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "sub": "tasks",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "sub": "meetings",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "sub": "meetings",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "sub": "meetings",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "sub": "cases",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "sub": "cases",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "sub": "cases",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "sub": "drafts",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "sub": "drafts",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "retail",
+      "sub": "drafts",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "sub": "tasks",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "sub": "tasks",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "sub": "tasks",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "sub": "meetings",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "sub": "meetings",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "sub": "meetings",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "sub": "cases",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "sub": "cases",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "sub": "cases",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "sub": "drafts",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "sub": "drafts",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "wealth",
+      "sub": "drafts",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "sub": "tasks",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "sub": "tasks",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "sub": "tasks",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "sub": "meetings",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "sub": "meetings",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "sub": "meetings",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "sub": "cases",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "sub": "cases",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "sub": "cases",
+      "width": 390
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "sub": "drafts",
+      "width": 1512
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "sub": "drafts",
+      "width": 768
+    },
+    {
+      "style": "atlas",
+      "persona": "commercial",
+      "sub": "drafts",
+      "width": 390
+    }
+  ],
+  "journeys": "All three personas: task planning, notes persistence, local draft edit/readiness, meeting date propagation and rescheduling, service response, persona isolation",
+  "errors": []
+}

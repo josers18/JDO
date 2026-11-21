@@ -41,6 +41,7 @@ export interface BrandOverride {
   negColor?: string;
   linkColor?: string;
   logoBase64: string | null;
+  logoContentType?: string;
   /**
    * Structural surface palette to force (dark|light). Set by the fixed
    * default themes so activating "Dark"/"Light" switches the whole surface,

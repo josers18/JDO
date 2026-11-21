@@ -30,20 +30,18 @@ Agent Script details live in `Cumulus_Assistant.agent` — too large to summariz
 
 The `DC_Product_Offers` GenAiFunction's `output/schema.json` types `promptResponse` as `c__markdownResponse`. That type is owned by sibling project `DC_AgentForce_Markdown_Renderer/` (Lightning Type + LWC). **Deploy the renderer project FIRST**, otherwise this project's deploy will fail at the type lookup.
 
-## HXL record cards (v26)
+## HXL record cards
 
-The `.agent` file in this repo is synced from the org's active **v25** and adds four GeneralCRM actions. They were published as **v26**, which is active in finsdc3.
+Cumulus Assistant v27 in the banking org (`jdo-oe0sdd`) routes a single household, company, lead or deal overview to the corresponding GeneralCRM snapshot. A named record or explicit ID takes precedence over the open page. Analytical, transaction and activity questions keep their dedicated actions.
 
-| Action | Target | Output Lightning type | Card |
-|------|---------|---|---|
-| `get_lead_snapshot` | `apex://AFD360LeadSnapshot` | `c__afd360LeadSnapshotCard` | Lead card + "Create follow-up task" |
-| `get_account_snapshot` | `apex://AFD360AccountSnapshot` | `c__afd360AccountSnapshotCard` | Account card + "Show top opportunity" |
-| `get_opportunity_snapshot` | `apex://AFD360OpportunitySnapshot` | `c__afd360OpportunitySnapshotCard` | Opportunity card + "Create follow-up task" |
-| `create_task` | `apex://AFD360CreateTask` | `c__afd360CreateTaskCard` | Task card + "Mark complete" |
+| Action | Output type | Card action |
+|---|---|---|
+| `get_lead_snapshot` | `c__afd360LeadSnapshotCard` | Plan outreach |
+| `get_account_snapshot` | `c__afd360AccountSnapshotCard` | View largest open deal |
+| `get_opportunity_snapshot` | `c__afd360OpportunitySnapshotCard` | Plan follow-up |
+| `create_task` | `c__afd360CreateTaskCard` | Review completion |
 
-The GeneralCRM instructions also tell the agent to use these actions to show a single record or to create a Task. Lists, aggregates, emails and field updates still use the existing actions.
-
-The Apex classes, widgets and Lightning types belong to `../AFD360_Utilities/salesforce/`. **Deploy that project first.** Over the Agent API, AFD360_Utilities renders these outputs as HXL cards; see `../AFD360_Utilities/docs/hxl.md`. The change spec is `../AFD360_Utilities/salesforce/Cumulus_Assistant-HXL-Cards-ChangeSpec.md`. To roll back, run `sf agent activate --api-name Cumulus_Assistant --version 25`.
+The V2 client supplies the four external conversation variables `currentAppName`, `currentPageType`, `currentObjectApiName` and `currentRecordId` through the native conversation client when its host supports context passing. An explicit ID also works in the same conversation. The Apex actions, widgets and Lightning types are owned by `../AFD360_Utilities/salesforce/`. To roll back the banking agent, activate v26 in `jdo-oe0sdd`. Widget definitions are deployed separately.
 
 ## Deploy
 

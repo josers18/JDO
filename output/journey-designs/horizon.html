@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Horizon — Journey & Goals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Outfit:wght@200;300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --hz-bg:        #04080f;
+    --hz-surface:   #080e1a;
+    --hz-card:      #0c1422;
+    --hz-border:    rgba(184,149,106,0.12);
+    --hz-gold:      #c9a96e;
+    --hz-gold-lt:   rgba(201,169,110,0.14);
+    --hz-gold-glow: rgba(201,169,110,0.30);
+    --hz-ink:       #e8eeff;
+    --hz-ink-2:     rgba(232,238,255,0.45);
+    --hz-ink-3:     rgba(232,238,255,0.22);
+    --hz-navy:      #0a1228;
+    --hz-active-bg: #0f1930;
+    --hz-green:     #5ccb8e;
+    --hz-amber:     #f5b942;
+    --hz-red:       #ff6b6b;
+    --hz-year-sz:   clamp(40px, 6vw, 64px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--hz-bg);
+    color: var(--hz-ink);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  /* ── SHELL ───────────────────────────────────── */
+  .hz-shell {
+    max-width: 860px;
+    margin: 0 auto;
+    border: 1px solid var(--hz-border);
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--hz-surface);
+    box-shadow: 0 0 60px rgba(0,0,0,0.6), 0 0 0 1px var(--hz-border);
+  }
+
+  /* ── HEADER ──────────────────────────────────── */
+  .hz-header {
+    padding: 28px 32px 24px;
+    background: linear-gradient(135deg, var(--hz-navy) 0%, var(--hz-surface) 100%);
+    border-bottom: 1px solid var(--hz-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hz-header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, var(--hz-gold-lt) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hz-eyebrow {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--hz-gold);
+    margin-bottom: 8px;
+  }
+  .hz-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--hz-ink);
+    line-height: 1.1;
+  }
+  .hz-sub {
+    margin-top: 5px;
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--hz-ink-3);
+    letter-spacing: 0.06em;
+  }
+  .hz-header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .hz-type-toggle {
+    display: flex;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--hz-border);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  .hz-type-btn {
+    padding: 5px 16px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: none;
+    background: transparent;
+    color: var(--hz-ink-3);
+    cursor: pointer;
+    transition: background 0.25s, color 0.25s;
+    font-family: 'Outfit', sans-serif;
+  }
+  .hz-type-btn.active {
+    background: var(--hz-gold);
+    color: #08100a;
+    border-radius: 20px;
+  }
+  .hz-count-badges {
+    display: flex;
+    gap: 8px;
+  }
+  .hz-badge {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--hz-border);
+    color: var(--hz-ink-3);
+    background: rgba(255,255,255,0.03);
+  }
+  .hz-badge span { color: var(--hz-gold); font-weight: 600; margin-right: 4px; }
+
+  /* ── FILMSTRIP LABEL ─────────────────────────── */
+  .hz-section-label {
+    padding: 20px 32px 0;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    color: var(--hz-ink-3);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .hz-section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--hz-border);
+  }
+
+  /* ── FILMSTRIP ───────────────────────────────── */
+  .hz-filmstrip-wrap {
+    padding: 16px 32px 0;
+    position: relative;
+  }
+  .hz-filmstrip {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .hz-filmstrip::-webkit-scrollbar { display: none; }
+
+  /* ── RAIL LINE ───────────────────────────────── */
+  .hz-rail {
+    padding: 0 32px;
+    position: relative;
+    height: 24px;
+    display: flex;
+    align-items: center;
+  }
+  .hz-rail-line {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--hz-gold-lt) 10%, var(--hz-gold-lt) 90%, transparent);
+  }
+  .hz-rail-arrow {
+    position: absolute;
+    right: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--hz-gold);
+    font-size: 16px;
+    opacity: 0.5;
+    animation: hz-arrow-float 1.8s ease-in-out infinite;
+  }
+  @keyframes hz-arrow-float {
+    0%,100% { transform: translateY(-50%) translateX(0); opacity:0.4; }
+    50%      { transform: translateY(-50%) translateX(4px); opacity:0.8; }
+  }
+
+  /* ── EVENT CARD ──────────────────────────────── */
+  .hz-card {
+    flex-shrink: 0;
+    width: 140px;
+    background: var(--hz-card);
+    border: 1px solid var(--hz-border);
+    border-radius: 14px;
+    padding: 16px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    cursor: default;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .hz-card:hover {
+    border-color: var(--hz-gold-lt);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px var(--hz-gold-lt);
+  }
+  .hz-card.active {
+    border-color: var(--hz-gold);
+    background: var(--hz-active-bg);
+    box-shadow: 0 0 0 1px var(--hz-gold), 0 8px 40px var(--hz-gold-glow);
+  }
+  .hz-card.active::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--hz-gold), transparent);
+  }
+  .hz-card-icon {
+    font-size: 22px;
+    margin-bottom: 10px;
+    opacity: 0.85;
+  }
+  .hz-card-year {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 38px;
+    font-weight: 300;
+    color: var(--hz-ink-3);
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  .hz-card.active .hz-card-year { color: var(--hz-gold); }
+  .hz-card-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--hz-ink);
+    line-height: 1.3;
+    flex: 1;
+  }
+  .hz-card-date {
+    font-size: 10px;
+    font-weight: 300;
+    color: var(--hz-ink-3);
+    margin-top: 6px;
+  }
+  .hz-card-check {
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--hz-gold);
+    color: #0c0800;
+    font-size: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+  }
+  .hz-card.active .hz-card-check {
+    background: var(--hz-gold);
+    box-shadow: 0 0 0 3px var(--hz-gold-glow);
+    animation: hz-pulse 2s ease-in-out infinite;
+  }
+  .hz-card-badge {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--hz-gold);
+    color: #0c0800;
+    font-size: 9px;
+    font-weight: 700;
+    border-radius: 20px;
+    padding: 1px 6px;
+  }
+  @keyframes hz-pulse {
+    0%,100% { box-shadow: 0 0 0 2px var(--hz-gold-glow); }
+    50%      { box-shadow: 0 0 0 5px var(--hz-gold-glow); }
+  }
+
+  /* ── GOALS SECTION ───────────────────────────── */
+  .hz-goals-wrap {
+    padding: 0 32px 28px;
+  }
+  .hz-goals-grid {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+    justify-content: flex-start;
+  }
+  .hz-goals-grid::-webkit-scrollbar { display: none; }
+
+  /* ── GOAL RING CARD ──────────────────────────── */
+  .hz-goal {
+    flex-shrink: 0;
+    background: var(--hz-card);
+    border: 1px solid var(--hz-border);
+    border-radius: 16px;
+    padding: 20px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 134px;
+    cursor: default;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .hz-goal:hover {
+    border-color: var(--hz-gold-lt);
+    transform: translateY(-2px);
+  }
+
+  /* SVG ring */
+  .hz-ring-wrap {
+    position: relative;
+    width: 72px; height: 72px;
+  }
+  .hz-ring-svg {
+    width: 72px; height: 72px;
+    transform: rotate(-90deg);
+  }
+  .hz-ring-track {
+    fill: none;
+    stroke: rgba(255,255,255,0.06);
+    stroke-width: 5;
+  }
+  .hz-ring-fill {
+    fill: none;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-dasharray: 188.4; /* 2π×30 */
+    stroke-dashoffset: 188.4;
+    transition: stroke-dashoffset 1.4s cubic-bezier(0.22,1,0.36,1);
+  }
+  .hz-ring-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    text-align: center;
+    line-height: 1;
+  }
+  .hz-ring-pct {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--hz-ink);
+    display: block;
+  }
+  .hz-ring-label {
+    font-size: 8px;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    color: var(--hz-ink-3);
+    text-transform: uppercase;
+  }
+
+  .hz-goal-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--hz-ink);
+    text-align: center;
+    line-height: 1.3;
+  }
+  .hz-goal-amount {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--hz-ink-2);
+    text-align: center;
+  }
+  .hz-goal-footer {
+    font-size: 9px;
+    font-weight: 300;
+    color: var(--hz-ink-3);
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+  .hz-priority-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .hz-priority-dot.high   { background: var(--hz-red); }
+  .hz-priority-dot.medium { background: var(--hz-gold); }
+  .hz-priority-dot.low    { background: var(--hz-ink-3); }
+
+  /* ── DEMO LABEL ──────────────────────────────── */
+  .demo-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--hz-gold);
+    text-align: center;
+    margin-bottom: 20px;
+    opacity: 0.7;
+  }
+</style>
+</head>
+<body>
+<p class="demo-label">Design Option B — Horizon</p>
+
+<div class="hz-shell">
+  <!-- HEADER -->
+  <div class="hz-header">
+    <div>
+      <p class="hz-eyebrow" id="hz-eyebrow">Life Journey</p>
+      <h2 class="hz-name" id="hz-name">Mrs. Julie E Morris</h2>
+      <p class="hz-sub" id="hz-sub">Person Account · San Francisco, CA</p>
+    </div>
+    <div class="hz-header-right">
+      <div class="hz-type-toggle">
+        <button class="hz-type-btn active" onclick="setType('person',this)">Person</button>
+        <button class="hz-type-btn" onclick="setType('business',this)">Business</button>
+      </div>
+      <div class="hz-count-badges">
+        <div class="hz-badge" id="hz-ev-badge"><span id="hz-ev-n">7</span> Events</div>
+        <div class="hz-badge" id="hz-gl-badge"><span>6</span> Goals</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVENTS FILMSTRIP -->
+  <div class="hz-section-label">Milestones</div>
+  <div class="hz-filmstrip-wrap">
+    <div class="hz-filmstrip" id="hz-filmstrip"></div>
+  </div>
+  <div class="hz-rail">
+    <div class="hz-rail-line"></div>
+    <div class="hz-rail-arrow">›</div>
+  </div>
+
+  <!-- GOALS -->
+  <div class="hz-section-label" id="hz-goals-label">Goals</div>
+  <div class="hz-goals-wrap">
+    <div class="hz-goals-grid" id="hz-goals-grid"></div>
+  </div>
+</div>
+
+<script>
+const ICONS = {
+  'Birth':             '👤',
+  'Marriage':          '💍',
+  'Purchased Home':    '🏠',
+  'Moved':             '📍',
+  'Audi Q7':           '🚗',
+  'CEO':               '💼',
+  'Graduation':        '🎓',
+  'Expansion':         '🌍',
+  'New CEO':           '👔',
+  'Partnership':       '🤝',
+  'Product':           '🚀',
+  'Seed':              '💰',
+  'Market':            '📈',
+};
+
+function iconFor(name) {
+  for (const [k,v] of Object.entries(ICONS)) {
+    if (name.toLowerCase().includes(k.toLowerCase())) return v;
+  }
+  return '✦';
+}
+
+const PERSON = {
+  name: 'Mrs. Julie E Morris',
+  sub: 'Person Account · San Francisco, CA',
+  eyebrow: 'Life Journey',
+  goalLabel: 'Goals',
+  events: [
+    { year:1993, name:'Birth',                   date:'May 31, 1993',  status:'done' },
+    { year:1993, name:'Graduation',               date:'May 31, 1993',  status:'done' },
+    { year:2000, name:'Marriage',                 date:'Oct 11, 2000',  status:'done' },
+    { year:2018, name:'Purchased Home',           date:'May 2, 2018',   status:'done' },
+    { year:2018, name:'Moved to San Francisco',   date:'Apr 9, 2018',   status:'done' },
+    { year:2021, name:'Audi Q7',                  date:'Jan 4, 2021',   status:'done' },
+    { year:2026, name:'Appointed CEO — Morris Roasters', date:'May 4, 2026', status:'now', count:2 },
+  ],
+  goals: [
+    { name:'Retirement',       amount:'$6,750,000', pct:96,  priority:'low',    color:'#5ccb8e', date:'May 2047' },
+    { name:'Estate Planning',  amount:'$1,500,000', pct:100, priority:'medium', color:'#c9a96e', date:'Nov 2017' },
+    { name:"Jack's College",   amount:'$175,000',   pct:61,  priority:'high',   color:'#ff6b6b', date:'Jul 2030' },
+    { name:'Vacation Home',    amount:'$208,000',   pct:32,  priority:'medium', color:'#c9a96e', date:'Jun 2045' },
+    { name:"Rachel's Wedding", amount:'$85,000',    pct:71,  priority:'high',   color:'#ff6b6b', date:'Jul 2025' },
+    { name:'Charitable Giving',amount:'$15,000',    pct:15,  priority:'medium', color:'#c9a96e', date:'Dec 2030' },
+  ]
+};
+
+const BUSINESS = {
+  name: 'Omega, Inc.',
+  sub: 'Account · San Francisco, CA',
+  eyebrow: 'Business Milestones',
+  goalLabel: 'Goals',
+  events: [
+    { year:2019, name:'International Expansion', date:'May 12, 2019', status:'done', count:3 },
+    { year:2020, name:'New CEO Named',           date:'Oct 5, 2020',  status:'done' },
+    { year:2021, name:'New Partnership',         date:'Mar 15, 2021', status:'done' },
+    { year:2022, name:'New Product Launch',      date:'Aug 20, 2022', status:'done' },
+    { year:2024, name:'Seed Funding Round',      date:'Jan 10, 2024', status:'done' },
+    { year:2026, name:'Market Listing Pending',  date:'Jun 1, 2026',  status:'now' },
+  ],
+  goals: []
+};
+
+let currentData = PERSON;
+
+function setType(type, btn) {
+  currentData = type === 'person' ? PERSON : BUSINESS;
+  document.querySelectorAll('.hz-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('hz-eyebrow').textContent = currentData.eyebrow;
+  document.getElementById('hz-name').textContent = currentData.name;
+  document.getElementById('hz-sub').textContent = currentData.sub;
+  document.getElementById('hz-goals-label').textContent = currentData.goalLabel;
+  const evBadge = document.getElementById('hz-ev-n');
+  evBadge.textContent = currentData.events.length;
+  render();
+}
+
+function circumference(r) { return 2 * Math.PI * r; }
+const R = 30, CIRC = circumference(R);
+
+function renderEvents(events) {
+  return events.map((ev, i) => `
+    <div class="hz-card ${ev.status === 'now' ? 'active' : ''}">
+      ${ev.count ? `<div class="hz-card-badge">×${ev.count}</div>` :
+        ev.status === 'done' ? '<div class="hz-card-check">✓</div>' :
+        '<div class="hz-card-check" style="background:var(--hz-gold);animation:hz-pulse 2s infinite">●</div>'}
+      <div class="hz-card-icon">${iconFor(ev.name)}</div>
+      <div class="hz-card-year">${ev.year}</div>
+      <div class="hz-card-name">${ev.name}</div>
+      <div class="hz-card-date">${ev.date}</div>
+    </div>
+  `).join('');
+}
+
+function renderGoals(goals) {
+  if (!goals.length) {
+    return '<p style="color:var(--hz-ink-3);font-size:13px;padding:8px 0">No goals recorded</p>';
+  }
+  return goals.map(g => {
+    const offset = CIRC - (g.pct / 100) * CIRC;
+    return `
+    <div class="hz-goal">
+      <div class="hz-ring-wrap">
+        <svg class="hz-ring-svg" viewBox="0 0 72 72">
+          <circle class="hz-ring-track" cx="36" cy="36" r="${R}" />
+          <circle class="hz-ring-fill"
+            cx="36" cy="36" r="${R}"
+            stroke="${g.color}"
+            style="stroke-dashoffset:${offset}"
+          />
+        </svg>
+        <div class="hz-ring-center">
+          <span class="hz-ring-pct">${g.pct}%</span>
+          <span class="hz-ring-label">done</span>
+        </div>
+      </div>
+      <div class="hz-goal-name">${g.name}</div>
+      <div class="hz-goal-amount">${g.amount}</div>
+      <div class="hz-goal-footer">
+        <span class="hz-priority-dot ${g.priority}"></span>${g.priority} · ${g.date}
+      </div>
+    </div>
+  `}).join('');
+}
+
+function render() {
+  document.getElementById('hz-filmstrip').innerHTML = renderEvents(currentData.events);
+  document.getElementById('hz-goals-grid').innerHTML = renderGoals(currentData.goals);
+}
+
+render();
+</script>
+</body>
+</html>

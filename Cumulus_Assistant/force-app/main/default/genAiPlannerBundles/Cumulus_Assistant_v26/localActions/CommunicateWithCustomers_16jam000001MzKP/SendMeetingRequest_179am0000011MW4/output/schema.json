@@ -1,0 +1,15 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "generatedEmail" : {
+      "title" : "Generated Meeting Email",
+      "description" : "A JSON object that contains the recipient ID, subject, and the draft of the body of the meeting request.",
+      "lightning:type" : "lightning__emailType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

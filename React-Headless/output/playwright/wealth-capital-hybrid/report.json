@@ -1,0 +1,16 @@
+{
+  "layouts": 4,
+  "checks": [
+    "approved graph retained",
+    "capital paths functionality combined",
+    "search with truthful empty state",
+    "exact Account/product proposal",
+    "blank opportunity amount",
+    "owned acquisition guard",
+    "movers preserve selection and reload",
+    "monthly history scrubber",
+    "newer tabs retained"
+  ],
+  "pageErrors": [],
+  "networkWrites": []
+}

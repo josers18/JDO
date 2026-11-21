@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPlugin xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <aiPluginUtterances>
+        <developerName>iwanttomak0</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>iwanttomak</masterLabel>
+        <utterance>I want to make a claim</utterance>
+    </aiPluginUtterances>
+    <canEscalate>false</canEscalate>
+    <description>Create a Salesforce case when prompted to do so. An example of a user request is &quot;I want to make a claim&quot;</description>
+    <developerName>Create_a_Case</developerName>
+    <genAiFunctions>
+        <functionName>SvcCopilotTmpl__CreateCase</functionName>
+    </genAiFunctions>
+    <genAiPluginInstructions>
+        <description>Your only job is to call the Salesforce Flow called &quot;Create Case&quot; per the action associated with this Topic. But make sure you ask the customer for xxx details</description>
+        <developerName>instruction_youronlyjo0</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>instruction_youronlyjo0</masterLabel>
+        <sortOrder>0</sortOrder>
+    </genAiPluginInstructions>
+    <language>en_US</language>
+    <masterLabel>Create a Case</masterLabel>
+    <pluginType>Topic</pluginType>
+    <scope>Your only job is to call the Salesforce Flow called &quot;Create Case&quot; per the action associated with this Topic</scope>
+</GenAiPlugin>

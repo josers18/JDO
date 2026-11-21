@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>React Commercial V2 Access</label>
+    <applicationVisibilities>
+        <application>ReactCommercialV2</application>
+        <visible>true</visible>
+    </applicationVisibilities>
+    <pageAccesses>
+        <apexPage>ReactCommercialV2Launcher</apexPage>
+        <enabled>true</enabled>
+    </pageAccesses>
+    <tabSettings>
+        <tab>ReactCommercialV2App</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+</PermissionSet>

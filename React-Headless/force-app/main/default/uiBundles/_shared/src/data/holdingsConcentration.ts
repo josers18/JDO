@@ -105,8 +105,8 @@ const issuerOf = (name: unknown, ticker: string) =>
   String(name ?? '').replace(/&amp;/g, '&').replace(/^[A-Z.]+ - /, '') || ticker;
 
 /** W8 — the book's single-stock concentration: concentrated clients + top exposures. */
-export async function fetchHoldingsConcentration(ownerId: string | null | undefined): Promise<HoldingsConcentrationResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 5);
+export async function fetchHoldingsConcentration(ownerId: string | null | undefined, strictBook = false): Promise<HoldingsConcentrationResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 5, strictBook);
   const [total, exposures] = await Promise.all([
     queryDataCloud<Record<string, unknown>>(summarySql(res.accountFilter), 1)
       .then(r => r.rows[0] ?? {})

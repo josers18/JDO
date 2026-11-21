@@ -1,7 +1,7 @@
 import { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
 import { PERSONA_THEMES, type PersonaKey, type PersonaTheme } from './themes';
 import { buildGradient, buildGlow, buildAurora, buildAiFamily, readableTextOn, buildStructuralVars } from './brandThemes';
-import { useBrandOverride } from './activeBrand';
+import { useBrandOverride, type BrandOverride } from './activeBrand';
 import { useDisplaySize, scaleForDisplaySize } from './displaySize';
 import './tokens.css';
 
@@ -28,6 +28,7 @@ interface ThemeProviderProps {
    * don't compound (the outer wrapper already applied it).
    */
   scaleDisplaySize?: boolean;
+  brandOverride?: BrandOverride;
 }
 
 /**
@@ -41,9 +42,11 @@ export function ThemeProvider({
   mode = 'dark',
   children,
   scaleDisplaySize = true,
+  brandOverride,
 }: ThemeProviderProps) {
   const base = PERSONA_THEMES[persona];
-  const override = useBrandOverride();
+  const savedOverride = useBrandOverride();
+  const override = brandOverride ?? savedOverride;
   // Per-user display size (font/UI scale). Applied as CSS `zoom` on this single
   // wrapper so every hardcoded-px descendant (labels, box text, padding, icons)
   // scales together and reflows correctly. `default` → zoom 1 (baseline).

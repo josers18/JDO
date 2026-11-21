@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <base href="/">
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>React Commercial</title>
+    <script type="module" crossorigin src="./assets/index-DLwGSnYI.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DM3r2379.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  <script data-live-preview>/**
+ * Copyright (c) 2026, Salesforce, Inc.,
+ * All rights reserved.
+ * For full license text, see the LICENSE.txt file
+ */
+
+/* eslint-disable */
+// Live Preview injected script — loaded at runtime by livePreviewScript.ts via readFileSync.
+// This file runs in the browser (injected into <script> tags), NOT in Node.js.
+// Live Preview postMessage contract (match extension TypeScript type):
+// type: 'runtime' | 'compile' | 'network' | 'hmr' - extension uses for Fix Code vs Refresh Panel vs Re-authenticate
+// For network: always send status (401/403 = auth, 0 = connection/socket failure)
+// CRITICAL: Set up fetch interceptor IMMEDIATELY (synchronously, before defer)
+// This ensures we catch all network errors, even those that happen during page load
+(function setupFetchInterceptorImmediate() {
+	if (window.fetch && !window.fetch._vscodeIntercepted) {
+		const originalFetch = window.fetch;
+		window.fetch = function () {
+			const args = Array.prototype.slice.call(arguments);
+			const url = typeof args[0] === "string" ? args[0] : args[0] && args[0].url ? args[0].url : "";
+			const method = (args[1] && args[1].method ? args[1].method : "GET").toUpperCase();
+			const startTime = Date.now();
+
+			return originalFetch
+				.apply(window, args)
+				.then(function (response) {
+					const duration = Date.now() - startTime;
+
+					if (response.status >= 400) {
+						const errorData = {
+							type: "network",
+							method: method,
+							url: url,
+							status: response.status,
+							duration: duration,
+							message: "Network error: " + response.status + " " + (response.statusText || ""),
+						};
+						// Use sendErrorToParent (via window.__vscodeLivePreviewSendError) so dedup applies.
+						// Do NOT use console.error here — it would trigger the override and double-send.
+						if (typeof window.__vscodeLivePreviewSendError === "function") {
+							try {
+								window.__vscodeLivePreviewSendError(errorData);
+							} catch (err) {}
+						} else if (window.parent && window.parent !== window) {
+							// Fallback before init: send directly (no dedup yet)
+							try {
+								window.parent.postMessage(
+									{
+										type: errorData.type,
+										message: errorData.message,
+										metadata: {
+											method: errorData.method,
+											url: errorData.url,
+											status: errorData.status,
+											duration: errorData.duration,
+										},
+										_source: "ui-bundle-proxy-injected-script",
+									},
+									"*",
+								);
+							} catch (e) {}
+						}
+					}
+
+					return response;
+				})
+				.catch(function (error) {
+					const duration = Date.now() - startTime;
+					const status =
+						(error && error.status) || (error && error.response && error.response.status) || 0;
+					const errorData = {
+						type: "network",
+						method: method,
+						url: url,
+						status: status,
+						duration: duration,
+						message:
+							error && error.message
+								? error.message
+								: status > 0
+									? "Network error: " + status
+									: "Network request failed",
+						stack: error && error.stack ? error.stack : "",
+					};
+					// Use sendErrorToParent (via window.__vscodeLivePreviewSendError) so dedup applies.
+					// Do NOT use console.error — it would trigger the override and double-send.
+					if (typeof window.__vscodeLivePreviewSendError === "function") {
+						try {
+							window.__vscodeLivePreviewSendError(errorData);
+						} catch (err) {}
+					} else if (window.parent && window.parent !== window) {
+						try {
+							window.parent.postMessage(
+								{
+									type: errorData.type,
+									message: errorData.message,
+									stack: errorData.stack,
+									metadata: {
+										method: errorData.method,
+										url: errorData.url,
+										status: errorData.status,
+										duration: errorData.duration,
+									},
+									_source: "ui-bundle-proxy-injected-script",
+								},
+								"*",
+							);
+						} catch (e) {}
+					}
+					throw error;
+				});
+		};
+		window.fetch._vscodeIntercepted = true;
+	}
+})();
+(function () {
+	// Defer script execution to avoid blocking initial page render
+	// Use requestIdleCallback if available, otherwise setTimeout
+	function deferInit(callback) {
+		if (window.requestIdleCallback) {
+			window.requestIdleCallback(callback, { timeout: 100 });
+		} else {
+			setTimeout(callback, 0);
+		}
+	}
+	function initVSCodeLivePreview() {
+		const recentErrors = {};
+		const ERROR_DEDUP_WINDOW_MS = 2000;
+
+		function safeStr(val, maxLen) {
+			if (val == null) return "";
+			const s = typeof val === "string" ? val : String(val);
+			return s.substring(0, maxLen == null ? s.length : maxLen);
+		}
+
+		function getErrorHash(errorData) {
+			if (errorData.type === "network") {
+				return (
+					(errorData.type || "unknown") +
+					"|" +
+					(errorData.status || "0") +
+					"|" +
+					safeStr(errorData.url, 100) +
+					"|" +
+					(errorData.method || "GET")
+				);
+			}
+			return (
+				(errorData.type || "unknown") +
+				"|" +
+				safeStr(errorData.message, 100) +
+				"|" +
+				safeStr(errorData.source, 50)
+			);
+		}
+
+		function sendErrorToParent(errorData) {
+			const errorHash = getErrorHash(errorData);
+			const now = Date.now();
+
+			if (recentErrors[errorHash]) {
+				const timeSinceLastSend = now - recentErrors[errorHash];
+				if (timeSinceLastSend < ERROR_DEDUP_WINDOW_MS) {
+					return;
+				}
+			}
+
+			recentErrors[errorHash] = now;
+
+			const errorKeys = Object.keys(recentErrors);
+			if (errorKeys.length > 50) {
+				const sortedKeys = errorKeys.sort(function (a, b) {
+					return recentErrors[a] - recentErrors[b];
+				});
+				for (let i = 0; i < sortedKeys.length - 50; i++) {
+					delete recentErrors[sortedKeys[i]];
+				}
+			}
+
+			if (window.parent && window.parent !== window) {
+				try {
+					const msg = {
+						type: errorData.type,
+						message: errorData.message,
+						stack: errorData.stack,
+						metadata: {
+							source: errorData.source || window.location.href,
+							level: errorData.level,
+							method: errorData.method,
+							url: errorData.url,
+							status: errorData.status,
+							duration: errorData.duration,
+						},
+						_source: "ui-bundle-proxy-injected-script",
+					};
+					window.parent.postMessage(msg, "*");
+				} catch (err) {
+					console.error("[ui-bundle-proxy] Failed to send error to parent:", err);
+				}
+			}
+		}
+		// Expose for fetch interceptor: once init runs, network errors use sendErrorToParent (dedup)
+		try {
+			window.__vscodeLivePreviewSendError = sendErrorToParent;
+		} catch (e) {}
+
+		const initTime = new Date().toISOString();
+		if (window.parent && window.parent !== window) {
+			try {
+				window.parent.postMessage(
+					{
+						command: "iframeAlive",
+						version: "2026-01-19-v5",
+						timestamp: initTime,
+						source: "ui-bundle-proxy-injected-script",
+					},
+					"*",
+				);
+			} catch (e) {
+				console.error("[ui-bundle-proxy] Failed to send iframeAlive message:", e);
+			}
+		}
+		if (
+			window.parent &&
+			window.parent !== window &&
+			!document.getElementById("vscode-text-selection-style")
+		) {
+			const style = document.createElement("style");
+			style.id = "vscode-text-selection-style";
+			style.textContent =
+				"* { -webkit-user-select: text !important; user-select: text !important; }";
+			document.head.appendChild(style);
+		}
+
+		let lastSelection = "";
+		let lastCopyTime = 0;
+		const COPY_THROTTLE_MS = 100;
+
+		// Function to get current selection and send copy message
+		function sendCopyMessage(forceCopy) {
+			if (forceCopy === undefined) forceCopy = false;
+			const timestamp = new Date().toISOString();
+			const now = Date.now();
+			const timeSinceLastCopy = now - lastCopyTime;
+			let selection = window.getSelection();
+			let text = "";
+
+			if (selection && selection.toString().trim()) {
+				text = selection.toString();
+			} else {
+				try {
+					const docSelection = document.getSelection();
+					if (docSelection && docSelection.toString().trim()) {
+						text = docSelection.toString();
+					}
+				} catch (e) {}
+			}
+			if (!text || text.length === 0) {
+				try {
+					const activeElement = document.activeElement;
+					if (
+						activeElement &&
+						(activeElement.tagName === "INPUT" || activeElement.tagName === "TEXTAREA")
+					) {
+						const input = activeElement;
+						if (input.selectionStart !== undefined && input.selectionEnd !== undefined) {
+							text = input.value.substring(input.selectionStart, input.selectionEnd);
+						}
+					}
+				} catch (e) {}
+			}
+			if (!text || text.trim().length === 0) {
+				return;
+			}
+
+			const selectionChanged = text !== lastSelection;
+			const shouldThrottle = !forceCopy && timeSinceLastCopy < COPY_THROTTLE_MS;
+
+			if (forceCopy || (selectionChanged && !shouldThrottle)) {
+				lastSelection = text;
+				lastCopyTime = now;
+
+				if (window.parent && window.parent !== window) {
+					try {
+						const message = {
+							command: "copy",
+							text: text,
+							timestamp: timestamp,
+						};
+						window.parent.postMessage(message, "*");
+					} catch (err) {
+						console.error("[ui-bundle-proxy] Copy: Error sending postMessage:", err);
+					}
+				}
+			}
+		}
+
+		if (window.parent && window.parent !== window) {
+			document.addEventListener(
+				"keydown",
+				function (e) {
+					if ((e.metaKey || e.ctrlKey) && (e.key === "c" || e.key === "C" || e.keyCode === 67)) {
+						setTimeout(function () {
+							sendCopyMessage(true);
+						}, 0);
+					}
+				},
+				true,
+			);
+
+			document.addEventListener(
+				"copy",
+				function (e) {
+					setTimeout(function () {
+						sendCopyMessage(true);
+					}, 0);
+				},
+				true,
+			);
+
+			// W-21747416: Forward keyboard events with modifier keys to the parent
+			// webview so VS Code can handle shortcuts (Cmd+Shift+P, Cmd+P, etc.)
+			// that the iframe would otherwise swallow.
+			// Exclude copy (Cmd+C / Ctrl+C) since it is already handled by the copy
+			// listener above — forwarding it would cause the copy action to fire twice.
+			document.addEventListener(
+				"keydown",
+				function (e) {
+					if (
+						(e.metaKey || e.ctrlKey || e.altKey) &&
+						!((e.metaKey || e.ctrlKey) && (e.key === "c" || e.key === "C"))
+					) {
+						try {
+							window.parent.postMessage(
+								{
+									command: "forwardKeydown",
+									_source: "webapps-proxy-injected-script",
+									key: e.key,
+									code: e.code,
+									metaKey: e.metaKey,
+									ctrlKey: e.ctrlKey,
+									shiftKey: e.shiftKey,
+									altKey: e.altKey,
+									repeat: e.repeat,
+								},
+								"*",
+							);
+						} catch (err) {}
+					}
+				},
+				true,
+			);
+		}
+
+		if (window.parent && window.parent !== window) {
+			document.addEventListener(
+				"contextmenu",
+				function (e) {
+					e.preventDefault();
+					const selection = window.getSelection();
+					const selectedText = selection && selection.toString().trim() ? selection.toString() : "";
+					try {
+						window.parent.postMessage(
+							{
+								command: "rightClick",
+								x: e.clientX,
+								y: e.clientY,
+								selectedText: selectedText,
+							},
+							"*",
+						);
+					} catch (err) {
+						console.error("[ui-bundle-proxy] Right-click: Error sending postMessage:", err);
+					}
+				},
+				true,
+			);
+		}
+
+		window.addEventListener("message", function (e) {
+			if (e.data && e.data.command === "getSelection") {
+				const selection = window.getSelection();
+				const text = selection && selection.toString() ? selection.toString() : "";
+				if (window.parent && window.parent !== window) {
+					window.parent.postMessage({ command: "selectionText", text: text }, "*");
+				}
+			} else if (e.data && e.data.command === "selectAll") {
+				document.execCommand("selectAll", false, null);
+			} else if (e.data && e.data.command === "paste") {
+				// Paste text into active element or document
+				if (e.data.text) {
+					try {
+						const activeElement = document.activeElement;
+						if (
+							activeElement &&
+							(activeElement.tagName === "INPUT" ||
+								activeElement.tagName === "TEXTAREA" ||
+								activeElement.isContentEditable)
+						) {
+							if (activeElement.tagName === "INPUT" || activeElement.tagName === "TEXTAREA") {
+								const input = activeElement;
+								const start = input.selectionStart || 0;
+								const end = input.selectionEnd || 0;
+								const value = input.value || "";
+								input.value = value.substring(0, start) + e.data.text + value.substring(end);
+								input.selectionStart = input.selectionEnd = start + e.data.text.length;
+								input.dispatchEvent(new Event("input", { bubbles: true }));
+							} else if (activeElement.isContentEditable) {
+								document.execCommand("insertText", false, e.data.text);
+							}
+						} else {
+							// Fallback: try to paste into body
+							document.execCommand("insertText", false, e.data.text);
+						}
+					} catch (err) {
+						console.error("[ui-bundle-proxy] paste: Failed to paste text:", err);
+					}
+				}
+			}
+		});
+
+		// Send click events to parent to hide context menu when clicking elsewhere
+		document.addEventListener(
+			"click",
+			function (e) {
+				if (window.parent && window.parent !== window) {
+					try {
+						window.parent.postMessage(
+							{
+								command: "iframeClick",
+								x: e.clientX,
+								y: e.clientY,
+							},
+							"*",
+						);
+					} catch (err) {
+						// Silently fail if postMessage fails
+					}
+				}
+			},
+			true,
+		);
+
+		// @W-21893287: Monkey-patch History API to detect SPA navigation.
+		// Frameworks like React Router use pushState/replaceState for client-side
+		// routing which doesn't fire the iframe load event. This keeps the
+		// toolbar URL input in sync with the iframe's actual path.
+		if (window.parent && window.parent !== window) {
+			function notifyRouteChange() {
+				try {
+					window.parent.postMessage(
+						{
+							command: "routeChanged",
+							route: window.location.pathname,
+							_source: "ui-bundle-proxy-injected-script",
+						},
+						"*",
+					);
+				} catch (err) {}
+			}
+
+			var originalPushState = history.pushState;
+			var originalReplaceState = history.replaceState;
+
+			history.pushState = function () {
+				var result = originalPushState.apply(this, arguments);
+				notifyRouteChange();
+				return result;
+			};
+
+			history.replaceState = function () {
+				var result = originalReplaceState.apply(this, arguments);
+				notifyRouteChange();
+				return result;
+			};
+
+			window.addEventListener("popstate", function () {
+				notifyRouteChange();
+			});
+		}
+
+		// 1. Handle unhandled JavaScript errors (runtime - extension shows Refresh Panel)
+		window.addEventListener(
+			"error",
+			function (event) {
+				const errorData = {
+					type: "runtime",
+					message: event.message || "Unknown error",
+					stack: event.error ? event.error.stack : "",
+					source: event.filename || window.location.href,
+				};
+				console.error("[ui-bundle-proxy] Unhandled error detected:", errorData);
+				sendErrorToParent(errorData);
+			},
+			true,
+		);
+
+		// 2. Handle unhandled promise rejections (runtime or network - extension shows appropriate actions)
+		window.addEventListener("unhandledrejection", function (event) {
+			const reason = event.reason;
+			const msg =
+				reason && reason.message ? reason.message : String(reason) || "Unhandled promise rejection";
+			// "Failed to fetch" and similar come from fetch() rejections (DNS, CORS, connection) — classify as network
+			const isNetworkFailure =
+				/failed to fetch|network request failed|load failed|networkerror/i.test(msg);
+			const errorData = {
+				type: isNetworkFailure ? "network" : "runtime",
+				message: msg,
+				stack: reason && reason.stack ? reason.stack : "",
+				source: window.location.href,
+			};
+			console.error("[ui-bundle-proxy] Unhandled promise rejection detected:", errorData);
+			sendErrorToParent(errorData);
+		});
+
+		// 3. Override console.error to catch errors surfaced by frameworks (React, Vite).
+		// Trade-off: this catches all console.error calls (including third-party noise).
+		// The ignore list below filters known framework messages. A re-entrancy guard
+		// prevents infinite loops if sendErrorToParent itself triggers console.error.
+		const originalConsoleError = console.error;
+		let _inConsoleErrorOverride = false;
+		console.error = function () {
+			const args = Array.prototype.slice.call(arguments);
+			originalConsoleError.apply(console, args);
+			if (_inConsoleErrorOverride) return;
+			_inConsoleErrorOverride = true;
+			try {
+				let message = "";
+				let stack = "";
+
+				for (let i = 0; i < args.length; i++) {
+					const arg = args[i];
+					if (arg instanceof Error) {
+						message = arg.message;
+						stack = arg.stack || "";
+						break;
+					} else if (typeof arg === "string") {
+						message = arg;
+					} else if (arg && typeof arg === "object") {
+						message =
+							arg.message && typeof arg.message === "string" ? arg.message : JSON.stringify(arg);
+					} else {
+						message = String(arg);
+					}
+				}
+
+				// If no message extracted, stringify all args (avoid [object Object])
+				if (!message && args.length > 0) {
+					message = args
+						.map(function (arg) {
+							if (arg && typeof arg === "object" && !(arg instanceof Error)) {
+								return arg.message && typeof arg.message === "string"
+									? arg.message
+									: JSON.stringify(arg);
+							}
+							return String(arg);
+						})
+						.join(" ");
+				}
+				// Skip sending noise: [object Object] with no useful content
+				if (message === "[object Object]") {
+					return;
+				}
+
+				const messageLower = (
+					typeof message === "string" ? message : String(message)
+				).toLowerCase();
+				if (messageLower.includes("failed to reload")) {
+					const errorData = {
+						type: "compile",
+						level: "error",
+						message: (typeof message === "string" ? message : String(message)) || "Console error",
+						stack: stack,
+					};
+					sendErrorToParent(errorData);
+					return;
+				}
+				// Filter out other noisy/expected errors that shouldn't trigger notifications
+				const shouldIgnore =
+					messageLower.includes("hmr update") ||
+					messageLower.includes("fast refresh") ||
+					messageLower.includes("could not fast refresh") ||
+					(messageLower.includes("[vite]") && messageLower.includes("hmr")) ||
+					messageLower.includes("reactdomclient.createroot");
+
+				if (shouldIgnore) {
+					return; // Don't send these to VS Code
+				}
+
+				// Skip network errors: fetch interceptor already sends them (avoids double postMessage)
+				for (let i = 0; i < args.length; i++) {
+					if (args[i] && typeof args[i] === "object" && args[i].type === "network") {
+						return;
+					}
+				}
+
+				const errorData = {
+					type: "runtime",
+					level: "error",
+					message: message || "Console error",
+					stack: stack,
+				};
+
+				sendErrorToParent(errorData);
+			} finally {
+				_inConsoleErrorOverride = false;
+			}
+		};
+	}
+
+	// Defer execution to avoid blocking initial page render
+	// Wait for page to be interactive before initializing
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", function () {
+			deferInit(initVSCodeLivePreview);
+		});
+	} else if (document.readyState === "interactive") {
+		// DOM is interactive, defer to next idle period
+		deferInit(initVSCodeLivePreview);
+	} else {
+		// DOM is complete, run immediately but asynchronously
+		deferInit(initVSCodeLivePreview);
+	}
+})();
+</script>  <script>(function() { globalThis.SFDC_ENV = { basePath: "/", apiPath: "/", orgUrl: "https://storm-16a17dc388fbe6.demo.lightning.force.com" }; })();</script>
+</body>
+</html>

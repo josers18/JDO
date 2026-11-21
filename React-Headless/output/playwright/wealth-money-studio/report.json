@@ -1,0 +1,18 @@
+{
+  "scenes": 20,
+  "checks": [
+    "all original finances extras preserved",
+    "exact financial account inspector",
+    "account group filter",
+    "side/instrument search",
+    "actual execution cents/quantity",
+    "actual transaction cents",
+    "owner value/equity/mortgage/HELOC/hazards",
+    "non-owner suppresses homeowner values",
+    "successful0 stays0",
+    "unavailable source does not borrow old capture",
+    "wrong-owner supplemental rejected"
+  ],
+  "pageErrors": [],
+  "networkWrites": []
+}

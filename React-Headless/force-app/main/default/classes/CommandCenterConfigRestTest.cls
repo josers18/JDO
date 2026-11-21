@@ -1,5 +1,55 @@
 @IsTest
 private class CommandCenterConfigRestTest {
+    @IsTest
+    static void householdContextIsGroundedAndScoped() {
+        Account household = new Account(Name='Context Household', BillingCity='Albany');
+        insert household;
+        insert new Task(Subject='Review renewal', Status='Not Started', Priority='Normal', WhatId=household.Id);
+        Map<String,Object> context = new Map<String,Object>{'currentRecordId'=>String.valueOf(household.Id),
+            'currentObjectApiName'=>'Account','viewedBookOwnerId'=>String.valueOf(UserInfo.getUserId())};
+        String facts = JSON.serialize(CommandCenterConfigRest.selectedRecordFacts(context));
+        System.assert(facts.contains('Context Household') && facts.contains('Albany') && facts.contains('Review renewal'));
+        String path = '/services/apexrest/config/record-summary';
+        RestResponse summary = doPostUri(path, JSON.serialize(new Map<String,Object>{'center'=>'retail','context'=>context}));
+        System.assertEquals(200, summary.statusCode);
+        System.assert(body(summary).containsKey('contextMs'));
+        context.put('viewedBookOwnerId','005000000000001');
+        System.assertEquals(404, doPostUri(path, JSON.serialize(new Map<String,Object>{'center'=>'retail','context'=>context})).statusCode);
+        System.assert(CommandCenterConfigRest.selectedRecordFacts(context).isEmpty());
+    }
+
+    @IsTest
+    static void workspaceThemeSelectionIsIndependent() {
+        String endpoint = '/services/apexrest/config/active-theme';
+        String library = '/services/apexrest/config/themes';
+        doPostUri(endpoint, '{"themeId":"__default_light__"}');
+        System.assertEquals(null, body(doGet(library+'?workspace=commercial')).get('activeThemeId'));
+        doPostUri(endpoint, '{"workspace":"commercial","themeId":"__default_dark__"}');
+        System.assertEquals('__default_dark__', body(doGet(library+'?workspace=commercial')).get('activeThemeId'));
+        System.assertEquals(null, body(doGet(library+'?workspace=wealth')).get('activeThemeId'));
+        doPostUri(endpoint, '{"workspace":"commercial","themeId":null}');
+        System.assertEquals(null, body(doGet(library+'?workspace=commercial')).get('activeThemeId'));
+        System.assertEquals('__default_light__', body(doGet(library)).get('activeThemeId'));
+    }
+
+    @IsTest
+    static void employeeAgentsAreScopedToCenter() {
+        String path = '/services/apexrest/config/agents';
+        Object before = body(doGet(path+'?center=wealth')).get('selected');
+        System.assertEquals(400, doPostUri(path, '{"center":"retail","agentIds":["not-an-active-agent"]}').statusCode);
+        System.assertEquals(200, doPostUri(path, '{"center":"retail","agentIds":[]}').statusCode);
+        System.assertEquals('[]', JSON.serialize(body(doGet(path+'?center=retail')).get('selected')));
+        System.assertEquals(JSON.serialize(before), JSON.serialize(body(doGet(path+'?center=wealth')).get('selected')));
+    }
+
+    @IsTest
+    static void contextualMessagesRequireAnEnabledAgentAndAQuestion() {
+        String path = '/services/apexrest/config/agent-message';
+        System.assertEquals(400, doPostUri(path, '{"center":"retail","context":{}}').statusCode);
+        doPostUri('/services/apexrest/config/agents', '{"center":"retail","agentIds":[]}');
+        System.assertEquals(403, doPostUri(path, '{"center":"retail","agentId":"unknown","context":{},"question":"Which page?"}').statusCode);
+    }
+
     private static RestResponse doGet(String uri) {
         RestRequest req = new RestRequest();
         req.requestUri = uri;
@@ -140,6 +190,25 @@ private class CommandCenterConfigRestTest {
         System.assertEquals('fallback', out.get('source'), 'test run uses the fallback catalog');
         List<Object> models = (List<Object>) out.get('models');
         System.assert(!models.isEmpty(), 'fallback catalog is non-empty');
+    }
+
+    @IsTest
+    static void readsExistingCacheWithoutVersionOrRefreshStatus() {
+        CommandCenterConfig__c rec = CommandCenterConfigRest.loadOrNewSingleton();
+        rec.Model_Catalog_Cache__c = '{"models":[{"name":"sfdc_ai__DefaultGPT4Omni","label":"GPT-4o"}],"source":"probed","discoveredAt":1780000000000}';
+        upsert rec;
+        RestResponse res = doGet('/services/apexrest/config/models');
+        System.assertEquals(200, res.statusCode);
+        System.assertEquals(false, body(res).get('lastAttemptFailed'));
+    }
+
+    @IsTest
+    static void discoveredModelSurvivesSaveAndGenerationValidation() {
+        String model = 'sfdc_ai__DefaultGPT54';
+        System.assert(ModelCatalogProbe.supportsSelection(model));
+        doPost('{"center":"wealth","config":{"models":{"freeform":"' + model + '"}}}');
+        Map<String, Object> cfg = (Map<String, Object>) body(doGet('/services/apexrest/config/?center=wealth')).get('config');
+        System.assertEquals(model, ((Map<String, Object>)cfg.get('models')).get('freeform'));
     }
 
     @IsTest

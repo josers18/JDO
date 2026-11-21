@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chronicle — Journey & Goals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --cr-bg:         #f7f3ed;
+    --cr-surface:    #ffffff;
+    --cr-border:     rgba(60,45,20,0.10);
+    --cr-spine:      #b8956a;
+    --cr-spine-glow: rgba(184,149,106,0.35);
+    --cr-ink:        #1a1208;
+    --cr-ink-2:      rgba(26,18,8,0.50);
+    --cr-ink-3:      rgba(26,18,8,0.28);
+    --cr-gold:       #b8956a;
+    --cr-gold-lt:    rgba(184,149,106,0.12);
+    --cr-gold-bg:    rgba(184,149,106,0.06);
+    --cr-green:      #2d6a4a;
+    --cr-green-lt:   rgba(45,106,74,0.10);
+    --cr-red:        #c0392b;
+    --cr-red-lt:     rgba(192,57,43,0.10);
+    --cr-node-done:  #b8956a;
+    --cr-node-now:   #1a1208;
+    --cr-node-future:#d4c5a9;
+  }
+
+  .dark {
+    --cr-bg:         #0c0a07;
+    --cr-surface:    #140f08;
+    --cr-border:     rgba(184,149,106,0.10);
+    --cr-ink:        #f0ebe0;
+    --cr-ink-2:      rgba(240,235,224,0.45);
+    --cr-ink-3:      rgba(240,235,224,0.22);
+    --cr-gold-lt:    rgba(184,149,106,0.15);
+    --cr-gold-bg:    rgba(184,149,106,0.07);
+    --cr-green:      #4caf7d;
+    --cr-green-lt:   rgba(76,175,125,0.12);
+    --cr-red:        #ef5350;
+    --cr-red-lt:     rgba(239,83,80,0.12);
+    --cr-node-done:  #b8956a;
+    --cr-node-now:   #f0ebe0;
+    --cr-node-future:rgba(240,235,224,0.20);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cr-bg);
+    color: var(--cr-ink);
+    min-height: 100vh;
+    transition: background 0.4s, color 0.4s;
+  }
+
+  /* ── SHELL ───────────────────────────────────── */
+  .cr-shell {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 0 64px;
+  }
+
+  /* ── HEADER ──────────────────────────────────── */
+  .cr-header {
+    padding: 32px 32px 24px;
+    border-bottom: 1px solid var(--cr-border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .cr-header-left {}
+  .cr-eyebrow {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--cr-gold);
+    margin-bottom: 6px;
+  }
+  .cr-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--cr-ink);
+    line-height: 1.15;
+  }
+  .cr-subtitle {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--cr-ink-2);
+    font-weight: 300;
+  }
+  .cr-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .cr-theme-btn {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid var(--cr-border);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    background: var(--cr-surface);
+    color: var(--cr-ink-2);
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .cr-theme-btn:hover { border-color: var(--cr-gold); color: var(--cr-gold); }
+  .cr-type-toggle {
+    display: flex;
+    background: var(--cr-gold-bg);
+    border: 1px solid var(--cr-border);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  .cr-type-btn {
+    padding: 5px 14px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: none;
+    background: transparent;
+    color: var(--cr-ink-2);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .cr-type-btn.active {
+    background: var(--cr-gold);
+    color: #fff;
+    border-radius: 20px;
+  }
+
+  /* ── BODY ────────────────────────────────────── */
+  .cr-body {
+    padding: 0 32px;
+    position: relative;
+  }
+
+  /* ── YEAR BAND ───────────────────────────────── */
+  .cr-year-band {
+    padding: 28px 0 6px;
+    font-family: 'Playfair Display', serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cr-gold);
+    border-top: 1px solid var(--cr-border);
+    margin-top: 20px;
+  }
+  .cr-year-band:first-child { margin-top: 0; border-top: none; padding-top: 28px; }
+
+  /* ── SPINE ───────────────────────────────────── */
+  .cr-row {
+    display: grid;
+    grid-template-columns: 56px 1px 1fr auto;
+    gap: 0 0;
+    position: relative;
+    min-height: 72px;
+  }
+
+  .cr-row-year {
+    grid-column: 1;
+    padding-top: 18px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--cr-ink-3);
+    letter-spacing: 0.04em;
+    text-align: right;
+    padding-right: 14px;
+    line-height: 1;
+  }
+
+  .cr-spine-col {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .cr-spine-line {
+    width: 1px;
+    flex: 1;
+    background: var(--cr-border);
+    min-height: 16px;
+  }
+  .cr-spine-line.first { min-height: 18px; }
+  .cr-spine-line.last { min-height: 28px; }
+
+  .cr-node {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--cr-node-done);
+    background: var(--cr-bg);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+    transition: transform 0.2s;
+  }
+  .cr-node.done { background: var(--cr-node-done); }
+  .cr-node.now {
+    width: 14px; height: 14px;
+    border-color: var(--cr-node-now);
+    background: var(--cr-node-now);
+    box-shadow: 0 0 0 4px var(--cr-spine-glow), 0 0 16px var(--cr-spine-glow);
+    animation: cr-pulse 2.4s ease-in-out infinite;
+  }
+  .cr-node.future {
+    border-color: var(--cr-node-future);
+    background: transparent;
+  }
+
+  @keyframes cr-pulse {
+    0%,100% { box-shadow: 0 0 0 3px var(--cr-spine-glow), 0 0 10px var(--cr-spine-glow); }
+    50%      { box-shadow: 0 0 0 7px var(--cr-spine-glow), 0 0 24px var(--cr-spine-glow); }
+  }
+
+  .cr-content {
+    grid-column: 3;
+    padding: 10px 0 10px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+  }
+  .cr-event-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--cr-ink);
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cr-check { color: var(--cr-gold); font-size: 12px; }
+  .cr-check.now {
+    color: var(--cr-ink);
+    background: var(--cr-gold);
+    color: #fff;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .cr-event-meta {
+    font-size: 12px;
+    color: var(--cr-ink-3);
+    font-weight: 300;
+  }
+
+  /* ── GOAL CARD (anchored aside) ──────────────── */
+  .cr-goal-aside {
+    grid-column: 4;
+    padding: 8px 0 8px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .cr-goal-card {
+    background: var(--cr-surface);
+    border: 1px solid var(--cr-border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    width: 148px;
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+    cursor: default;
+  }
+  .cr-goal-card:hover {
+    box-shadow: 0 4px 24px rgba(184,149,106,0.18);
+  }
+  .cr-goal-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 10px 0 0 10px;
+  }
+  .cr-goal-card.low::before   { background: var(--cr-ink-3); }
+  .cr-goal-card.medium::before{ background: var(--cr-gold); }
+  .cr-goal-card.high::before  { background: var(--cr-green); }
+  .cr-goal-card.overdue::before { background: var(--cr-red); }
+
+  .cr-goal-name {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--cr-ink);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cr-goal-amount {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--cr-ink);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .cr-goal-track {
+    height: 3px;
+    background: var(--cr-border);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .cr-goal-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: var(--cr-gold);
+    transition: width 1.2s cubic-bezier(0.22,1,0.36,1);
+  }
+  .cr-goal-fill.high { background: var(--cr-green); }
+  .cr-goal-fill.overdue { background: var(--cr-red); }
+  .cr-goal-meta {
+    font-size: 10px;
+    color: var(--cr-ink-3);
+    display: flex;
+    justify-content: space-between;
+  }
+  .cr-goal-pct {
+    font-weight: 600;
+    color: var(--cr-gold);
+  }
+  .cr-goal-pct.high { color: var(--cr-green); }
+  .cr-goal-pct.overdue { color: var(--cr-red); }
+
+  /* ── MORE GOALS ──────────────────────────────── */
+  .cr-more-goals {
+    grid-column: 4;
+    padding: 4px 0 4px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .cr-goal-chip {
+    background: var(--cr-gold-bg);
+    border: 1px solid var(--cr-gold-lt);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--cr-gold);
+    cursor: default;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+  .cr-goal-chip:hover { background: var(--cr-gold-lt); }
+
+  /* ── SECTION DIVIDER ─────────────────────────── */
+  .cr-future-label {
+    padding: 20px 0 6px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cr-ink-3);
+    border-top: 1px dashed var(--cr-border);
+    margin-top: 16px;
+  }
+
+  /* ── GOAL SUMMARY STRIP ──────────────────────── */
+  .cr-goal-strip {
+    margin: 32px 32px 0;
+    background: var(--cr-surface);
+    border: 1px solid var(--cr-border);
+    border-radius: 14px;
+    padding: 20px 24px;
+  }
+  .cr-strip-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--cr-ink-2);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .cr-strip-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  /* ── SCROLLBAR ───────────────────────────────── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--cr-border); border-radius: 99px; }
+
+  /* ── PAGE DEMO LAYOUT ────────────────────────── */
+  body { padding: 24px; }
+  .demo-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cr-gold);
+    text-align: center;
+    margin-bottom: 20px;
+    opacity: 0.7;
+  }
+  .cr-shell {
+    border: 1px solid var(--cr-border);
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--cr-bg);
+  }
+</style>
+</head>
+<body>
+<p class="demo-label">Design Option A — Chronicle</p>
+
+<div class="cr-shell" id="shell">
+  <!-- HEADER -->
+  <div class="cr-header">
+    <div class="cr-header-left">
+      <p class="cr-eyebrow">Life Chronicle</p>
+      <h2 class="cr-title">Mrs. Julie E Morris</h2>
+      <p class="cr-subtitle">Person Account · San Francisco, CA</p>
+    </div>
+    <div class="cr-controls">
+      <div class="cr-type-toggle">
+        <button class="cr-type-btn active" onclick="setType('person',this)">Person</button>
+        <button class="cr-type-btn" onclick="setType('business',this)">Business</button>
+      </div>
+      <button class="cr-theme-btn" onclick="toggleTheme()" title="Toggle theme">◑</button>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="cr-body" id="body-content">
+    <!-- rendered by JS -->
+  </div>
+</div>
+
+<script>
+const PERSON_EVENTS = [
+  { year:1993, label:'Birth',             status:'done',   date:'May 31, 1993'    },
+  { year:2000, label:'Marriage',          status:'done',   date:'Oct 11, 2000',
+    goals: [
+      { name:'Estate Planning', amount:'$1,500,000', pct:100, priority:'high',   state:'done'   },
+    ]
+  },
+  { year:2018, label:'Purchased Home',    status:'done',   date:'May 2, 2018',
+    goals: [
+      { name:'Vacation Home',   amount:'$208,000',   pct:32,  priority:'medium', state:'medium' },
+    ]
+  },
+  { year:2018, label:'Moved to San Francisco', status:'done', date:'Apr 9, 2018' },
+  { year:2021, label:'Audi Q7',           status:'done',   date:'Jan 4, 2021',
+    goals: [
+      { name:'Retirement',      amount:'$6,750,000', pct:96,  priority:'high',   state:'high'   },
+    ]
+  },
+  { year:2026, label:'Appointed CEO — Morris Roasters', status:'now', date:'May 4, 2026',
+    goals: [
+      { name:"Jack's College",  amount:'$175,000',   pct:61,  priority:'high',   state:'medium' },
+    ],
+    extraGoals: ["Rachel's Wedding · $85K", "Charitable Giving · $15K"]
+  },
+];
+
+const BUSINESS_EVENTS = [
+  { year:2019, label:'International Expansion',  status:'done', date:'May 12, 2026', count:3 },
+  { year:2020, label:'New CEO Named',            status:'done', date:'Oct 5, 2020' },
+  { year:2021, label:'New Partnership',          status:'done', date:'Mar 15, 2021' },
+  { year:2022, label:'New Product Launch',       status:'done', date:'Aug 20, 2022' },
+  { year:2024, label:'Seed Funding Round',       status:'done', date:'Jan 10, 2024' },
+  { year:2026, label:'Market Listing Pending',   status:'now',  date:'Jun 1, 2026' },
+];
+
+let currentType = 'person';
+let isDark = false;
+
+function setType(type, btn) {
+  currentType = type;
+  document.querySelectorAll('.cr-type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const header = document.querySelector('.cr-subtitle');
+  if (type === 'person') {
+    document.querySelector('.cr-eyebrow').textContent = 'Life Chronicle';
+    document.querySelector('.cr-title').textContent = 'Mrs. Julie E Morris';
+    header.textContent = 'Person Account · San Francisco, CA';
+  } else {
+    document.querySelector('.cr-eyebrow').textContent = 'Business Milestones';
+    document.querySelector('.cr-title').textContent = 'Omega, Inc.';
+    header.textContent = 'Account · San Francisco, CA';
+  }
+  renderContent();
+}
+
+function toggleTheme() {
+  isDark = !isDark;
+  document.getElementById('shell').classList.toggle('dark', isDark);
+}
+
+function fmtStatus(s) {
+  if (s === 'done') return '<span class="cr-check">✓</span>';
+  if (s === 'now') return '<span class="cr-check now">Now</span>';
+  return '';
+}
+
+function renderContent() {
+  const events = currentType === 'person' ? PERSON_EVENTS : BUSINESS_EVENTS;
+  let html = '';
+  events.forEach((ev, i) => {
+    const isFirst = i === 0;
+    const isLast = i === events.length - 1;
+    html += `
+      <div class="cr-row">
+        <div class="cr-row-year">${ev.year}</div>
+        <div class="cr-spine-col">
+          <div class="cr-spine-line ${isFirst ? 'first' : ''}"></div>
+          <div class="cr-node ${ev.status}"></div>
+          <div class="cr-spine-line ${isLast ? 'last' : ''}"></div>
+        </div>
+        <div class="cr-content">
+          <div class="cr-event-name">
+            ${ev.label} ${fmtStatus(ev.status)}
+            ${ev.count ? `<span style="font-size:10px;background:var(--cr-gold-lt);color:var(--cr-gold);border-radius:20px;padding:1px 7px;font-family:'DM Sans',sans-serif;font-weight:600">×${ev.count}</span>` : ''}
+          </div>
+          <div class="cr-event-meta">${ev.date}</div>
+        </div>
+        ${ev.goals ? `
+        <div class="cr-goal-aside">
+          ${ev.goals.map(g => `
+          <div class="cr-goal-card ${g.state}">
+            <div class="cr-goal-name">${g.name}</div>
+            <div class="cr-goal-amount">${g.amount}</div>
+            <div class="cr-goal-track"><div class="cr-goal-fill ${g.state === 'high' ? 'high' : ''}" style="width:${g.pct}%"></div></div>
+            <div class="cr-goal-meta">
+              <span>Target</span>
+              <span class="cr-goal-pct ${g.state === 'high' ? 'high' : ''}">${g.pct}%</span>
+            </div>
+          </div>
+          `).join('')}
+        </div>` : (ev.extraGoals ? `
+        <div class="cr-more-goals">
+          ${ev.extraGoals.map(label => `<span class="cr-goal-chip">${label}</span>`).join('')}
+        </div>` : '<div></div>')}
+      </div>
+    `;
+  });
+
+  if (currentType === 'person') {
+    html += `
+      <div class="cr-future-label">Future milestones to track</div>
+      <div class="cr-row" style="opacity:0.5">
+        <div class="cr-row-year">—</div>
+        <div class="cr-spine-col">
+          <div class="cr-spine-line"></div>
+          <div class="cr-node future"></div>
+          <div class="cr-spine-line last"></div>
+        </div>
+        <div class="cr-content">
+          <div class="cr-event-name" style="font-style:italic;font-size:13px">Add a new life event...</div>
+        </div>
+        <div></div>
+      </div>
+    `;
+  }
+
+  document.getElementById('body-content').innerHTML = html;
+}
+
+renderContent();
+</script>
+</body>
+</html>

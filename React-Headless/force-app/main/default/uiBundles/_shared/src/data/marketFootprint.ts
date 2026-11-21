@@ -73,8 +73,8 @@ export interface MarketFootprintResult {
 }
 
 /** C7 — where the book sits on the branch network: Consolidate vs Optimize ZIPs. */
-export async function fetchMarketFootprint(ownerId: string | null | undefined): Promise<MarketFootprintResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 6);
+export async function fetchMarketFootprint(ownerId: string | null | undefined, strictBook = false): Promise<MarketFootprintResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 6, strictBook);
   const [total, history] = await Promise.all([
     queryDataCloud<Record<string, unknown>>(summarySql(res.accountFilter), 1)
       .then(r => r.rows[0] ?? {})

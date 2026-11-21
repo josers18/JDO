@@ -1,0 +1,41 @@
+{
+  "required" : [ "userId", "message" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "userId" : {
+      "title" : "Slack User ID",
+      "description" : "The Slack User ID of the user to send the message to.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "The Slack User ID of the user to send the message to. A Slack User ID is represented as a string like U12345678. If a string like <@U12345678> is provided, extract a Slack User ID from it by removing the <@ and > characters. For example, the User ID in <@U12345678> is U12345678.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "message" : {
+      "title" : "Slack Message",
+      "description" : "Plain text or markdown message to be sent to a user.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "Plain text or markdown message to be sent to a user. Do not include HTML tags. You can format markdown lists as ordered or unordered, but DO NOT mix the 2 formats in your message input parameter.\n  A string like <@U123456789> represents a User mention in Slack. You can extract a Slack User ID from a mention by removing the <@ and > characters. For example, the User ID in <@U123456789> is U123456789.\n  A string like <#C123456789> represents a Channel mention in Slack. You can extract a Slack Channel ID from a mention by removing the <# and > characters. For example, the Channel ID in <@C123456789> is C123456789.\n  When providing information to a user, if a Slack User ID is detected in the content being provided, convert that ID into a Slack User @mention. For example if there is a reference to a User in a string like 'U123456789', wrap that string into a string surrounded with  '<@' and  '>', for instance: '<@123456789>'.\n  When providing information to a user, if a Slack Channel ID is detected in the content being provided, convert that ID into a Slack Channel @mention. For example if there is a reference to a User in a string like 'U123456789', wrap that string into a string surrounded with  '<#' and  '>', for instance: '<#C123456789>'.\nText like \"John Doe\" (email: johndoe@example.com slack_user_id: U1234567) is a reference to a Slack user named John Doe with user ID U1234567.\nText quoted by backticks should be sent to Slack verbatim, including the backticks.\nUser references, including those within text quoted by single-quotes or double-quotes, should be resolved to Slack user ID references (for example, <@U1234567>).\nChannel references, including those within text quoted by single-quotes or double-quotes, should be resolved to Slack channel ID references (for example, <#C1234567>).\n",
+      "lightning:isPII" : true,
+      "copilotAction:isUserInput" : true
+    },
+    "recommendedActions" : {
+      "title" : "Recommended Actions",
+      "description" : "The list of recommended actions",
+      "items" : {
+        "lightning:type" : "slack_invocable_actions__promptActionButton"
+      },
+      "lightning:type" : "lightning__listType",
+      "einstein:description" : "This input contains a list of actions. Each action may include an optional 'style' field; set to 'primary' to mark the single recommended-first action in the list, set to 'danger' for a destructive or escalation action, or omit the field for secondary actions. At most one action per list should be marked 'primary'.",
+      "copilotAction:isUserInput" : true
+    },
+    "aiGenActionItemIdInContextInput" : {
+      "title" : "aiGenActionItemIdInContextInput",
+      "description" : "Populated from $Context.aiGenActionItemIdInContext when present.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

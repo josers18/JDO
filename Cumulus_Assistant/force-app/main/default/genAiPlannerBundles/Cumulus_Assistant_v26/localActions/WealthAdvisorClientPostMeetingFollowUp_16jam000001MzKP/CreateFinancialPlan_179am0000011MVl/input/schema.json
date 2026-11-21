@@ -1,0 +1,43 @@
+{
+  "required" : [ "AccountId", "planName", "planStatus", "planType" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "AccountId" : {
+      "title" : "Account ID",
+      "description" : "The account ID used to create a financial plan.",
+      "lightning:type" : "lightning__recordIdType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "planName" : {
+      "title" : "Plan Name",
+      "description" : "The name of the financial plan.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "planStartDate" : {
+      "title" : "Plan Start Date",
+      "description" : "The start date of the financial plan.",
+      "lightning:type" : "lightning__dateType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "planStatus" : {
+      "title" : "Plan Status",
+      "description" : "The status of the financial plan.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "planType" : {
+      "title" : "Plan Type",
+      "description" : "The type of the financial plan.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

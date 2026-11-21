@@ -5,220 +5,244 @@
       "definition": "tile/widget",
       "children": [
         {
-          "definition": "tile/column",
+          "definition": "tile/container",
           "attributes": {
-            "gap": "md",
-            "align": "stretch"
+            "variant": "default"
           },
           "children": [
             {
-              "definition": "tile/row",
-              "attributes": {
-                "gap": "md",
-                "align": "start",
-                "isWrapped": false
-              },
-              "children": [
-                {
-                  "definition": "tile/avatar",
-                  "attributes": {
-                    "iconName": "target",
-                    "shape": "rounded",
-                    "size": "lg",
-                    "alt": "record"
-                  }
-                },
-                {
-                  "definition": "tile/column",
-                  "attributes": {
-                    "gap": "none",
-                    "align": "start",
-                    "width": "stretch"
-                  },
-                  "children": [
-                    {
-                      "definition": "tile/text",
-                      "attributes": {
-                        "text": "{!$attrs.name}",
-                        "variant": "h3",
-                        "weight": "semibold"
-                      }
-                    },
-                    {
-                      "definition": "tile/text",
-                      "attributes": {
-                        "text": "{!$attrs.accountName} \u00b7 {!$attrs.owner}",
-                        "variant": "caption",
-                        "color": "muted"
-                      }
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "definition": "tile/row",
-              "attributes": {
-                "gap": "sm",
-                "align": "center"
-              },
-              "children": [
-                {
-                  "definition": "tile/badge",
-                  "attributes": {
-                    "label": "{!$attrs.stage}",
-                    "variant": "info"
-                  }
-                },
-                {
-                  "definition": "tile/badge",
-                  "attributes": {
-                    "label": "{!$attrs.probability}",
-                    "variant": "secondary"
-                  }
-                }
-              ],
-              "meta": {
-                "if": "{!$attrs.found}"
-              }
-            },
-            {
-              "definition": "tile/row",
-              "attributes": {
-                "gap": "xl",
-                "align": "start"
-              },
-              "children": [
-                {
-                  "definition": "tile/column",
-                  "attributes": {
-                    "gap": "none",
-                    "align": "start",
-                    "width": "auto"
-                  },
-                  "children": [
-                    {
-                      "definition": "tile/text",
-                      "attributes": {
-                        "text": "Amount",
-                        "variant": "caption",
-                        "color": "muted",
-                        "weight": "medium"
-                      }
-                    },
-                    {
-                      "definition": "tile/text",
-                      "attributes": {
-                        "text": "{!$attrs.amount}",
-                        "variant": "h3",
-                        "weight": "semibold"
-                      }
-                    }
-                  ]
-                },
-                {
-                  "definition": "tile/column",
-                  "attributes": {
-                    "gap": "none",
-                    "align": "start",
-                    "width": "auto"
-                  },
-                  "children": [
-                    {
-                      "definition": "tile/text",
-                      "attributes": {
-                        "text": "Close date",
-                        "variant": "caption",
-                        "color": "muted",
-                        "weight": "medium"
-                      }
-                    },
-                    {
-                      "definition": "tile/text",
-                      "attributes": {
-                        "text": "{!$attrs.closeDate}",
-                        "variant": "h4",
-                        "weight": "semibold"
-                      }
-                    }
-                  ]
-                }
-              ],
-              "meta": {
-                "if": "{!$attrs.found}"
-              }
-            },
-            {
-              "definition": "tile/separator",
-              "meta": {
-                "if": "{!$attrs.found}"
-              }
-            },
-            {
               "definition": "tile/column",
               "attributes": {
-                "gap": "xs",
-                "align": "start"
-              },
-              "children": [
-                {
-                  "definition": "tile/text",
-                  "attributes": {
-                    "text": "Next step",
-                    "variant": "caption",
-                    "color": "muted",
-                    "weight": "medium"
-                  }
-                },
-                {
-                  "definition": "tile/text",
-                  "attributes": {
-                    "text": "{!$attrs.nextStep}",
-                    "variant": "body",
-                    "weight": "medium"
-                  }
-                }
-              ],
-              "meta": {
-                "if": "{!$attrs.found}"
-              }
-            },
-            {
-              "definition": "tile/row",
-              "attributes": {
                 "gap": "md",
-                "align": "center"
+                "align": "stretch"
               },
               "children": [
                 {
-                  "definition": "tile/button",
+                  "definition": "tile/row",
                   "attributes": {
-                    "label": "Create follow-up task",
-                    "variant": "secondary",
-                    "iconName": "list-checks",
-                    "actions": {
-                      "click": [
+                    "gap": "sm",
+                    "align": "start",
+                    "isWrapped": false
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/icon",
+                      "attributes": {
+                        "alt": "Opportunity",
+                        "name": "target",
+                        "size": "sm",
+                        "color": "primary"
+                      }
+                    },
+                    {
+                      "definition": "tile/column",
+                      "attributes": {
+                        "gap": "none",
+                        "align": "start",
+                        "width": "stretch"
+                      },
+                      "children": [
                         {
-                          "definition": "action/sendMessage",
+                          "definition": "tile/text",
                           "attributes": {
-                            "content": "Create a follow-up task on the opportunity {!$attrs.name}"
+                            "text": "{!$attrs.name}",
+                            "variant": "h4",
+                            "weight": "semibold"
+                          }
+                        },
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "{!$attrs.accountName} \u00b7 {!$attrs.owner}",
+                            "variant": "caption",
+                            "color": "muted"
+                          },
+                          "meta": {
+                            "if": "{!$attrs.found}"
                           }
                         }
                       ]
                     }
+                  ]
+                },
+                {
+                  "definition": "tile/row",
+                  "attributes": {
+                    "gap": "md",
+                    "align": "start",
+                    "isWrapped": true
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/column",
+                      "attributes": {
+                        "gap": "none",
+                        "align": "start",
+                        "width": "auto"
+                      },
+                      "children": [
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "Amount",
+                            "variant": "caption",
+                            "color": "muted",
+                            "weight": "medium"
+                          }
+                        },
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "{!$attrs.amount}",
+                            "variant": "h3",
+                            "weight": "semibold"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "definition": "tile/column",
+                      "attributes": {
+                        "gap": "none",
+                        "align": "start",
+                        "width": "auto"
+                      },
+                      "children": [
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "Close date",
+                            "variant": "caption",
+                            "color": "muted",
+                            "weight": "medium"
+                          }
+                        },
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "{!$attrs.closeDate}",
+                            "variant": "body",
+                            "weight": "semibold"
+                          }
+                        }
+                      ]
+                    }
+                  ],
+                  "meta": {
+                    "if": "{!$attrs.found}"
                   }
                 },
                 {
-                  "definition": "tile/link",
+                  "definition": "tile/text",
                   "attributes": {
-                    "href": "{!$attrs.recordUrl}",
-                    "text": "Open in Salesforce"
+                    "text": "Stage \u00b7 {!$attrs.stage}",
+                    "variant": "caption",
+                    "weight": "semibold"
+                  },
+                  "meta": {
+                    "if": "{!$attrs.found}"
+                  }
+                },
+                {
+                  "definition": "tile/accordion",
+                  "children": [
+                    {
+                      "definition": "tile/accordionItem",
+                      "attributes": {
+                        "title": "Deal details",
+                        "isExpanded": false
+                      },
+                      "children": [
+                        {
+                          "definition": "tile/column",
+                          "attributes": {
+                            "gap": "sm"
+                          },
+                          "children": [
+                            {
+                              "definition": "tile/text",
+                              "attributes": {
+                                "text": "Probability: {!$attrs.probability}",
+                                "variant": "body"
+                              }
+                            },
+                            {
+                              "definition": "tile/column",
+                              "attributes": {
+                                "gap": "xs",
+                                "align": "start"
+                              },
+                              "children": [
+                                {
+                                  "definition": "tile/text",
+                                  "attributes": {
+                                    "text": "Next step",
+                                    "variant": "caption",
+                                    "color": "muted",
+                                    "weight": "medium"
+                                  }
+                                },
+                                {
+                                  "definition": "tile/text",
+                                  "attributes": {
+                                    "text": "{!$attrs.nextStep}",
+                                    "variant": "body",
+                                    "weight": "medium"
+                                  }
+                                }
+                              ],
+                              "meta": {
+                                "if": "{!$attrs.found}"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ],
+                  "meta": {
+                    "if": "{!$attrs.found}"
+                  }
+                },
+                {
+                  "definition": "tile/row",
+                  "attributes": {
+                    "gap": "sm",
+                    "align": "center",
+                    "isWrapped": true
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/button",
+                      "attributes": {
+                        "label": "Plan follow-up",
+                        "variant": "secondary",
+                        "actions": {
+                          "click": [
+                            {
+                              "definition": "action/sendMessage",
+                              "attributes": {
+                                "content": "Help me prepare a follow-up task for opportunity ID {!$attrs.opportunityId}. Ask me for the subject and due date before creating it."
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "definition": "tile/link",
+                      "attributes": {
+                        "href": "{!$attrs.recordUrl}",
+                        "text": "Open deal",
+                        "underline": "always"
+                      }
+                    }
+                  ],
+                  "meta": {
+                    "if": "{!$attrs.found}"
                   }
                 }
-              ],
-              "meta": {
-                "if": "{!$attrs.found}"
-              }
+              ]
             }
           ]
         }

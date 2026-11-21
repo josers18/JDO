@@ -6,6 +6,7 @@ import { useViewAs } from '../data/viewAs';
 interface HomeDataValue<T> {
   data: T | null;
   loading: boolean;
+  error: string | null;
   /** Re-run the fetch on demand (e.g. after a CRM write); keeps current data on screen. */
   refetch: () => void;
 }
@@ -32,9 +33,9 @@ export function createHomeDataContext<T>(): {
   }) => {
     // Re-run when the "View as" banker changes — the fetch reads it at call time.
     const viewAs = useViewAs();
-    const { data, loading, refetch } = useAsyncData(fetch, [viewAs?.userId]);
+    const { data, loading, error, refetch } = useAsyncData(fetch, [viewAs?.userId]);
     return (
-      <HomeDataContext.Provider value={{ data, loading, refetch }}>
+      <HomeDataContext.Provider value={{ data, loading, error, refetch }}>
         {children}
       </HomeDataContext.Provider>
     );

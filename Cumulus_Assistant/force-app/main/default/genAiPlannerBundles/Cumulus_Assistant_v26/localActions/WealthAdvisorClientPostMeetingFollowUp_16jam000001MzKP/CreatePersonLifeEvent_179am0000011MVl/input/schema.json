@@ -1,0 +1,36 @@
+{
+  "required" : [ "personAccountId", "eventName", "eventDate", "eventType" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "personAccountId" : {
+      "title" : "Person Account ID",
+      "description" : "The ID of the account used to create a person life event.",
+      "lightning:type" : "lightning__recordIdType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "eventName" : {
+      "title" : "Event Name",
+      "description" : "The name of the person life event.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "eventDate" : {
+      "title" : "Event Date",
+      "description" : "The date and time of the person life event.",
+      "lightning:type" : "lightning__dateTimeStringType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "eventType" : {
+      "title" : "Event Type",
+      "description" : "The type of person life event.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

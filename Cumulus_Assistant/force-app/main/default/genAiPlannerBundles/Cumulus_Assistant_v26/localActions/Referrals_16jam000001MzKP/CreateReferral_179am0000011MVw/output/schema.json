@@ -1,0 +1,35 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "introductionComments" : {
+      "title" : "introductionComments",
+      "description" : "Any comments to include from the context of how the referral was created. Summarize the context or comments to be one to three sentences max. Show this back to the user for review and allow them to edit before saving the new record.",
+      "maxLength" : 100000,
+      "lightning:type" : "lightning__richTextType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true,
+      "copilotAction:useHydratedPrompt" : false
+    },
+    "referralCreatedOn" : {
+      "title" : "referralCreatedOn",
+      "description" : "Date and time the referral was created.",
+      "lightning:type" : "lightning__dateTimeStringType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : false,
+      "copilotAction:isUsedByPlanner" : true,
+      "copilotAction:useHydratedPrompt" : false
+    },
+    "targetLOB" : {
+      "title" : "targetLOB",
+      "description" : "Target line of business the referral is for. The picklist values for this input are any one of these options: CMC, Consumer Investments, Wealth, Private Bank, Business Banking, Commercial Bank, Global Markets, Lending, Mortgage. Show this back to the user to confirm the referral is being routed to the right business.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true,
+      "copilotAction:useHydratedPrompt" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

@@ -68,8 +68,8 @@ export interface WealthUpgradeResult {
 const decode = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 
 /** W7 — the book's clients who look like Wealth clients but aren't segmented as one. */
-export async function fetchWealthUpgrades(ownerId: string | null | undefined): Promise<WealthUpgradeResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 5);
+export async function fetchWealthUpgrades(ownerId: string | null | undefined, strictBook = false): Promise<WealthUpgradeResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 5, strictBook);
   const [total, history] = await Promise.all([
     queryDataCloud<Record<string, unknown>>(summarySql(res.accountFilter), 1)
       .then(r => r.rows[0] ?? {})

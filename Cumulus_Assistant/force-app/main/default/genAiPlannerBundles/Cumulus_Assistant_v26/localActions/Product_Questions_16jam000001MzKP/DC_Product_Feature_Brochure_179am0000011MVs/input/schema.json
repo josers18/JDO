@@ -1,0 +1,15 @@
+{
+  "required" : [ "Input:ProductQuestion" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "Input:ProductQuestion" : {
+      "title" : "ProductQuestion",
+      "description" : "Product Inquiry Question text",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

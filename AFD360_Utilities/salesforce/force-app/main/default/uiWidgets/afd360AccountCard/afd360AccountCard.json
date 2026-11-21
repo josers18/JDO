@@ -5,64 +5,66 @@
       "definition": "tile/widget",
       "children": [
         {
-          "definition": "tile/column",
+          "definition": "tile/container",
           "attributes": {
-            "gap": "md",
-            "align": "stretch"
+            "variant": "default"
           },
           "children": [
             {
-              "definition": "tile/row",
+              "definition": "tile/column",
               "attributes": {
                 "gap": "md",
-                "align": "start",
-                "isWrapped": false
+                "align": "stretch"
               },
               "children": [
                 {
-                  "definition": "tile/avatar",
+                  "definition": "tile/row",
                   "attributes": {
-                    "iconName": "building",
-                    "shape": "rounded",
-                    "size": "lg",
-                    "alt": "record"
-                  }
-                },
-                {
-                  "definition": "tile/column",
-                  "attributes": {
-                    "gap": "none",
+                    "gap": "sm",
                     "align": "start",
-                    "width": "stretch"
+                    "isWrapped": false
                   },
                   "children": [
                     {
-                      "definition": "tile/text",
+                      "definition": "tile/icon",
                       "attributes": {
-                        "text": "{!$attrs.name}",
-                        "variant": "h3",
-                        "weight": "semibold"
+                        "alt": "Account",
+                        "name": "building",
+                        "size": "sm",
+                        "color": "primary"
                       }
                     },
                     {
-                      "definition": "tile/text",
+                      "definition": "tile/column",
                       "attributes": {
-                        "text": "{!$attrs.accountType} \u00b7 {!$attrs.industry} \u00b7 {!$attrs.location}",
-                        "variant": "caption",
-                        "color": "muted"
-                      }
+                        "gap": "none",
+                        "align": "start",
+                        "width": "stretch"
+                      },
+                      "children": [
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "{!$attrs.name}",
+                            "variant": "h4",
+                            "weight": "semibold"
+                          }
+                        },
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "{!$attrs.accountType} \u00b7 {!$attrs.industry} \u00b7 {!$attrs.location}",
+                            "variant": "caption",
+                            "color": "muted"
+                          },
+                          "meta": {
+                            "if": "{!$attrs.found}"
+                          }
+                        }
+                      ]
                     }
                   ]
-                }
-              ]
-            },
-            {
-              "definition": "tile/row",
-              "attributes": {
-                "gap": "xl",
-                "align": "start"
-              },
-              "children": [
+                },
                 {
                   "definition": "tile/column",
                   "attributes": {
@@ -87,176 +89,166 @@
                         "variant": "h3",
                         "weight": "semibold"
                       }
-                    }
-                  ]
-                },
-                {
-                  "definition": "tile/column",
-                  "attributes": {
-                    "gap": "none",
-                    "align": "start",
-                    "width": "auto"
-                  },
-                  "children": [
-                    {
-                      "definition": "tile/text",
-                      "attributes": {
-                        "text": "Opportunities",
-                        "variant": "caption",
-                        "color": "muted",
-                        "weight": "medium"
-                      }
                     },
                     {
                       "definition": "tile/text",
                       "attributes": {
                         "text": "{!$attrs.openOpportunities}",
-                        "variant": "h4",
-                        "weight": "semibold"
+                        "variant": "caption",
+                        "color": "muted"
                       }
                     }
-                  ]
+                  ],
+                  "meta": {
+                    "if": "{!$attrs.found}"
+                  }
                 },
                 {
-                  "definition": "tile/column",
-                  "attributes": {
-                    "gap": "none",
-                    "align": "start",
-                    "width": "auto"
-                  },
+                  "definition": "tile/accordion",
                   "children": [
                     {
-                      "definition": "tile/text",
+                      "definition": "tile/accordionItem",
                       "attributes": {
-                        "text": "Owner",
-                        "variant": "caption",
-                        "color": "muted",
-                        "weight": "medium"
-                      }
-                    },
-                    {
-                      "definition": "tile/text",
-                      "attributes": {
-                        "text": "{!$attrs.owner}",
-                        "variant": "h4",
-                        "weight": "semibold"
-                      }
-                    }
-                  ]
-                }
-              ],
-              "meta": {
-                "if": "{!$attrs.found}"
-              }
-            },
-            {
-              "definition": "tile/separator",
-              "meta": {
-                "if": "{!$attrs.found}"
-              }
-            },
-            {
-              "definition": "tile/row",
-              "attributes": {
-                "gap": "lg",
-                "align": "start"
-              },
-              "children": [
-                {
-                  "definition": "tile/column",
-                  "attributes": {
-                    "gap": "xs",
-                    "align": "start",
-                    "width": "stretch"
-                  },
-                  "children": [
-                    {
-                      "definition": "tile/text",
-                      "attributes": {
-                        "text": "Phone",
-                        "variant": "caption",
-                        "color": "muted",
-                        "weight": "medium"
-                      }
-                    },
-                    {
-                      "definition": "tile/text",
-                      "attributes": {
-                        "text": "{!$attrs.phone}",
-                        "variant": "body",
-                        "weight": "medium"
-                      }
-                    }
-                  ]
-                },
-                {
-                  "definition": "tile/column",
-                  "attributes": {
-                    "gap": "xs",
-                    "align": "start",
-                    "width": "stretch"
-                  },
-                  "children": [
-                    {
-                      "definition": "tile/text",
-                      "attributes": {
-                        "text": "Website",
-                        "variant": "caption",
-                        "color": "muted",
-                        "weight": "medium"
-                      }
-                    },
-                    {
-                      "definition": "tile/text",
-                      "attributes": {
-                        "text": "{!$attrs.website}",
-                        "variant": "body",
-                        "weight": "medium"
-                      }
-                    }
-                  ]
-                }
-              ],
-              "meta": {
-                "if": "{!$attrs.found}"
-              }
-            },
-            {
-              "definition": "tile/row",
-              "attributes": {
-                "gap": "md",
-                "align": "center"
-              },
-              "children": [
-                {
-                  "definition": "tile/button",
-                  "attributes": {
-                    "label": "Show top opportunity",
-                    "variant": "secondary",
-                    "iconName": "trending-up",
-                    "actions": {
-                      "click": [
+                        "title": "Relationship details",
+                        "isExpanded": false
+                      },
+                      "children": [
                         {
-                          "definition": "action/sendMessage",
+                          "definition": "tile/column",
                           "attributes": {
-                            "content": "Show me the top open opportunity for {!$attrs.name}"
-                          }
+                            "gap": "sm",
+                            "align": "stretch"
+                          },
+                          "children": [
+                            {
+                              "definition": "tile/column",
+                              "attributes": {
+                                "gap": "none",
+                                "align": "start",
+                                "width": "auto"
+                              },
+                              "children": [
+                                {
+                                  "definition": "tile/text",
+                                  "attributes": {
+                                    "text": "Owner",
+                                    "variant": "caption",
+                                    "color": "muted",
+                                    "weight": "medium"
+                                  }
+                                },
+                                {
+                                  "definition": "tile/text",
+                                  "attributes": {
+                                    "text": "{!$attrs.owner}",
+                                    "variant": "body",
+                                    "weight": "semibold"
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "definition": "tile/column",
+                              "attributes": {
+                                "gap": "xs",
+                                "align": "start",
+                                "width": "stretch"
+                              },
+                              "children": [
+                                {
+                                  "definition": "tile/text",
+                                  "attributes": {
+                                    "text": "Phone",
+                                    "variant": "caption",
+                                    "color": "muted",
+                                    "weight": "medium"
+                                  }
+                                },
+                                {
+                                  "definition": "tile/text",
+                                  "attributes": {
+                                    "text": "{!$attrs.phone}",
+                                    "variant": "body",
+                                    "weight": "medium"
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "definition": "tile/column",
+                              "attributes": {
+                                "gap": "xs",
+                                "align": "start",
+                                "width": "stretch"
+                              },
+                              "children": [
+                                {
+                                  "definition": "tile/text",
+                                  "attributes": {
+                                    "text": "Website",
+                                    "variant": "caption",
+                                    "color": "muted",
+                                    "weight": "medium"
+                                  }
+                                },
+                                {
+                                  "definition": "tile/text",
+                                  "attributes": {
+                                    "text": "{!$attrs.website}",
+                                    "variant": "body",
+                                    "weight": "medium"
+                                  }
+                                }
+                              ]
+                            }
+                          ]
                         }
                       ]
                     }
+                  ],
+                  "meta": {
+                    "if": "{!$attrs.found}"
                   }
                 },
                 {
-                  "definition": "tile/link",
+                  "definition": "tile/row",
                   "attributes": {
-                    "href": "{!$attrs.recordUrl}",
-                    "text": "Open in Salesforce"
+                    "gap": "sm",
+                    "align": "center",
+                    "isWrapped": true
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/button",
+                      "attributes": {
+                        "label": "Largest open deal",
+                        "variant": "secondary",
+                        "actions": {
+                          "click": [
+                            {
+                              "definition": "action/sendMessage",
+                              "attributes": {
+                                "content": "Show the largest open opportunity for account ID {!$attrs.accountId}."
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "definition": "tile/link",
+                      "attributes": {
+                        "href": "{!$attrs.recordUrl}",
+                        "text": "Open account",
+                        "underline": "always"
+                      }
+                    }
+                  ],
+                  "meta": {
+                    "if": "{!$attrs.found}"
                   }
                 }
-              ],
-              "meta": {
-                "if": "{!$attrs.found}"
-              }
+              ]
             }
           ]
         }

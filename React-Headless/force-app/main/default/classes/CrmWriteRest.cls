@@ -20,6 +20,7 @@ global with sharing class CrmWriteRest {
 
     global class WriteRequest {
         public String action;           // 'task' | 'event' | 'case' | 'email'  (required)
+        public String requestId;         // Stable UUID for an explicitly reviewed V2 action.
         public String subject;          // required for all
         public String description;
         public String whoId;            // Contact/Lead Id (Task/Event)
@@ -100,6 +101,7 @@ global with sharing class CrmWriteRest {
             RestContext.response = res;
         }
         res.addHeader('Content-Type', 'application/json');
+        Savepoint start;
         try {
             String body = RestContext.request != null && RestContext.request.requestBody != null
                 ? RestContext.request.requestBody.toString()
@@ -114,6 +116,25 @@ global with sharing class CrmWriteRest {
                 return;
             }
 
+            AtlasActionReceipt__c receipt;
+            if (String.isNotBlank(reqBody.requestId)) {
+                if (!Pattern.matches('[a-zA-Z0-9-]{36}', reqBody.requestId)) {
+                    writeError(res, 400, 'Invalid action request ID.'); return;
+                }
+                String key = UserInfo.getUserId() + ':' + action + ':' + reqBody.requestId;
+                start = Database.setSavepoint();
+                receipt = new AtlasActionReceipt__c(RequestKey__c = key);
+                Database.SaveResult reserved = Database.insert(receipt, false, AccessLevel.SYSTEM_MODE);
+                if (!reserved.isSuccess()) {
+                    if (reserved.getErrors()[0].getStatusCode() != StatusCode.DUPLICATE_VALUE) {
+                        writeError(res, 500, 'Unable to register the request. Retry or contact your administrator.'); return;
+                    }
+                    List<AtlasActionReceipt__c> prior = [SELECT ResultId__c FROM AtlasActionReceipt__c WHERE RequestKey__c = :key WITH SYSTEM_MODE LIMIT 1];
+                    if (!prior.isEmpty()) writeSuccess(res, (Id)prior[0].ResultId__c);
+                    else writeError(res, 409, 'The request is being processed. Retry to check the result.');
+                    return;
+                }
+            }
             if (action == 'task') {
                 handleTask(res, reqBody);
             } else if (action == 'event') {
@@ -141,7 +162,14 @@ global with sharing class CrmWriteRest {
             } else {
                 writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, goal, lifeEvent, lead, opportunity, meetingNote, kyc, update, or delete.');
             }
+            if (receipt != null) {
+                if (res.statusCode == 200) {
+                    receipt.ResultId__c = (String)((Map<String,Object>)JSON.deserializeUntyped(res.responseBody.toString())).get('id');
+                    update as system receipt;
+                } else Database.rollback(start);
+            }
         } catch (Exception e) {
+            if (start != null) Database.rollback(start);
             System.debug(LoggingLevel.ERROR, 'CrmWriteRest error: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
             writeError(res, 500, 'CRM write failed.');
         }
@@ -169,6 +197,7 @@ global with sharing class CrmWriteRest {
         if (!String.isBlank(req.whatId)) {
             t.WhatId = req.whatId;
         }
+        if (String.isNotBlank(req.ownerId)) t.OwnerId = req.ownerId;
         insert t;
         writeSuccess(res, t.Id);
     }
@@ -193,6 +222,8 @@ global with sharing class CrmWriteRest {
         if (!String.isBlank(req.whatId)) {
             ev.WhatId = req.whatId;
         }
+        if (String.isNotBlank(req.ownerId)) ev.OwnerId = req.ownerId;
+        if (String.isNotBlank(req.location)) ev.Location = req.location;
         insert ev;
         writeSuccess(res, ev.Id);
     }
@@ -225,11 +256,21 @@ global with sharing class CrmWriteRest {
             return;
         }
         Messaging.SingleEmailMessage msg = new Messaging.SingleEmailMessage();
-        msg.setToAddresses(new List<String>{ req.toAddress });
+        if (String.isNotBlank(req.whoId)) {
+            List<Lead> leads = [SELECT Id, Email, OwnerId, HasOptedOutOfEmail, IsConverted FROM Lead WHERE Id = :req.whoId WITH USER_MODE LIMIT 1];
+            if (leads.isEmpty() || leads[0].OwnerId != req.ownerId || leads[0].IsConverted || leads[0].HasOptedOutOfEmail ||
+                String.isBlank(leads[0].Email) || !leads[0].Email.equalsIgnoreCase(req.toAddress.trim())) {
+                writeError(res, 409, 'Check the current lead owner, email address and email consent before sending.'); return;
+            }
+            msg.setTargetObjectId(leads[0].Id);
+            msg.setOptOutPolicy('REJECT');
+        } else msg.setToAddresses(new List<String>{ req.toAddress });
         msg.setSubject(req.subject);
-        msg.setHtmlBody(String.isBlank(req.htmlBody) ? req.description : req.htmlBody);
+        if (String.isBlank(req.htmlBody)) msg.setPlainTextBody(req.description);
+        else msg.setHtmlBody(req.htmlBody);
         if (!Test.isRunningTest()) {
-            Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{ msg });
+            Messaging.SendEmailResult sent = Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{ msg }, false)[0];
+            if (!sent.isSuccess()) { writeError(res, 400, sent.getErrors()[0].getMessage()); return; }
         }
         writeSuccess(res, null);
     }
@@ -360,6 +401,7 @@ global with sharing class CrmWriteRest {
         if (!String.isBlank(req.leadSource)) { ld.LeadSource = req.leadSource; }
         if (!String.isBlank(req.email))      { ld.Email = req.email; }
         if (req.annualRevenue != null)       { ld.AnnualRevenue = req.annualRevenue; }
+        if (String.isNotBlank(req.ownerId)) ld.OwnerId = req.ownerId;
         insert ld;
         writeSuccess(res, ld.Id);
     }
@@ -383,6 +425,15 @@ global with sharing class CrmWriteRest {
         if (acctId == null || acctId.getSObjectType() != Account.SObjectType) {
             writeError(res, 400, 'An account is required for an opportunity.');
             return;
+        }
+        if (req.leadSource == 'Cross-sell grid') {
+            List<Account> accounts = [SELECT Id, OwnerId FROM Account WHERE Id = :acctId LIMIT 1 FOR UPDATE];
+            if (accounts.isEmpty() || (String.isNotBlank(req.ownerId) && accounts[0].OwnerId != req.ownerId)) {
+                writeError(res, 409, 'This account is no longer in the selected book.'); return;
+            }
+            String canonicalName = req.name.left(120);
+            List<Opportunity> existing = [SELECT Id FROM Opportunity WHERE AccountId = :acctId AND Name = :canonicalName AND IsClosed = false AND LeadSource = 'Cross-sell grid' LIMIT 1];
+            if (!existing.isEmpty()) { writeSuccess(res, existing[0].Id); return; }
         }
         Opportunity opp = new Opportunity();
         opp.AccountId = acctId;

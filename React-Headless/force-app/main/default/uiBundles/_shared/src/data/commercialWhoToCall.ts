@@ -159,9 +159,55 @@ export interface CommercialWhoToCallResult {
 const n = (v: unknown) => (v == null || v === '' ? null : Number(v));
 const str = (v: unknown) => (v == null || v === '' ? null : String(v));
 
+function parseCommercialWhoToCall(r: Record<string, unknown>): CommercialWhoToCallRow {
+  const creditIdx = n(r.credit_idx);
+  const dealRisk = n(r.deal_risk);
+  const outlook = str(r.outlook);
+  const fees = n(r.fees);
+  const conversionPct = n(r.conv);
+  const drivers: CommercialWhoToCallRow['drivers'] = [];
+  if (creditIdx != null) drivers.push({ driver: 'credit', points: W.credit * Math.min(1, Math.max(0, (creditIdx - CREDIT_FLOOR) / CREDIT_SPAN)) });
+  if (dealRisk != null) drivers.push({ driver: 'gong', points: W.gong * dealRisk / 100 });
+  if (outlook != null) drivers.push({ driver: 'outlook', points: W.outlook * (outlook === 'Watch' ? 1 : 0.6) });
+  if (fees != null) drivers.push({ driver: 'fees', points: W.fees * Math.min(1, fees / FEE_FULL) });
+  if (conversionPct != null) drivers.push({ driver: 'offer', points: W.offer * Math.min(1, conversionPct / 50) });
+  drivers.sort((a, b) => b.points - a.points);
+  return {
+    accountId: String(r.account_id ?? ''),
+    score: Number(r.score) || 0,
+    creditIdx,
+    tier: str(r.tier),
+    paydex: n(r.paydex),
+    daysBeyond: n(r.days_beyond),
+    sentiment: str(r.sentiment),
+    dealRisk,
+    outlook,
+    rating: str(r.rating),
+    fees,
+    offerCode: str(r.offer_code),
+    conversionPct,
+    drivers,
+  };
+}
+
+/** Native Who-to-Call drivers for a specific owned Account, independent of the home queue limit. */
+export async function fetchCommercialCompanyWhoToCall(
+  ownerId: string,
+  accountId: string,
+): Promise<CommercialWhoToCallRow | null> {
+  if (!/^001[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?$/.test(accountId)) throw new Error('A verified company Account ID is required.');
+  const result = await queryDataCloudForBook<Record<string, unknown>>(book => {
+    const company = `IN (SELECT ssot__Id__c FROM ssot__Account__dlm
+      WHERE ssot__Id__c ${book} AND ssot__Id__c = '${accountId}')`;
+    return `${ctes(company)} SELECT * FROM b LIMIT 1`;
+  }, ownerId, 1, true);
+  const row = result.rows.find(candidate => String(candidate.account_id ?? '').slice(0, 15) === accountId.slice(0, 15));
+  return row ? parseCommercialWhoToCall(row) : null;
+}
+
 /** C10 — the book's blended Who-to-Call list. */
-export async function fetchCommercialWhoToCall(ownerId: string | null | undefined): Promise<CommercialWhoToCallResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 8);
+export async function fetchCommercialWhoToCall(ownerId: string | null | undefined, strictBook = false): Promise<CommercialWhoToCallResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 8, strictBook);
   const total = await queryDataCloud<Record<string, unknown>>(summarySql(res.accountFilter), 1)
     .then(r => r.rows[0] ?? {})
     .catch((): Record<string, unknown> => ({}));
@@ -169,36 +215,7 @@ export async function fetchCommercialWhoToCall(ownerId: string | null | undefine
     scope: res.scope,
     clients: Number(total.clients) || res.rows.length,
     multiSignal: Number(total.multi) || 0,
-    rows: res.rows.map(r => {
-      const creditIdx = n(r.credit_idx);
-      const dealRisk = n(r.deal_risk);
-      const outlook = str(r.outlook);
-      const fees = n(r.fees);
-      const conversionPct = n(r.conv);
-      const drivers: CommercialWhoToCallRow['drivers'] = [];
-      if (creditIdx != null) drivers.push({ driver: 'credit', points: W.credit * Math.min(1, Math.max(0, (creditIdx - CREDIT_FLOOR) / CREDIT_SPAN)) });
-      if (dealRisk != null) drivers.push({ driver: 'gong', points: W.gong * dealRisk / 100 });
-      if (outlook != null) drivers.push({ driver: 'outlook', points: W.outlook * (outlook === 'Watch' ? 1 : 0.6) });
-      if (fees != null) drivers.push({ driver: 'fees', points: W.fees * Math.min(1, fees / FEE_FULL) });
-      if (conversionPct != null) drivers.push({ driver: 'offer', points: W.offer * Math.min(1, conversionPct / 50) });
-      drivers.sort((a, b) => b.points - a.points);
-      return {
-        accountId: String(r.account_id ?? ''),
-        score: Number(r.score) || 0,
-        creditIdx,
-        tier: str(r.tier),
-        paydex: n(r.paydex),
-        daysBeyond: n(r.days_beyond),
-        sentiment: str(r.sentiment),
-        dealRisk,
-        outlook,
-        rating: str(r.rating),
-        fees,
-        offerCode: str(r.offer_code),
-        conversionPct,
-        drivers,
-      };
-    }),
+    rows: res.rows.map(parseCommercialWhoToCall),
   };
 }
 

@@ -1,0 +1,18 @@
+{
+  "required" : [ "Input:PartyRelationshipGroup" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "Input:PartyRelationshipGroup" : {
+      "title" : "PartyRelationshipGroup",
+      "description" : "The Salesforce Party Relationship Group record ID used to create a household financial details summary.",
+      "lightning:type" : "lightning__recordInfoType",
+      "lightning:sObjectInfo" : {
+        "apiName" : "PartyRelationshipGroup"
+      },
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

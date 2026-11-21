@@ -1,0 +1,57 @@
+{
+  "required" : [ "conversationContext", "utterance" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "targetEntityId" : {
+      "title" : "Target Entity Id",
+      "description" : "ID or API name of the dashboard, sdm or metric on the page",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "targetEntityType" : {
+      "title" : "Target Entity Type",
+      "description" : "One of dashboard, metric or sdm",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "targetEntityState" : {
+      "title" : "Target Entity State",
+      "description" : "Entity-specific state, like dashboard filters",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "currentRecordId" : {
+      "title" : "Current Record Id",
+      "description" : "The Id of the record the user is currently viewing. Use this for information about 'this record', 'current record', 'the record', etc.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "currentObjectApiName" : {
+      "title" : "Current Object Api Name",
+      "description" : "The API name of the Salesforce object (such as Account or Opportunity) associated with the record the user wants to interact with. Do not use this if the user is already talking about another object in the conversation.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "conversationContext" : {
+      "title" : "Conversation Context",
+      "description" : "Context of the conversation session",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "utterance" : {
+      "title" : "Utterance",
+      "description" : "User utterance",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

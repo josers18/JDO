@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en" data-mode="light" data-persona="retail">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cumulus Aurora — Home Redesign Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ─────────────────────────────────────────────────────────────
+     CUMULUS AURORA — token layer. Structural tokens per-mode;
+     persona accent overrides on [data-persona]. Mirrors the plan:
+     depth is mode-independent (border + shadow + accent bar), glass
+     is additive, gradient carries action only, pink = AI only.
+     ───────────────────────────────────────────────────────────── */
+  :root {
+    --font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+    /* --font-mono retired: elegant serif display + humanist sans, tabular-nums for figures */
+    --font-mono: var(--font-sans);
+    --pink: #ec4899; --pink-soft: #fde7f3;
+    --radius: 20px; --radius-sm: 14px; --radius-xs: 10px;
+  }
+  /* LIGHT (default) — cool near-white, aurora wash */
+  [data-mode='light'] {
+    --bg: #f6f8ff; --surface: #ffffff; --surface-muted: #fafbff;
+    --glass: rgba(255,255,255,0.72);
+    --line: #e9ecf6; --line-strong: #d3d6e6;
+    --fg: #14152a; --muted: #565976; --faint: #8a8da8;
+    --ok:#0ea571; --ok-bg:#e3f7ef; --warn:#d97706; --warn-bg:#fdf0dd; --risk:#e23b54; --risk-bg:#fde8ec;
+    --shadow-card: 0 1px 2px rgb(20 21 42 / 0.04), 0 14px 30px -22px rgb(40 30 120 / 0.30);
+    --shadow-pop: 0 24px 50px -24px rgb(40 30 120 / 0.34);
+    --track: #eef1fb;
+    --hero-ink: #fff;
+  }
+  /* DARK-LUXE */
+  [data-mode='dark'] {
+    --bg: #070b14; --surface: #0f1626; --surface-muted: #0c1220;
+    --glass: rgba(18,26,43,0.66);
+    --line: rgba(148,163,184,0.16); --line-strong: rgba(148,163,184,0.30);
+    --fg: #e8eef7; --muted: #9fb0c8; --faint: #64748b;
+    --ok:#34d399; --ok-bg:rgba(52,211,153,0.12); --warn:#fbbf24; --warn-bg:rgba(251,191,36,0.12); --risk:#fb7185; --risk-bg:rgba(251,113,133,0.12);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 18px 40px -24px rgb(0 0 0 / 0.7);
+    --shadow-pop: 0 30px 60px -24px rgb(0 0 0 / 0.75);
+    --track: rgba(148,163,184,0.14);
+    --hero-ink: #fff;
+  }
+  /* PERSONA accents — retail teal / commercial copper / wealth gold */
+  [data-persona='retail'] {
+    --accent:#14b8a6; --accent-2:#0ea5e9; --accent-soft:#5eead4;
+    --accent-bg: color-mix(in srgb, #14b8a6 12%, transparent);
+    --accent-border: color-mix(in srgb, #14b8a6 34%, transparent);
+    --gradient: linear-gradient(115deg,#0d9488 0%,#0ea5e9 55%,#2563eb 100%);
+    --hero-glow: radial-gradient(120% 140% at 100% 0%, rgba(94,234,212,0.28), transparent 46%);
+  }
+  [data-persona='commercial'] {
+    --accent:#d97706; --accent-2:#b45309; --accent-soft:#fbbf24;
+    --accent-bg: color-mix(in srgb, #d97706 12%, transparent);
+    --accent-border: color-mix(in srgb, #d97706 34%, transparent);
+    --gradient: linear-gradient(115deg,#b45309 0%,#d97706 55%,#f59e0b 100%);
+    --hero-glow: radial-gradient(120% 140% at 100% 0%, rgba(251,191,36,0.30), transparent 46%);
+  }
+  [data-persona='wealth'] {
+    --accent:#c99a2e; --accent-2:#a16207; --accent-soft:#fde047;
+    --accent-bg: color-mix(in srgb, #c99a2e 14%, transparent);
+    --accent-border: color-mix(in srgb, #c99a2e 36%, transparent);
+    --gradient: linear-gradient(115deg,#a16207 0%,#ca8a04 55%,#eab308 100%);
+    --hero-glow: radial-gradient(120% 140% at 100% 0%, rgba(253,224,71,0.30), transparent 46%);
+  }
+
+  * { box-sizing: border-box; }
+  html,body { margin:0; padding:0; }
+  body {
+    font-family: var(--font-sans); color: var(--fg); line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(52% 46% at 10% 4%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 60%),
+      radial-gradient(46% 42% at 92% 6%, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent 55%),
+      var(--bg);
+    background-attachment: fixed; min-height: 100vh;
+    font-feature-settings: 'tnum' 1;
+  }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.14em; color: var(--faint);
+  }
+
+  /* ── Shell ─────────────────────────────────────────── */
+  .app { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+  .rail {
+    background: var(--glass); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    border-right: 1px solid var(--line); padding: 18px 14px; position: sticky; top: 0; height: 100vh;
+  }
+  .brand { display:flex; align-items:center; gap:10px; padding: 4px 8px 20px; }
+  .brand-glyph {
+    width: 30px; height: 30px; border-radius: 9px; background: var(--gradient);
+    display:grid; place-items:center; color:#fff; font-family:var(--font-mono);
+    font-size:11px; font-weight:600; box-shadow: var(--shadow-card);
+  }
+  .brand-name { font-weight: 800; letter-spacing: -0.01em; font-size: 15px; }
+  .nav { display:grid; gap:2px; }
+  .nav a {
+    display:flex; align-items:center; gap:11px; padding:9px 11px; border-radius: 11px;
+    color: var(--muted); text-decoration:none; font-size:13.5px; font-weight:600;
+    transition: background .15s, color .15s;
+  }
+  .nav a svg { width:17px; height:17px; stroke-width:2; }
+  .nav a:hover { background: color-mix(in srgb, var(--fg) 6%, transparent); color: var(--fg); }
+  .nav a.active { background: var(--accent-bg); color: var(--accent); }
+
+  .main { min-width: 0; }
+  .topbar {
+    position: sticky; top:0; z-index: 30; height: 60px;
+    display:flex; align-items:center; gap: 16px; padding: 0 24px;
+    background: var(--glass); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar h2 { font-size: 15px; font-weight: 800; margin: 0; letter-spacing: -0.01em; }
+  .search {
+    margin-left:auto; display:flex; align-items:center; gap:8px; width: 320px;
+    background: var(--surface); border:1px solid var(--line); border-radius: 999px;
+    padding: 7px 14px; color: var(--faint); font-size: 12.5px;
+  }
+  .search svg { width:15px; height:15px; }
+  .ask-ai {
+    display:inline-flex; align-items:center; gap:7px; height:36px; padding: 0 15px;
+    border-radius: 999px; background: var(--pink); color:#fff; border:0; cursor:pointer;
+    font-family: var(--font-sans); font-weight: 700; font-size: 13px; box-shadow: var(--shadow-card);
+    transition: filter .15s, transform .15s;
+  }
+  .ask-ai:hover { filter: brightness(1.06); }
+  .ask-ai svg { width:15px; height:15px; }
+
+  .content { padding: 22px 24px 60px; display:grid; gap: 18px; max-width: 1360px; }
+
+  /* ── Hero ──────────────────────────────────────────── */
+  .hero {
+    position: relative; overflow:hidden; border-radius: var(--radius);
+    border: 1px solid var(--line-strong); background: var(--gradient);
+    color: var(--hero-ink); padding: 26px 30px; box-shadow: var(--shadow-card);
+    animation: fade-up .5s ease both;
+  }
+  .hero::after { content:''; position:absolute; inset:0; background: var(--hero-glow); pointer-events:none; }
+  .hero-in { position: relative; max-width: 760px; }
+  .hero .eyebrow { color: rgba(255,255,255,0.82); display:inline-flex; align-items:center; gap:7px; }
+  .hero .eyebrow svg { width:13px; height:13px; }
+  .hero h1 { margin: 12px 0 0; font-family: var(--font-display); font-size: 33px; font-weight: 600; letter-spacing:-0.01em; line-height:1.15; }
+  .hero p { margin: 10px 0 0; font-size: 15px; color: rgba(255,255,255,0.92); max-width: 62ch; }
+  .hero .conf { margin-top: 14px; font-family: var(--font-mono); font-size: 11.5px; color: rgba(255,255,255,0.8); letter-spacing:.02em; }
+
+  /* ── Stat strip ────────────────────────────────────── */
+  .stats { display:grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .stat {
+    position: relative; overflow:hidden; border-radius: var(--radius-sm);
+    border:1px solid var(--line); background: var(--surface); padding: 16px 17px 15px;
+    box-shadow: var(--shadow-card); transition: transform .18s, box-shadow .18s, border-color .18s;
+    animation: fade-up .5s ease both;
+  }
+  .stat:hover { transform: translateY(-3px); box-shadow: var(--shadow-pop); border-color: var(--accent-border); }
+  .stat .bar { position:absolute; inset-inline:0; top:0; height:3px; background: var(--gradient); opacity:.95; }
+  .stat.risk .bar { background: var(--risk); }
+  .stat .val { font-family: var(--font-display); font-size: 31px; font-weight: 600; letter-spacing:-0.01em; margin-top: 12px; line-height:1; }
+  .stat .sub { font-size: 12px; color: var(--muted); margin-top: 8px; display:flex; align-items:center; gap:6px; }
+  .delta.up { color: var(--ok); font-weight:700; font-family:var(--font-mono); font-size:11px; }
+  .delta.down { color: var(--risk); font-weight:700; font-family:var(--font-mono); font-size:11px; }
+  .spark { margin-top: 10px; display:block; }
+
+  /* ── Grid split ────────────────────────────────────── */
+  .split { display:grid; grid-template-columns: 1.6fr 1fr; gap: 18px; align-items:start; }
+  .col { display:grid; gap:18px; }
+  .panel {
+    border-radius: var(--radius); border:1px solid var(--line); background: var(--surface);
+    box-shadow: var(--shadow-card); overflow:hidden; animation: fade-up .5s ease both;
+  }
+  .panel > header {
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding: 14px 17px; border-bottom: 1px solid var(--line);
+  }
+  .panel > header .eyebrow { color: var(--muted); letter-spacing: 0.13em; font-weight:600; }
+  .panel > header .hint { font-family:var(--font-mono); font-size:10px; color: var(--faint); text-transform:uppercase; letter-spacing:.08em; }
+  .panel .body { padding: 12px; display:grid; gap:8px; }
+  .count-badge {
+    font-family:var(--font-mono); font-size:10px; font-weight:600; background: var(--track);
+    color: var(--muted); border-radius: 999px; padding: 2px 8px; margin-left:8px;
+  }
+
+  /* ── Entity row (who to call) ──────────────────────── */
+  .erow {
+    display:grid; grid-template-columns: auto 1fr auto; gap: 13px; align-items:center;
+    padding: 12px 13px; border-radius: var(--radius-sm); border:1px solid var(--line);
+    background: var(--surface-muted); cursor:pointer; text-align:left; width:100%;
+    color: var(--fg); font-family: var(--font-sans);
+    transition: transform .16s, border-color .16s, box-shadow .16s;
+  }
+  .erow:hover { transform: translateY(-2px); border-color: var(--accent-border); box-shadow: var(--shadow-card); }
+  .chip {
+    width: 40px; height: 40px; border-radius: 11px; display:grid; place-items:center;
+    background: var(--accent-bg); color: var(--accent); border:1px solid var(--accent-border);
+    font-family: var(--font-mono); font-weight: 600; font-size: 13px; flex:none;
+  }
+  .erow .nm { display:flex; align-items:baseline; gap:8px; }
+  .erow .nm b { font-size: 14.5px; font-weight: 800; letter-spacing:-0.01em; }
+  .seg { font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:.08em; color: var(--faint); }
+  .reason { display:block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  .action {
+    display:inline-flex; align-items:center; gap:5px; margin-top:8px; font-size:11.5px; font-weight:700;
+    color: var(--accent); background: var(--accent-bg); border:1px solid var(--accent-border);
+    border-radius:999px; padding: 3px 10px;
+  }
+  .action svg { width:12px; height:12px; }
+  /* score ring */
+  .ring { position: relative; display:inline-grid; place-items:center; width: 46px; height:46px; flex:none; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring .track { stroke: var(--track); }
+  .ring .fill { stroke: var(--risk); stroke-linecap: round; }
+  .ring .num { position:absolute; inset:0; display:grid; place-items:center; font-family:var(--font-mono); font-weight:600; font-size:13px; }
+  .ring .lbl { text-align:center; font-family:var(--font-mono); font-size:8.5px; text-transform:uppercase; letter-spacing:.06em; color: var(--faint); margin-top:3px; }
+
+  /* ── Timeline (schedule) ───────────────────────────── */
+  .tl { padding: 6px 4px; }
+  .tl .step { position: relative; padding: 0 0 16px 30px; }
+  .tl .step:last-child { padding-bottom: 2px; }
+  .tl .dot {
+    position:absolute; left:0; top:0; width:22px; height:22px; border-radius:50%;
+    background: var(--accent); color:#fff; display:grid; place-items:center;
+    box-shadow: 0 0 0 4px var(--accent-bg);
+  }
+  .tl .dot svg { width:12px; height:12px; stroke-width:2.4; }
+  .tl .step::after { content:''; position:absolute; left:10px; top:24px; bottom:-2px; width:2px; background: var(--line); }
+  .tl .step:last-child::after { display:none; }
+  .tl .time { font-family:var(--font-mono); font-size:11px; font-weight:600; color: var(--muted); }
+  .tl .ti { font-size: 13px; font-weight:600; margin-top:1px; }
+
+  /* ── Meters (goals) ────────────────────────────────── */
+  .meter { display:grid; gap:6px; }
+  .meter .top { display:flex; justify-content:space-between; align-items:baseline; }
+  .meter .nm { font-size:13px; font-weight:600; }
+  .meter .rd { font-family:var(--font-mono); font-size:11px; font-weight:600; color: var(--muted); }
+  .bar-track { height:7px; border-radius:999px; background: var(--track); overflow:hidden; }
+  .bar-fill { height:100%; border-radius:999px; background: var(--gradient); }
+  .bar-fill.done { background: var(--ok); }
+
+  /* ── Life events grid ──────────────────────────────── */
+  .events { display:grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 14px; }
+  .ev {
+    display:flex; gap:11px; align-items:flex-start; padding: 13px; border-radius: var(--radius-sm);
+    border:1px solid var(--line); background: var(--surface-muted); cursor:pointer;
+    transition: transform .16s, border-color .16s, box-shadow .16s;
+  }
+  .ev:hover { transform: translateY(-2px); border-color: var(--accent-border); box-shadow: var(--shadow-card); }
+  .ev .chip { width:36px; height:36px; }
+  .ev .evt { font-weight:700; font-size:13px; }
+  .ev .who { color: var(--muted); font-size:11.5px; margin-top:2px; }
+  .ev .opp { color: var(--accent); font-size:11.5px; font-weight:700; margin-top:6px; display:inline-flex; gap:4px; align-items:center; }
+  .ev .opp svg { width:11px; height:11px; }
+
+  .pill {
+    display:inline-flex; align-items:center; border-radius:999px; padding: 2px 9px;
+    font-family:var(--font-mono); font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.06em;
+  }
+  .pill.risk { background: var(--risk-bg); color: var(--risk); }
+
+  @keyframes fade-up { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform:none; } }
+
+  /* ── Toggle bar (mockup-only chrome) ───────────────── */
+  .toggles {
+    position: fixed; bottom: 18px; left:50%; transform:translateX(-50%); z-index: 90;
+    display:flex; gap: 6px; padding: 7px; border-radius: 999px;
+    background: var(--glass); backdrop-filter: blur(20px); border:1px solid var(--line-strong);
+    box-shadow: var(--shadow-pop); font-size: 12px;
+  }
+  .toggles button {
+    border:0; background:transparent; color: var(--muted); font-family: var(--font-sans);
+    font-weight:700; font-size:12px; padding: 6px 13px; border-radius:999px; cursor:pointer;
+  }
+  .toggles button.on { background: var(--accent); color:#fff; }
+  .toggles .sep { width:1px; background: var(--line-strong); margin: 3px 2px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- LEFT RAIL -->
+  <aside class="rail">
+    <div class="brand"><span class="brand-glyph">CU</span><span class="brand-name">Cumulus</span></div>
+    <nav class="nav">
+      <a class="active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Home</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3"/><path d="M2 21c0-3.5 3-6 7-6s7 2.5 7 6"/><path d="M17 6a3 3 0 0 1 0 6"/></svg>Clients</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>Pipeline</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m4 12 5 5L20 6"/></svg>Tasks</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>Alerts</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <h2>Relationship Command Center</h2>
+      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Search clients, accounts, insights…</div>
+      <button class="ask-ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2"/></svg>Ask Agentforce</button>
+    </div>
+
+    <div class="content">
+      <!-- HERO -->
+      <section class="hero">
+        <div class="hero-in">
+          <span class="eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m12 3 1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>Today · AI Daily Brief</span>
+          <h1>Good morning, Alex — your book at a glance.</h1>
+          <p>8 clients flagged by CSAT, 8 high-risk. 19,011 open opportunities worth $20.3B in pipeline. 8 activities scheduled today.</p>
+          <div class="conf">AI CONFIDENCE 87% · 24 DATA SOURCES</div>
+        </div>
+      </section>
+
+      <!-- STAT STRIP -->
+      <section class="stats">
+        <div class="stat" style="animation-delay:.02s"><span class="bar"></span><div class="eyebrow">Pipeline</div><div class="val tnum">$20.3B</div><div class="sub"><span class="delta up">▲ 4.2%</span> vs last month</div></div>
+        <div class="stat" style="animation-delay:.06s"><span class="bar"></span><div class="eyebrow">Open Opportunities</div><div class="val tnum">19,011</div><div class="sub">across 38 households</div></div>
+        <div class="stat" style="animation-delay:.10s"><span class="bar"></span><div class="eyebrow">Open Cases</div><div class="val tnum">5,353</div><div class="sub"><span class="delta down">▼ 1.1%</span> resolved slower</div></div>
+        <div class="stat" style="animation-delay:.14s"><span class="bar"></span><div class="eyebrow">Active Goals</div><div class="val tnum">6</div><div class="sub">2 near target</div></div>
+        <div class="stat risk" style="animation-delay:.18s"><span class="bar"></span><div class="eyebrow">At-Risk · CSAT</div><div class="val tnum" style="color:var(--risk)">8</div><div class="sub"><span class="pill risk">needs outreach</span></div></div>
+      </section>
+
+      <!-- SPLIT -->
+      <section class="split">
+        <div class="panel" style="animation-delay:.10s">
+          <header><span class="eyebrow">Who to call today — and why<span class="count-badge">12</span></span><span class="hint">AI-ranked · click to open 360</span></header>
+          <div class="body">
+            <!-- row template -->
+            <button class="erow">
+              <span class="chip">CH</span>
+              <span>
+                <span class="nm"><b>Cooper Household</b><span class="seg">Retail</span></span>
+                <span class="reason">CSAT dropped to Poor after a disputed fee; 2 open cases aging.</span>
+                <span class="action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Service-recovery outreach</span>
+              </span>
+              <span style="text-align:center">
+                <span class="ring">
+                  <svg width="46" height="46" viewBox="0 0 46 46"><circle class="track" cx="23" cy="23" r="19" fill="none" stroke-width="5"/><circle class="fill" cx="23" cy="23" r="19" fill="none" stroke-width="5" stroke-dasharray="119.4" stroke-dashoffset="25.1"/></svg>
+                  <span class="num" style="color:var(--risk)">79</span>
+                </span>
+                <span class="lbl">CSAT/NPS</span>
+              </span>
+            </button>
+
+            <button class="erow">
+              <span class="chip">CF</span>
+              <span>
+                <span class="nm"><b>Cervantes-Fowler Retail</b><span class="seg">Retail</span></span>
+                <span class="reason">Renewal in 21 days; sentiment softening across last 3 touches.</span>
+                <span class="action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Service-recovery outreach</span>
+              </span>
+              <span style="text-align:center">
+                <span class="ring">
+                  <svg width="46" height="46" viewBox="0 0 46 46"><circle class="track" cx="23" cy="23" r="19" fill="none" stroke-width="5"/><circle class="fill" cx="23" cy="23" r="19" fill="none" stroke-width="5" stroke-dasharray="119.4" stroke-dashoffset="29.8"/></svg>
+                  <span class="num" style="color:var(--risk)">75</span>
+                </span>
+                <span class="lbl">CSAT/NPS</span>
+              </span>
+            </button>
+
+            <button class="erow">
+              <span class="chip">JP</span>
+              <span>
+                <span class="nm"><b>Jaime R Parsons</b><span class="seg">Retail</span></span>
+                <span class="reason">Large deposit inflow detected — likely liquidity event, cross-sell window.</span>
+                <span class="action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Wealth referral</span>
+              </span>
+              <span style="text-align:center">
+                <span class="ring">
+                  <svg width="46" height="46" viewBox="0 0 46 46"><circle class="track" cx="23" cy="23" r="19" fill="none" stroke-width="5"/><circle class="fill" cx="23" cy="23" r="19" fill="none" stroke-width="5" stroke-dasharray="119.4" stroke-dashoffset="29.8" style="stroke:var(--warn)"/></svg>
+                  <span class="num" style="color:var(--warn)">75</span>
+                </span>
+                <span class="lbl">CSAT/NPS</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="panel" style="animation-delay:.14s">
+            <header><span class="eyebrow">Today's Schedule<span class="count-badge">8</span></span></header>
+            <div class="body tl">
+              <div class="step"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m4 12 5 5L20 6"/></svg></span><div class="time tnum">9:00</div><div class="ti">Review new lead — application saved</div></div>
+              <div class="step"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 2v4M16 2v4M3 10h18M5 6h14v14H5z"/></svg></span><div class="time tnum">10:30</div><div class="ti">Cooper Household — recovery call</div></div>
+              <div class="step"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.9"/></svg></span><div class="time tnum">13:00</div><div class="ti">Parsons — wealth referral intro</div></div>
+              <div class="step"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.4 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></span><div class="time tnum">15:30</div><div class="ti">Cervantes-Fowler — renewal check-in</div></div>
+            </div>
+          </div>
+
+          <div class="panel" style="animation-delay:.18s">
+            <header><span class="eyebrow">My Goals · Quota</span></header>
+            <div class="body" style="gap:14px; padding:16px">
+              <div class="meter"><div class="top"><span class="nm">Retirement</span><span class="rd tnum">$6.8M / $7M</span></div><div class="bar-track"><div class="bar-fill" style="width:97%"></div></div></div>
+              <div class="meter"><div class="top"><span class="nm">Vacation Home</span><span class="rd tnum">$208K / $650K</span></div><div class="bar-track"><div class="bar-fill" style="width:32%"></div></div></div>
+              <div class="meter"><div class="top"><span class="nm">Estate Planning</span><span class="rd tnum">$1.5M / $1.5M</span></div><div class="bar-track"><div class="bar-fill done" style="width:100%"></div></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- LIFE EVENTS -->
+      <section class="panel" style="animation-delay:.14s">
+        <header><span class="eyebrow">Life events across your book<span class="count-badge">4</span></span><span class="hint">Data Cloud signals → opportunities</span></header>
+        <div class="events">
+          <div class="ev"><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></span><div><div class="evt">Home purchase</div><div class="who">M. Alvarez · 3d ago</div><div class="opp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Mortgage + HELOC</div></div></div>
+          <div class="ev"><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg></span><div><div class="evt">New child</div><div class="who">The Nguyens · 1w ago</div><div class="opp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 6l6 6-6 6"/></svg>529 plan</div></div></div>
+          <div class="ev"><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2 2 7l10 5 10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></span><div><div class="evt">Job change</div><div class="who">R. Okafor · 2w ago</div><div class="opp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 6l6 6-6 6"/></svg>401k rollover</div></div></div>
+          <div class="ev"><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7S8 2 5 4s2 3 7 3M12 7s4-5 7-3-2 3-7 3"/></svg></span><div><div class="evt">Retirement</div><div class="who">S. Patel · 3w ago</div><div class="opp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Annuity review</div></div></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- MOCKUP TOGGLES -->
+<div class="toggles">
+  <button data-p="retail" class="on" onclick="setP(this,'retail')">Retail</button>
+  <button data-p="commercial" onclick="setP(this,'commercial')">Commercial</button>
+  <button data-p="wealth" onclick="setP(this,'wealth')">Wealth</button>
+  <span class="sep"></span>
+  <button id="modebtn" onclick="toggleMode()">◐ Dark</button>
+</div>
+<script>
+  function setP(btn,p){ document.documentElement.setAttribute('data-persona',p);
+    document.querySelectorAll('.toggles [data-p]').forEach(b=>b.classList.toggle('on', b===btn)); }
+  function toggleMode(){ var h=document.documentElement, d=h.getAttribute('data-mode')==='dark';
+    h.setAttribute('data-mode', d?'light':'dark'); document.getElementById('modebtn').textContent = d?'◐ Dark':'◑ Light'; }
+</script>
+</body>
+</html>

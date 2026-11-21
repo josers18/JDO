@@ -1,0 +1,406 @@
+.wealth-atlas-workspace {
+  --m-line: var(--tone-wash);
+  --m-muted: var(--tone-accent);
+  --m-paper: #fff;
+  --m-ink: var(--tone-heading);
+  min-width: 0;
+}
+
+.wealth-atlas-workspace .wrel-heading h1 {
+  color: var(--rel-ink);
+  font-size: clamp(30px, 3.1vw, 43px);
+  font-weight: 500;
+  letter-spacing: -1.3px;
+  line-height: 1.08;
+}
+.wealth-atlas-workspace .wl-heading h1 {
+  color: var(--tone-deep);
+  font-size: clamp(29px, 3vw, 41px);
+  font-weight: 500;
+  letter-spacing: -1.4px;
+  line-height: 1.1;
+}
+.wealth-atlas-workspace .wcx-heading h1 {
+  color: var(--wcx-ink);
+  font-size: clamp(28px, 3vw, 43px);
+  font-weight: 500;
+  letter-spacing: -1.2px;
+  line-height: 1.1;
+}
+.wealth-atlas-workspace .ws-heading h1 {
+  color: var(--ws-ink);
+  font-size: clamp(30px, 3vw, 44px);
+  font-weight: 500;
+  letter-spacing: -.045em;
+  line-height: 1.1;
+}
+.wealth-atlas-workspace :is(.wrel-heading,.wl-heading,.wcx-heading,.ws-heading) h1 + p {
+  font-size: 18px;
+  line-height: 1.6;
+}
+.wealth-atlas-workspace :is(.wrel,.ws) h2 { font-weight: 500; }
+.wealth-atlas-workspace .ps-capital-source h2 {
+  font-size: 23px;
+  line-height: 1.2;
+  letter-spacing: -.025em;
+  font-weight: 500;
+}
+.wealth-atlas-workspace .wcx {
+  font-size: 17px;
+  line-height: 1.5;
+}
+.wealth-atlas-workspace .wcx-heading .wcx-kicker {
+  font-size: 18px;
+  line-height: 1.6;
+}
+.wealth-atlas-workspace .wcx .wr-path-summary .wa-metric > span {
+  color: var(--wa-muted);
+  font-size: 13px;
+}
+.wealth-atlas-workspace .wcx .wr-path-summary .wa-metric > small {
+  color: var(--wa-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.wealth-atlas-workspace .wcx .wr-search-status {
+  color: var(--tone-accent);
+  font-size: 18px;
+}
+.wealth-atlas-workspace .wcx .wr-path-summary .wa-tabs button {
+  min-height: 44px;
+}
+.wealth-atlas-workspace .wcx :is(.wcx-panel h2, .wcx-capitalbanner h2, .ps-capital-destination h2, .wcx-detail h2) {
+  font-weight: 500;
+}
+.wealth-atlas-workspace .ps-wealth-observatory .ps-switches button {
+  font-size: 17px;
+}
+.wealth-atlas-workspace .ps-wealth-observatory .ps-switches button[aria-pressed="false"] {
+  color: var(--tone-accent);
+}
+.wealth-atlas-workspace .wcx .wa-tabs button[aria-pressed="true"] {
+  background: var(--wa-ink);
+  border-color: var(--wa-ink);
+  color: white;
+}
+.wealth-atlas-workspace .wcx :is(.wa-intelnav, .wa-signalworklist) button[aria-pressed="true"] {
+  background: var(--tone-wash);
+  border-color: var(--tone-plot);
+}
+.wealth-atlas-workspace .wcx .wr-path-evidence h3 { line-height: 1.25; }
+.wealth-atlas-workspace .wcx .ps-advisory-products strong { font-weight: 500; }
+.wealth-atlas-workspace .wcx :is(.wcx-stat strong, .wcx-cell small, .wcx-flowchart strong) {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 700px) {
+  .wealth-atlas-workspace .wrel-heading h1 { font-size: 32px; }
+  .wealth-atlas-workspace .wl-heading h1 + p { line-height: 1.5; }
+}
+@media (max-width: 650px) {
+  .wealth-atlas-workspace .wcx-heading h1 { font-size: 31px; }
+}
+@media (max-width: 580px) {
+  .wealth-atlas-workspace .ws-heading h1 { font-size: 31px; }
+}
+:is(.wealth-atlas-workspace, .wealth-atlas-dialog) :is(.primary, .secondary, .text-button) {
+  align-items: center;
+  border-radius: 9px;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 400;
+  justify-content: center;
+  line-height: 1.3;
+  min-height: 40px;
+  padding: 9px 13px;
+}
+:is(.wealth-atlas-workspace, .wealth-atlas-dialog) .primary {
+  background: var(--m-accent, var(--tone-accent));
+  color: #fff;
+  border: 1px solid var(--m-accent, var(--tone-accent));
+  font-weight: 400;
+  line-height: 1.3;
+}
+:is(.wealth-atlas-workspace, .wealth-atlas-dialog) .secondary {
+  background: #fff;
+  color: var(--tone-heading);
+  border: 1px solid var(--tone-border);
+}
+:is(.wealth-atlas-workspace, .wealth-atlas-dialog) .text-button {
+  color: var(--m-accent, var(--tone-accent));
+}
+:is(.wealth-atlas-workspace, .wealth-atlas-dialog) :is(select, input, textarea) {
+  background: #fff;
+  border: 1px solid var(--tone-border);
+  border-radius: 8px;
+  color: inherit;
+  padding: 9px 12px;
+}
+.wealth-atlas-workspace .wa-metric > span {
+  display: block;
+}
+
+.wealth-atlas-dialog {
+  background: #fff;
+  border: 1px solid var(--tone-border);
+  border-radius: 18px;
+  color: var(--tone-heading);
+  left: 50%;
+  max-height: 84dvh;
+  max-width: min(720px, calc(100vw - 30px));
+  overflow: auto;
+  padding: 24px;
+  position: fixed;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+}
+.wealth-atlas-dialog > header {
+  align-items: start;
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 18px;
+}
+.wealth-atlas-dialog::backdrop {
+  background: #231a36aa;
+}
+.wealth-atlas-dialog .wa-evidence {
+  gap: 12px;
+  margin-block: 16px;
+}
+.wealth-atlas-dialog .wa-evidence dt {
+  color: var(--wa-muted);
+  font-size: 13px;
+}
+.wealth-atlas-dialog .wa-evidence dd {
+  font-weight: 550;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+.wa-proposal-context {
+  margin-bottom: 18px;
+}
+.wa-proposal-context details p {
+  white-space: pre-line;
+}
+.atlas-wealth-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 12px;
+}
+.atlas-wealth-cards > article {
+  background: var(--tone-paper);
+  border: 1px solid var(--tone-wash);
+  border-radius: 12px;
+  padding: 15px;
+}
+.atlas-wealth-table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.atlas-wealth-table table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.atlas-wealth-table th,
+.atlas-wealth-table td {
+  border-bottom: 1px solid var(--tone-wash);
+  padding: 12px;
+  text-align: left;
+}
+.atlas-wealth-score {
+  background: var(--tone-wash);
+  border-radius: 8px;
+  padding: 9px 12px;
+  min-width: 4em;
+}
+.atlas-wealth-score[aria-pressed='true'] {
+  background: var(--tone-accent);
+  color: white;
+}
+.wealth-atlas-workspace .ps-capital-destination .wa-pair {
+  width: 100%;
+}
+.wealth-atlas-workspace .ws-review-list {
+  max-height: 48rem;
+  overflow: auto;
+}
+
+.wealth-dossier {
+  padding-top: 10px;
+}
+.wealth-dossier .breadcrumb {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  color: var(--tone-accent);
+  font-size: 16px;
+}
+.wealth-dossier .breadcrumb a {
+  color: var(--tone-accent);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.wealth-dossier .dossier-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 25px;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+.wealth-dossier .dossier-header h1 {
+  font-size: clamp(34px, 4vw, 56px);
+  margin-bottom: 7px;
+}
+.wealth-dossier .dossier-header p {
+  color: var(--tone-accent);
+  margin: 13px 0 0;
+  font-size: 18px;
+}
+.wealth-dossier .dossier-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  max-width: 400px;
+}
+.wealth-dossier .dossier-actions :is(.primary, .secondary) {
+  font-size: 16px;
+  font-weight: 400;
+  min-height: 50px;
+  padding: 13px 18px;
+  gap: 15px;
+}
+.wealth-dossier .dossier-tabs {
+  border-bottom: 1px solid var(--tone-border);
+  display: flex;
+  gap: 24px;
+  margin-bottom: 28px;
+  max-width: 100%;
+  overflow: auto;
+}
+.wealth-dossier .dossier-tabs button {
+  flex: 0 0 auto;
+  border-bottom: 3px solid transparent;
+  padding: 15px 0;
+  font-size: 17px;
+  color: var(--tone-accent);
+  white-space: nowrap;
+}
+.wealth-dossier .dossier-tabs button[aria-selected='true'] {
+  color: var(--tone-accent);
+  border-bottom-color: var(--tone-accent);
+}
+.wealth-dossier .wcare-household-hero h2 {
+  font-size: clamp(27px, 3vw, 30px);
+}
+.wealth-dossier-legacy {
+  margin-top: 20px;
+}
+@media (max-width: 750px) {
+  .wealth-dossier .dossier-actions {
+    justify-content: flex-start;
+  }
+  .wealth-dossier .dossier-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.wealth-atlas-workspace .wrp-heading h2 {
+  font-size: clamp(27px, 3vw, 30px);
+  letter-spacing: -0.8px;
+  margin-bottom: 9px;
+}
+.wealth-atlas-workspace .wrp-paper .wrp-opening {
+  font-size: clamp(18px, 2vw, 19px);
+}
+
+.atlas-trade-weeks .atlas-trade-bars {
+  height: 160px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+}
+.atlas-trade-weeks button[aria-pressed='true'] {
+  background: var(--tone-wash);
+  border-radius: 8px;
+}
+
+.wealth-atlas-workspace .ps-advisory-reading h2 {
+  font-size: 23px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  margin: 0 0 10px;
+}
+
+.wealth-atlas-workspace .ws-work-scope { align-items: center; margin-bottom: 16px; }
+.wealth-atlas-workspace .ws-case-meta > span[data-priority='medium'],
+.wealth-atlas-workspace .ws-case-meta > span[data-priority='normal'] {
+  background: var(--tone-pale);
+  color: var(--tone-accent);
+}
+.wealth-atlas-workspace .ws-case-meta > span:is([data-priority='critical'], [data-priority='urgent']) {
+  background: #f9e6e9;
+  color: #9e3048;
+  border-color: #edcbd3;
+}
+.wealth-atlas-workspace .ws-case-meta > span[data-priority='high'] {
+  background: #faedd9;
+  color: #8b5c17;
+  border-color: #efdbb7;
+}
+.wealth-atlas-workspace .ws-work-evidence {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+.wealth-atlas-workspace .ws-work-evidence > div {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--m-soft, var(--tone-pale));
+}
+.wealth-atlas-workspace .ws-work-evidence dt { color: var(--m-muted); font-size: 13px; }
+.wealth-atlas-workspace .ws-work-evidence dd { margin: 4px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.wealth-atlas-workspace .ws-work .wa-calendar button:focus-visible {
+  outline: 2px solid var(--wa-iris);
+  outline-offset: 2px;
+}
+
+.wealth-atlas-workspace p:not(.scope-line):not(.capture-note):not(.small):not(.source-note) {
+  font-size: max(17px, var(--reading-size, 18px));
+}
+
+.wealth-atlas-workspace .wrel-facts .ws-metric > span { font-size: 13px; color: var(--tone-accent); }
+.wealth-atlas-workspace .wl-actions a[href*="reviewAccount"] { font-size: 12px; line-height: 1.5; }
+.wealth-atlas-workspace .ws-modebar button {
+  border: 1px solid var(--m-line);
+  border-radius: 8px;
+  padding: 9px 13px;
+  min-height: 44px;
+  font-size: 14px;
+  line-height: 1.3;
+}
+.wealth-atlas-workspace .ws-modebar button[aria-pressed=false] { background: var(--m-paper); }
+.wealth-atlas-workspace .wcx .ps-capital-destination h2 { font-size: 23px; letter-spacing: -.025em; }
+.wealth-atlas-workspace .wcx .ps-capital-history h3 { font-size: 19px; line-height: 1.25; }
+.wealth-atlas-workspace .wcx :is(.ps-capital-source, .ps-advisory-products, .ps-capital-destination strong) small { font-size: 13px; }
+
+.wealth-dossier :is(.breadcrumb, .dossier-tabs) { line-height: normal; }
+.wealth-dossier .dossier-actions .primary { font-size: 17px; padding: 14px 20px; }
+.wealth-dossier .wcare-tabs button { font-size: 14px; line-height: 1.3; }
+.wealth-dossier .wcare-response-picker button { line-height: 1.3; }
+.wealth-atlas-workspace .ws-planrow-actions .text-button { font-size: 13px; }
+
+.wealth-atlas-workspace .wa-pair :is(.ws-metric, .wcare-metric) > span { font-size: 13px; }
+.wealth-atlas-workspace .wa-pair .ws-metric > small { font-size: 11px; line-height: 1.35; }
+.wealth-atlas-workspace .wrp-source-note h3 { font-size: 18px; }
+.wealth-atlas-workspace .wa-worklayout .wa-panel > header p { line-height: 1.45; }
+@media (max-width: 650px) {
+  .wealth-atlas-workspace .wcx .ps-advisory-products small { font-size: 14px; }
+  .wealth-atlas-workspace .ws-planrow-actions .text-button { font-size: 12px; }
+  .wealth-atlas-workspace .wcx .wcx-exposuremap button { font-size: 16px; }
+}

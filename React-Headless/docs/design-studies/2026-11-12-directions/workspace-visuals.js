@@ -2,7 +2,7 @@
 window.createWorkspaceVisuals = function(api) {
  'use strict';
  const {state,E,icon,compact,money,date,initials,accounts,clientEvents,clientGoals,clientFinances,clientSignal,crm,fresh,cfg,filteredDeals,primary,secondary,textButton,surface,empty,modal,openPreparation,saveDraft,read,write,render,toast}=api;
- const colors=['#6257bc','#25847d','#c07843','#477eab','#ac628a','#8a8c42'];
+ const colors=['var(--m-accent)', 'var(--next-move)', 'var(--series-third)', '#539497', '#c99962', '#6c7486'];
  const nodeSelection={},mapLens={},pipelineView={},plotSelection={},plotScale={},yearSelection={},eventSelection={},balanceSelection={};
  let comparisons=read('cumulus.visual.compare',{}),scenarios=read('cumulus.visual.scenarios',{}),dragId='';
  const enabled=()=>state.style==='atlas'||state.style==='panorama';

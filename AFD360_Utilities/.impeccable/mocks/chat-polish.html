@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Chat polish — Today vs Proposed</title>
+<style>
+@font-face { font-family: "Archivo Variable"; src: url("../../node_modules/@fontsource-variable/archivo/files/archivo-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-stretch: 62% 125%; }
+@font-face { font-family: "JetBrains Mono Variable"; src: url("../../node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2") format("woff2"); font-weight: 100 800; }
+:root {
+  --ground:#F3F4F6; --surface:#FFFFFF; --line:#E0E3E8; --ink:#111827; --ink-2:#3D4554; --ink-3:#555E6D;
+  --side:#14213D; --rail:#0D172C; --sent:#E6ECF5; --sent-line:#C8D4E6; --sent-ink:#1A3360; --sent-chip:#D4DFEF;
+  --recv:#F7F0DC; --recv-line:#E6D6A8; --recv-ink:#5F4A0F; --ok:#2F7D5B; --live:#E2C15A; --err:#B23A33; --action:#C9A227; --action-ink:#1A1405;
+  --tint: color-mix(in oklab, var(--ground) 60%, var(--surface));
+  --card: 0 1px 2px rgb(15 23 36 / .05), 0 6px 20px rgb(15 23 36 / .06);
+  --bar-sent: color-mix(in oklab, var(--sent-chip) 40%, var(--sent));
+  --bar-recv: color-mix(in oklab, var(--recv) 85%, var(--surface));
+  --sans: "Archivo Variable", system-ui, sans-serif; --mono: "JetBrains Mono Variable", ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 14px/1.43 var(--sans); font-variant-numeric: tabular-nums; }
+main { max-width: 1500px; margin: 0 auto; padding: 32px 40px 80px; }
+h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -.025em; margin: 0 0 4px; }
+.lede { color: var(--ink-2); margin: 0 0 28px; max-width: 75ch; }
+section { margin-bottom: 40px; }
+.sec-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.sec-head h2 { font-size: 1.125rem; font-weight: 600; margin: 0; }
+.pri { font: 600 12px var(--mono); padding: 2px 8px; border-radius: 999px; background: var(--tint); border: 1px solid var(--line); color: var(--ink-2); }
+.pri.p1 { background: color-mix(in oklab, var(--err) 10%, var(--surface)); border-color: color-mix(in oklab, var(--err) 30%, var(--surface)); color: var(--err); }
+.why { color: var(--ink-2); margin: 0 0 14px; max-width: 90ch; }
+.pair { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 20px; }
+.col-label { font-size: 12px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.col-label .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
+.col-label.after .dot { background: var(--ok); }
+.stage { background: var(--ground); border: 1px dashed var(--line); border-radius: 12px; padding: 16px; }
+.note { margin-top: 8px; font-size: 12px; color: var(--ink-3); }
+code { font: 12px var(--mono); background: var(--tint); border-radius: 6px; padding: 1px 5px; }
+
+/* --- app components (mirrors CardHead / MessageView) --- */
+.msg { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--card); padding: 14px 18px 16px; }
+.head { margin: -14px -18px 12px; padding: 8px 18px; border-bottom: 1px solid; border-radius: 16px 16px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.head.recv { background: var(--bar-recv); border-color: var(--recv-line); }
+.head.sent { background: var(--bar-sent); border-color: var(--sent-line); }
+.head.neutral { background: var(--tint); border-color: var(--line); }
+.badge { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; font-size: 12px; }
+.badge.recv { background: var(--recv); border: 1px solid var(--recv-line); color: var(--recv-ink); }
+.badge.sent { background: var(--sent-chip); color: var(--sent-ink); }
+.badge.neutral { background: var(--surface); border: 1px solid var(--line); color: var(--ink-3); }
+.name { font-size: 15px; font-weight: 700; letter-spacing: -.01em; font-stretch: 112%; }
+.chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 1px 8px; font-weight: 600; }
+.chip.c11 { font-size: 11px; } .chip.c12 { font-size: 12px; padding: 2px 9px; }
+.chip.recv { background: var(--recv); border: 1px solid var(--recv-line); color: var(--recv-ink); }
+.chip.sent { background: var(--sent-chip); color: var(--sent-ink); }
+.chip.neutral { background: var(--surface); border: 1px solid var(--line); color: var(--ink-2); }
+.time { margin-left: auto; font: 12px var(--mono); color: var(--ink-3); }
+.mono-r { margin-left: auto; font: 12px var(--mono); color: var(--ink-3); }
+.body { font-size: 15px; line-height: 1.625; }
+.body p { margin: 8px 0; }
+.frame { border: 1px solid var(--sent-line); border-radius: 12px; overflow: hidden; background: var(--surface); margin-top: 10px; }
+.frame.neutral { border-color: var(--line); }
+.frame .head { margin: 0; border-radius: 0; padding: 8px 16px; }
+.pad { padding: 4px; }
+.widget { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.widget.flat { border: 0; padding: 10px 14px; }
+.wtitle { font-weight: 500; margin-bottom: 6px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-weight: 500; color: var(--ink-2); padding: 6px 0; border-bottom: 1px solid var(--line); }
+td { padding: 7px 0; border-bottom: 1px solid var(--line); }
+td a { color: var(--sent-ink); text-decoration: none; }
+.num { text-align: right; padding-right: 16px; }
+.measure p, .measure li { max-width: 70ch; }
+
+/* --- session bar --- */
+.bar { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--card); padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+.bar .who { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 224px; }
+.avatar { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--recv); border: 1px solid var(--recv-line); color: var(--recv-ink); flex-shrink: 0; }
+.title { font-size: 17px; font-weight: 600; line-height: 1.25; }
+.status { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.status.live { background: var(--sent-chip); color: var(--sent-ink); }
+.status.live i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+.status.stale { background: var(--recv); border: 1px solid var(--recv-line); color: var(--recv-ink); }
+.status.stale i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--recv-ink); }
+.meta { margin-top: 2px; display: flex; flex-wrap: wrap; column-gap: 8px; row-gap: 2px; font: 12px var(--mono); color: var(--ink-3); }
+.meta .s { font-family: var(--sans); }
+.meta.fixed { column-gap: 14px; }
+.meta.fixed > span { white-space: nowrap; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 7px 12px; font: 500 14px var(--sans); color: var(--ink); white-space: nowrap; }
+.narrow { width: 640px; max-width: 100%; }
+
+/* --- layout schematic --- */
+.shell { display: flex; height: 230px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--ground); position: relative; font-size: 12px; }
+.shell .r { width: 22px; background: var(--rail); }
+.shell .sb { width: 80px; background: var(--side); }
+.shell .chat { flex: 1; min-width: 0; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+.shell .chat .ln { height: 9px; border-radius: 4px; background: var(--line); }
+.shell .chat .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 5px; }
+.shell .wire { background: var(--surface); border-left: 1px solid var(--line); padding: 10px; display: flex; flex-direction: column; gap: 5px; }
+.shell .wire .row { height: 14px; border-radius: 5px; border: 1px solid var(--line); }
+.shell .wire .row.s { background: var(--sent); border-color: var(--sent-line); }
+.shell .wire .row.r2 { background: var(--recv); border-color: var(--recv-line); }
+.dim { position: absolute; font: 600 12px var(--mono); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+.over { position: absolute; top: 0; right: 0; bottom: 0; box-shadow: 0 16px 40px rgb(15 23 36 / .14); }
+.scrim { position: absolute; inset: 0; background: rgb(13 23 44 / .35); }
+.esc { position: absolute; top: 8px; right: 8px; font: 600 12px var(--mono); background: var(--tint); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+.cap { font-size: 12px; color: var(--ink-2); margin: 10px 0 6px; font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Chat polish: Today vs Proposed</h1>
+  <p class="lede">Five fixes from the critique, mocked with the Navy &amp; Gold tokens and the app's fonts. The left column copies what ships today, from the source and the review screenshots. The right column is what would change. Nothing here touches the app.</p>
+
+  <!-- 1 -->
+  <section>
+    <div class="sec-head"><span class="pri p1">P1</span><h2>1 · HXL card wears the Sent lane inside a Received message</h2></div>
+    <p class="why">Blue means “we sent this.” Today the generated card is blue inside a warm Received message, and it has three frames: the message, the HXL frame and the widget's own box. The proposal makes the card header neutral, since it's content and not a direction, keeps one frame, and keeps the widget type visible in mono.</p>
+    <div class="pair">
+      <div>
+        <div class="col-label"><span class="dot"></span>Today</div>
+        <div class="stage">
+          <div class="msg">
+            <div class="head recv"><span class="badge recv">✺</span><span class="name">Cumulus Assistant</span><span class="chip c11 recv">← Received</span><span class="time">18:02:01 · 10.8s</span></div>
+            <div class="body"><p style="margin-top:0">Here are your top opportunities sorted by amount.</p></div>
+            <div class="frame">
+              <div class="head sent"><span class="badge sent">▦</span><span class="name">Generated card</span><span class="chip c11 sent">HXL</span><span class="mono-r">lightning__listType</span></div>
+              <div class="pad"><div class="widget"><div class="wtitle">Result</div>
+                <table><tr><th>Name</th><th class="num">Amount</th><th>Stage</th></tr>
+                <tr><td><a>Innovation Pipeline</a></td><td class="num">$5,257,150,000.00</td><td>Qualification</td></tr>
+                <tr><td><a>Innovation Pipeline</a></td><td class="num">$4,470,741,000.00</td><td>Qualification</td></tr>
+                <tr><td><a>IDO House Account</a></td><td class="num">$94,824,697.00</td><td>Negotiation</td></tr></table>
+              </div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="col-label after"><span class="dot"></span>Proposed</div>
+        <div class="stage">
+          <div class="msg">
+            <div class="head recv"><span class="badge recv">✺</span><span class="name">Cumulus Assistant</span><span class="chip c12 recv">← Received</span><span class="time">18:02:01 · 10.8s</span></div>
+            <div class="body"><p style="margin-top:0">Here are your top opportunities sorted by amount.</p></div>
+            <div class="frame neutral">
+              <div class="head neutral"><span class="badge neutral">▦</span><span class="name">Generated card</span><span class="chip c12 neutral">HXL</span><span class="mono-r">lightning__listType</span></div>
+              <div class="widget flat"><div class="wtitle">Result</div>
+                <table><tr><th>Name</th><th class="num">Amount</th><th>Stage</th></tr>
+                <tr><td><a>Innovation Pipeline</a></td><td class="num">$5,257,150,000.00</td><td>Qualification</td></tr>
+                <tr><td><a>Innovation Pipeline</a></td><td class="num">$4,470,741,000.00</td><td>Qualification</td></tr>
+                <tr><td><a>IDO House Account</a></td><td class="num">$94,824,697.00</td><td>Negotiation</td></tr></table>
+              </div>
+            </div>
+          </div>
+          <div class="note">The widget's inner “Result” box is drawn by the HXL runtime. The proposal removes our extra <code>p-1</code> wrapper and the blue border. Whether the inner border can go too depends on <code>prefersBorder</code>, which I'd verify live.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <div class="sec-head"><span class="pri p1">P1</span><h2>2 · Wire panel can squeeze the chat</h2></div>
+    <p class="why">The Wire can be dragged to 60% of the window, and the width is remembered. At 1440px a past wide drag leaves the thread at about 450px. At 1000px the Wire opens as a 544px overlay with no backdrop. The proposal caps the Wire at 45%, never lets the chat drop below 560px, and gives the narrow overlay a backdrop that closes on click or Esc.</p>
+    <div class="pair">
+      <div>
+        <div class="col-label"><span class="dot"></span>Today</div>
+        <div class="stage">
+          <div class="cap">1440px, Wire at its 60% max (remembered)</div>
+          <div class="shell"><div class="r"></div><div class="sb"></div>
+            <div class="chat" style="flex:0 0 33%"><div class="card"><div class="ln" style="width:70%"></div><div class="ln"></div><div class="ln"></div><div class="ln" style="width:50%"></div></div><div class="card"><div class="ln"></div><div class="ln" style="width:80%"></div></div></div>
+            <div class="wire" style="flex:1"><div class="row s"></div><div class="row r2"></div><div class="row"></div><div class="row"></div><div class="row s"></div><div class="row r2"></div><div class="row"></div></div>
+            <span class="dim" style="left:120px;bottom:8px">chat ≈ 450px</span></div>
+          <div class="cap">1000px, Wire opens over the chat</div>
+          <div class="shell"><div class="r"></div><div class="sb"></div>
+            <div class="chat"><div class="card"><div class="ln" style="width:70%"></div><div class="ln"></div><div class="ln"></div></div><div class="card"><div class="ln"></div><div class="ln" style="width:60%"></div></div></div>
+            <div class="wire over" style="width:54%"><div class="row s"></div><div class="row r2"></div><div class="row"></div><div class="row"></div><div class="row s"></div></div>
+            <span class="dim" style="left:116px;bottom:8px">no backdrop · no Esc</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="col-label after"><span class="dot"></span>Proposed</div>
+        <div class="stage">
+          <div class="cap">1440px, Wire capped at 45%, chat ≥ 560px</div>
+          <div class="shell"><div class="r"></div><div class="sb"></div>
+            <div class="chat"><div class="card"><div class="ln" style="width:70%"></div><div class="ln"></div><div class="ln"></div><div class="ln" style="width:50%"></div></div><div class="card"><div class="ln"></div><div class="ln" style="width:80%"></div></div></div>
+            <div class="wire" style="flex:0 0 42%"><div class="row s"></div><div class="row r2"></div><div class="row"></div><div class="row"></div><div class="row s"></div><div class="row r2"></div><div class="row"></div></div>
+            <span class="dim" style="left:120px;bottom:8px">chat ≥ 560px</span></div>
+          <div class="cap">1000px, overlay with backdrop; click it or press Esc to close</div>
+          <div class="shell"><div class="r"></div><div class="sb"></div>
+            <div class="chat"><div class="card"><div class="ln" style="width:70%"></div><div class="ln"></div><div class="ln"></div></div><div class="card"><div class="ln"></div><div class="ln" style="width:60%"></div></div></div>
+            <div class="scrim"></div>
+            <div class="wire over" style="width:54%"><div class="row s"></div><div class="row r2"></div><div class="row"></div><div class="row"></div><div class="row s"></div><span class="esc">Esc</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <div class="sec-head"><span class="pri">P2</span><h2>3 · Assistant prose runs ~140 characters per line</h2></div>
+    <p class="why">The thread is 72rem wide, so paragraphs stretch across about 1000px, which is hard to follow on a projector. The proposal caps prose at 70ch while tables, HXL cards and tool cards keep the full width. The mock below is at roughly half the real width, so the difference is smaller here than in the app.</p>
+    <div class="msg" style="margin-bottom:14px">
+      <div class="head recv"><span class="badge recv">✺</span><span class="name">Search Agent</span><span class="chip c12 recv">← Received</span><span class="time">Today · no cap</span></div>
+      <div class="body"><p style="margin-top:0">I found three open opportunities for Bennett Household that are past their expected close date. The largest is the Cumulus Commercial Real Estate refinance at $46.6M, which has been in Negotiation since July and has no activity logged in the last 30 days. The other two are smaller wealth-management mandates that are waiting on signed documents from the client's counsel; both owners have follow-up tasks due this week.</p></div>
+    </div>
+    <div class="msg measure">
+      <div class="head recv"><span class="badge recv">✺</span><span class="name">Search Agent</span><span class="chip c12 recv">← Received</span><span class="time">Proposed · 70ch</span></div>
+      <div class="body"><p style="margin-top:0">I found three open opportunities for Bennett Household that are past their expected close date. The largest is the Cumulus Commercial Real Estate refinance at $46.6M, which has been in Negotiation since July and has no activity logged in the last 30 days. The other two are smaller wealth-management mandates that are waiting on signed documents from the client's counsel; both owners have follow-up tasks due this week.</p>
+        <table style="margin-top:8px"><tr><th>Opportunity</th><th class="num">Amount</th><th>Stage</th><th>Close date</th><th>Owner</th></tr>
+        <tr><td><a>Bennett Household – Cumulus CRE</a></td><td class="num">$46,632,341.00</td><td>Negotiation</td><td>7/30/26</td><td>Sarah Smith</td></tr></table>
+        <div class="note">The table stays full width; only paragraphs and lists are capped.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section>
+    <div class="sec-head"><span class="pri">P2</span><h2>4 · Chips at 11px, below the 12px floor</h2></div>
+    <p class="why">Sent, Received, HXL and “1 change” are the direction words the room reads. The proposal makes them 12px with 1px more padding. That is the only change in this item.</p>
+    <div class="pair">
+      <div><div class="col-label"><span class="dot"></span>Today · 11px</div>
+        <div class="stage" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+          <span class="chip c11 sent">→ Sent</span><span class="chip c11 recv">← Received</span><span class="chip c11 sent">HXL</span><span class="chip c11 recv">1 change</span></div></div>
+      <div><div class="col-label after"><span class="dot"></span>Proposed · 12px</div>
+        <div class="stage" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+          <span class="chip c12 sent">→ Sent</span><span class="chip c12 recv">← Received</span><span class="chip c12 neutral">HXL</span><span class="chip c12 recv">1 change</span></div></div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section>
+    <div class="sec-head"><span class="pri">P2</span><h2>5 · Session bar: metadata wrapping and “Live” after days idle</h2></div>
+    <p class="why">Shown at 640px wide, about what the bar gets at a 1000px window. Today the separators start new lines and the IDs break mid-line. The proposal keeps each item whole, drops the “·” separators in favor of spacing, so a wrapped line never starts with one, and shortens the agent ID (full value on hover). When a session has been idle past the Agent API lifetime, the chip changes to “Likely expired.” The next message confirms either way, because the server already marks the session expired when the API rejects it.</p>
+    <div class="pair">
+      <div><div class="col-label"><span class="dot"></span>Today</div>
+        <div class="stage"><div class="bar narrow">
+          <div class="who"><div class="avatar">⌬</div><div style="min-width:0">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px"><span class="title">Cumulus Assistant</span><span class="status live"><i></i>live</span></div>
+            <div class="meta" style="max-width:300px"><span class="s">9 turns</span><span class="s">· idle 94h</span><span>· session 01a11d5f…</span><span>· agent 0Xxam000000tfCDCAY</span></div>
+          </div></div>
+          <div class="btns"><span class="btn">⏻ End session</span><span class="btn">↻ New session</span><span class="btn">▯ Wire</span></div>
+        </div></div></div>
+      <div><div class="col-label after"><span class="dot"></span>Proposed</div>
+        <div class="stage"><div class="bar narrow">
+          <div class="who"><div class="avatar">⌬</div><div style="min-width:0">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px"><span class="title">Cumulus Assistant</span><span class="status stale" title="Idle longer than the Agent API session lifetime. Your next message will confirm."><i></i>Likely expired</span></div>
+            <div class="meta fixed" style="max-width:300px"><span class="s">9 turns</span><span class="s">idle 94h</span><span>session 01a11d5f…</span><span title="0Xxam000000tfCDCAY">agent 0Xxam…CDCAY</span></div>
+          </div></div>
+          <div class="btns"><span class="btn">⏻ End session</span><span class="btn">↻ New session</span><span class="btn">▯ Wire</span></div>
+        </div>
+        <div class="note">“Likely expired” uses the warm recv family with a hollow ring, which matches the sidebar's “expired” ring. The idle threshold is the one open question (see chat).</div></div></div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

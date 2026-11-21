@@ -1,0 +1,22 @@
+{
+  "required" : [ "Input:MeetingNotes", "Input:InputData" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "Input:MeetingNotes" : {
+      "title" : "Meeting Notes",
+      "description" : "The meeting notes text from which to extract financial plans. Include plan names, types, statuses, priorities, and target dates. Include \"Today's Date: {current date}\" at the beginning of the meeting notes input.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "Input:InputData" : {
+      "title" : "Input Data",
+      "description" : "The JSON input that retrieves the picklist values. Default to value {\"picklistRequest\":[{\"objectName\":\"FinancialPlan\",\"fields\":[\"Status\",\"Type\"]}]}.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

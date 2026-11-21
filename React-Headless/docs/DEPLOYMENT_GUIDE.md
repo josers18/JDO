@@ -54,6 +54,32 @@ Assign the permission set to yourself if not already:
 sf org assign permset -n ReactRetail_Access -o jdo-oe0sdd
 ```
 
+## Atlas V2 apps
+
+Each persona's `build:atlas` script uses its existing React source and emits a separate V2 bundle. The V2 entry opens Atlas Today. Existing cockpit workspaces remain reachable from Today while their Atlas versions are migrated.
+
+Build from the project root:
+
+```bash
+npm --prefix force-app/main/default/uiBundles/ReactWealth run build:atlas
+```
+
+Deploy the five V2 components together:
+
+```bash
+sf project deploy start \
+  --source-dir force-app/main/default/uiBundles/ReactWealthV2 \
+  --source-dir force-app/main/default/applications/ReactWealthV2.app-meta.xml \
+  --source-dir force-app/main/default/pages/ReactWealthV2Launcher.page \
+  --source-dir force-app/main/default/tabs/ReactWealthV2App.tab-meta.xml \
+  --source-dir force-app/main/default/permissionsets/ReactWealthV2_Access.permissionset-meta.xml \
+  -o jdo-oe0sdd --json
+```
+
+Substitute `Retail` or `Commercial` for `Wealth` to build and deploy that persona. Assign the corresponding V2 access set to pilot users. Their existing CRM, Data 360, Apex and Agentforce permissions still determine the data and actions they can access. Use the V2 Visualforce launcher tile or append `V2` to the existing App Domain URL. To withdraw pilot access, remove the corresponding V2 assignment.
+
+The Today pilot reads open tasks due through today, open opportunities and open CRM cases. Task and opportunity totals are scoped to the selected record owner. Case totals use the linked Account's owner. Wealth Today also shows upcoming provider reviews, selected outside-platform positions, and weekly trade executions from the strictly scoped book. Source freshness describes the org's data sources and includes the ServiceNow sync check. Before granting wider access, verify View As, empty and restricted books, source errors, exact record links and the original apps with the intended user roles.
+
 ## Where the app actually renders
 
 **Serving URL (use this):**
