@@ -11,7 +11,7 @@ const holdSeconds = (actions) => actions.reduce((n, a) => n + (a.type === "pause
 
 export const WORDS_PER_SECOND = 2.5;
 /** Named things `point` can aim at (record.mjs maps each to an element). */
-export const POINT_TARGETS = ["panel", "summary", "tasks", "email", "gaps", "approve", "status", "notes", "transcript", "kyc"];
+export const POINT_TARGETS = ["panel", "summary", "tasks", "email", "gaps", "compliance", "approve", "status", "notes", "transcript", "kyc"];
 /** `<scope>:<phrase>` targets ring the newest visible element (or phrase) with that text, inside the scope. */
 export const POINT_SCOPES = ["text", "panel", "notes"];
 /** Air after a voice clip before the next segment starts. */

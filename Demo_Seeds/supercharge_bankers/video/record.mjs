@@ -14,7 +14,7 @@ import { HELD, applyMeasuredTiming, applyVoiceTiming, parseTalkTrack, toSrt } fr
 const ORG = "jdo-oe0sdd";
 const HERO = "001am00002A9jm4AAB"; // Rodriguez Industries
 const APP_URL = "https://storm-16a17dc388fbe6--c.demo.my.salesforce.app";
-const CLIENT_PATH = `/app/c__ReactCommercial/client/${HERO}`;
+const CLIENT_PATH = `/app/c__ReactCommercialV2/client/${HERO}?tab=tools`;
 
 // The layout the viewer sees is 2400x1350 CSS px (so long replies and the whole inspector fit); it is
 // rendered with CSS zoom into a 3840x2160 window so every frame is captured sharp at 4K.
@@ -382,19 +382,20 @@ async function click(page, loc) {
 }
 
 // Panels have no ids, so tagPanels() marks them by their header title (re-run after each screen change).
-const PANELS = { "After the call": "panel", "Meeting Notes": "notes", "KYC Summary": "kyc" };
+const PANELS = { "After the call": "panel", "Recorded in Salesforce": "notes" };
 const SCOPES = { text: null, panel: '[data-rec="panel"]', notes: '[data-rec="notes"]' };
 const NAMED = {
   panel: '[data-rec="panel"]',
   summary: 'textarea[aria-label="Call summary"]',
-  tasks: 'div:has(> div > input[aria-label="Task 1"])',
-  email: 'div:has(> textarea[aria-label="Email body"])',
-  gaps: 'textarea[aria-label="KYC gaps"]',
-  approve: '[data-rec="panel"] button[style*="wp-accent"]',
-  status: '[data-rec="panel"] [role="status"]',
+  tasks: '[role="group"][aria-label="Follow-up tasks"]',
+  email: '[role="group"][aria-label="Client email"]',
+  gaps: '[role="group"][aria-label="KYC gaps"]',
+  compliance: '[data-rec="compliance"]',
+  approve: '[data-rec="panel"] .ca-aftercall-actions button.primary',
+  status: '[data-rec="panel"] .ca-aftercall-ok, [data-rec="panel"] .ca-aftercall-error',
   notes: '[data-rec="notes"]',
   transcript: '[data-rec="notes"]',
-  kyc: '[data-rec="kyc"]',
+  kyc: '[data-rec="notes"]',
 };
 
 const tagPanels = (page) =>
@@ -539,15 +540,15 @@ async function login(page) {
   await page.waitForURL(/lightning\.force\.com\/lightning/, { timeout: LOAD_TIMEOUT_MS });
   await page.goto(APP_URL + CLIENT_PATH, { waitUntil: "domcontentloaded" });
   await page.waitForURL(/salesforce\.app\/app\/c__ReactCommercial/, { timeout: LOAD_TIMEOUT_MS });
+  // The story is Allen Carter's book. The cockpit's "View as" choice lives in sessionStorage, so it survives the reload in S08.
+  const allen = page.locator("option", { hasText: "Allen Carter" }).first();
+  await allen.waitFor({ state: "attached", timeout: LOAD_TIMEOUT_MS });
+  await page.locator("select").filter({ has: allen }).first().selectOption({ label: await allen.innerText() });
 }
 
-/** Client page → Notes & Tools → Notes, ready when the After the call panel offers "Draft follow-ups". */
+/** V2 company page on its Notes & tools tab (the URL deep-links it), ready when the After the call panel offers "Draft follow-ups". */
 async function openNotes(page, visible) {
-  const go = visible ? (l) => click(page, l) : (l) => l.click();
   if (visible) await page.goto(page.url(), { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Notes & Tools" }).waitFor({ timeout: LOAD_TIMEOUT_MS });
-  await go(page.getByRole("button", { name: "Notes & Tools" }));
-  await go(page.getByRole("button", { name: "Notes", exact: true }).first());
   await page.getByRole("button", { name: "Draft follow-ups" }).waitFor({ timeout: LOAD_TIMEOUT_MS });
   await tagPanels(page);
   await page.evaluate(() => scrollTo({ top: 0 }));
@@ -561,9 +562,9 @@ async function panelToTop(page) {
 
 async function draft(page) {
   await click(page, page.getByRole("button", { name: "Draft follow-ups" }));
-  await page.getByText(/^(Drafted by Agentforce|Composed from transcript \+ signals)$/).waitFor({ timeout: DRAFT_TIMEOUT_MS });
+  await page.getByText(/(Drafted by Agentforce|Composed from transcript \+ signals)$/).waitFor({ timeout: DRAFT_TIMEOUT_MS });
   await tagPanels(page);
-  console.log(`  draft: ${await page.getByText(/^(Drafted by Agentforce|Composed from transcript \+ signals)$/).innerText()}`);
+  console.log(`  draft: ${await page.getByText(/(Drafted by Agentforce|Composed from transcript \+ signals)$/).innerText()}`);
   await panelToTop(page);
 }
 
