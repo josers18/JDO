@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Panel, useAsyncData } from '@shared';
-import { fetchAfterCallContext, draftAfterCall, approveAfterCall, type AfterCallDraft } from './afterCall';
+import { fetchAfterCallContext, draftAfterCall, approveAfterCall, hasOwnershipChange, type AfterCallDraft } from './afterCall';
 
 const label: React.CSSProperties = { fontSize: '0.7rem', color: 'var(--wp-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 };
 const field: React.CSSProperties = { width: '100%', padding: '0.5rem 0.6rem', fontSize: '0.85rem', lineHeight: 1.5, background: 'var(--wp-surface-raised)', color: 'inherit', border: '1px solid var(--wp-border-strong)', borderRadius: 'var(--wp-radius-sm)', fontFamily: 'inherit' };
@@ -8,7 +8,7 @@ const btn: React.CSSProperties = { padding: '0.45rem 0.9rem', fontSize: '0.8rem'
 
 /**
  * "After the call" — drafts the post-call work from the latest transcript note,
- * Gong sentiment and WorldCheck, lets the banker edit it, and writes it all to
+ * call sentiment and compliance screening, lets the banker edit it, and writes it all to
  * CRM on one Approve.
  */
 export function AfterCallPanel({ accountId }: { accountId: string }) {
@@ -49,7 +49,7 @@ export function AfterCallPanel({ accountId }: { accountId: string }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.86rem', color: 'var(--wp-text-muted)', flex: 1, minWidth: 220 }}>
             {c.gong ? `Sentiment ${c.gong.sentiment.toLowerCase()} · ${c.gong.actionItems} action items · ` : ''}
-            KYC {c.kycStatus || '—'}{c.pep ? ' · PEP hit' : ''}
+            KYC {c.kycStatus || '—'}{hasOwnershipChange(c.note.body) ? ' · Ownership change' : ''}
           </span>
           <button type="button" style={btn} onClick={run} disabled={busy !== null}>{busy === 'draft' ? 'Drafting…' : 'Draft follow-ups'}</button>
         </div>

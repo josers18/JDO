@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@shared', () => ({ executeGraphQL: vi.fn(), queryDataCloud: vi.fn(), generateText: vi.fn(), crmWrite: vi.fn() }));
 
 import { crmWrite, executeGraphQL, queryDataCloud } from '@shared';
-import { approveAfterCall, composeAfterCall, fetchAfterCallContext, mergeAiDraft, parseActionItems, type AfterCallContext } from './afterCall';
+import { approveAfterCall, composeAfterCall, fetchAfterCallContext, mergeAiDraft, hasOwnershipChange, parseActionItems, type AfterCallContext } from './afterCall';
 
 // Seeded Supercharge Bankers transcript (Demo_Seeds/supercharge_bankers, 2026-11-15 call).
 const TRANSCRIPT = "Attendees: Allen Carter (Relationship Manager), Marisol Rodriguez (CEO), Daniel Okafor (CFO)\nDuration: 41 min\n\n---\n\nAllen Carter: Thanks for making time, both of you. I wanted to walk through the Treasury Services proposal we sent on the 3rd and hear where you've landed.\n\nDaniel Okafor: Honestly, we're not there yet. The pricing on the sweep and the per-item ACH fees came in higher than we expected. We've had another bank in this month and their number was lower.\n\nAllen Carter: Understood. Can you share which pieces were the gap?\n\nDaniel Okafor: Mainly the ACH per-item fee and the monthly account analysis charge. The liquidity sweep itself we like.\n\nMarisol Rodriguez: The bigger issue for me is timing. We're restructuring. As of October 30 we set up Rodriguez Holdings LLC as a parent, and Tomas Vega came in as a 30 percent owner. So whatever we sign, it has to be with the new structure.\n\nAllen Carter: That's helpful to know now. We'll need to update ownership on file before we can open anything under the new entity.\n\nDaniel Okafor: What do you need from us?\n\nAllen Carter: A beneficial ownership certification covering Mr. Vega, the formation documents for the holdings company, and an updated org chart. I'll send the list today.\n\nMarisol Rodriguez: Fine. And we'd like to see the sweep working before we commit. Can your team do a demo?\n\nAllen Carter: Yes. Let me set up a working session with our treasury specialist.\n\nDaniel Okafor: If you can get us revised pricing by the 22nd, we can take it to the board in December.\n\nAllen Carter: I'll have it to you by the 22nd. So, to recap: revised pricing by November 22, the ownership document list today, and a sweep demo before our next call.\n\nMarisol Rodriguez: And let's keep the January 4 check-in.\n\nAllen Carter: January 4 it is. Thank you both.\n\n---\n\nAction items (as spoken):\n1. Revised pricing on ACH per-item and account analysis fees — due 2026-11-22\n2. Send beneficial ownership / entity document checklist for Rodriguez Holdings LLC and Tomas Vega — due 2026-11-15\n3. Schedule liquidity sweep demo with treasury specialist — before 2027-01-04";
@@ -18,8 +18,15 @@ const ctx: AfterCallContext = {
     { id: '003b', name: 'Daniel Okafor', title: 'CFO', email: 'dokafor@rodriguezindustries.example' },
   ],
   gong: { sentiment: 'Negative', trend: 'Declining', topics: ['Pricing', 'Competitor'], actionItems: 3, nextCall: '2027-01-04', rm: 'Allen Carter' },
-  pep: true, sanctions: false, adverseMedia: false,
+  sanctions: false, adverseMedia: false,
 };
+
+describe('hasOwnershipChange', () => {
+  it('spots a new parent entity or owner in the transcript', () => {
+    expect(hasOwnershipChange(TRANSCRIPT)).toBe(true);
+    expect(hasOwnershipChange('Talked about pricing only.')).toBe(false);
+  });
+});
 
 describe('parseActionItems', () => {
   it('reads the three dated commitments under "Action items"', () => {
@@ -52,10 +59,9 @@ describe('composeAfterCall', () => {
     expect(d.email.body).toContain('Allen Carter');
     expect(d.email.subject).toBe('Follow-up: Treasury Services proposal review');
   });
-  it('lists the KYC gaps: expired review, PEP refresh, new entity and new owner', () => {
-    expect(d.kycGaps).toHaveLength(4);
+  it('lists the KYC gaps: expired review, new entity and new owner', () => {
+    expect(d.kycGaps).toHaveLength(3);
     expect(d.kycGaps.join(' ')).toMatch(/expired/);
-    expect(d.kycGaps.join(' ')).toMatch(/PEP/);
     expect(d.kycGaps.join(' ')).toContain('Rodriguez Holdings LLC');
     expect(d.kycGaps.join(' ')).toContain('Tomas Vega (30% owner)');
   });

@@ -8,13 +8,13 @@ const api = vi.hoisted(() => ({
   approveAfterCall: vi.fn(),
   fetchCallRecord: vi.fn(),
 }));
-vi.mock('../personas/customer/afterCall', () => api);
+vi.mock('../personas/customer/afterCall', () => ({ ...api, hasOwnershipChange: (b: string) => /owner/.test(b) }));
 
 import { AfterCall, CallRecord } from './AfterCall';
 
 const ctx = {
-  accountId: '001', accountName: 'Rodriguez Industries', kycStatus: 'Expired', pep: true, sanctions: false, adverseMedia: false,
-  note: { title: 'Treasury Services proposal review — call transcript', date: '2026-11-15', body: '' }, contacts: [],
+  accountId: '001', accountName: 'Rodriguez Industries', kycStatus: 'Expired', sanctions: false, adverseMedia: false,
+  note: { title: 'Treasury Services proposal review — call transcript', date: '2026-11-15', body: 'Tomas Vega came in as a 30 percent owner of Rodriguez Holdings LLC.' }, contacts: [],
   gong: { sentiment: 'Negative', trend: 'Declining', topics: [], actionItems: 3, nextCall: '2027-01-04', rm: 'Allen Carter' },
 };
 const draft = {
@@ -32,7 +32,7 @@ it('shows the call signals, drafts, approves and then reloads from CRM', async (
   expect(await screen.findByText('Sentiment negative')).toBeTruthy();
   expect(screen.getByText('3 action items')).toBeTruthy();
   expect(screen.getByText('KYC Expired')).toBeTruthy();
-  expect(screen.getByText('PEP hit')).toBeTruthy();
+  expect(screen.getByText('Ownership change')).toBeTruthy();
   await user.click(screen.getByRole('button', { name: 'Draft follow-ups' }));
   expect(await screen.findByLabelText('Call summary')).toHaveProperty('value', 'Pricing pushback.');
   await user.click(screen.getByRole('button', { name: 'Approve' }));

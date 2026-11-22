@@ -22,7 +22,6 @@ export interface AfterCallContext {
   note: { title: string; date: string; body: string } | null;
   contacts: { id: string; name: string; title: string; email: string }[];
   gong: { sentiment: string; trend: string; topics: string[]; actionItems: number; nextCall: string; rm: string } | null;
-  pep: boolean;
   sanctions: boolean;
   adverseMedia: boolean;
 }
@@ -69,7 +68,7 @@ export async function fetchAfterCallContext(accountId: string): Promise<AfterCal
   const [core, gongRows, amlRows] = await Promise.all([
     executeGraphQL<ContextShape>(contextQuery(acct)),
     rows(`SELECT overall_sentiment__c sent, sentiment_trend__c trend, key_topics_flags__c topics, action_items_count__c items, next_scheduled_call_date__c nxt, rm_name__c rm FROM BT_Gong_Call_Sentiment__dlm WHERE account_id__c = '${acct}' ORDER BY profile_week__c DESC LIMIT 1`),
-    rows(`SELECT pep_hit__c pep, sanctions_hit__c sanc, adverse_media_hit__c media FROM BT_WorldCheck_AML__dlm WHERE account_id__c = '${acct}' ORDER BY profile_date__c DESC LIMIT 1`),
+    rows(`SELECT sanctions_hit__c sanc, adverse_media_hit__c media FROM BT_WorldCheck_AML__dlm WHERE account_id__c = '${acct}' ORDER BY profile_date__c DESC LIMIT 1`),
   ]);
   const q = core.uiapi?.query;
   const a = q?.Account?.edges?.[0]?.node;
@@ -91,7 +90,7 @@ export async function fetchAfterCallContext(accountId: string): Promise<AfterCal
       topics: String(g.topics ?? '').split('|').map(s => s.trim()).filter(Boolean),
       actionItems: Number(g.items) || 0, nextCall: isoDay(g.nxt), rm: String(g.rm ?? ''),
     } : null,
-    pep: dcTrue(w?.pep), sanctions: dcTrue(w?.sanc), adverseMedia: dcTrue(w?.media),
+    sanctions: dcTrue(w?.sanc), adverseMedia: dcTrue(w?.media),
   };
 }
 
@@ -112,6 +111,9 @@ function ownershipChanges(body: string): { entity?: string; owner?: string; pct?
   return { entity, owner: own?.[1], pct: own?.[2] };
 }
 
+/** True when the client said the ownership structure changed on the call (new parent entity or owner). */
+export const hasOwnershipChange = (body: string) => { const o = ownershipChanges(body); return !!(o.entity || o.owner); };
+
 const longDate = (iso: string) => {
   const d = new Date(`${iso}T00:00:00Z`);
   return isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' });
@@ -130,9 +132,8 @@ export function composeAfterCall(ctx: AfterCallContext, today = localToday()): A
 
   const kycGaps: string[] = [];
   if (/expired|overdue|required/i.test(ctx.kycStatus)) kycGaps.push(`KYC review is ${ctx.kycStatus.toLowerCase()} — refresh before onboarding new services`);
-  if (ctx.pep) kycGaps.push('PEP hit on latest WorldCheck screening — refresh enhanced due diligence');
-  if (ctx.sanctions) kycGaps.push('Sanctions hit on latest WorldCheck screening — escalate to compliance');
-  if (ctx.adverseMedia) kycGaps.push('Adverse media on latest WorldCheck screening — review and document');
+  if (ctx.sanctions) kycGaps.push('Sanctions hit on latest compliance screening — escalate to compliance');
+  if (ctx.adverseMedia) kycGaps.push('Adverse media on latest compliance screening — review and document');
   if (own.entity) kycGaps.push(`New parent entity ${own.entity} — formation documents and updated org chart`);
   if (own.owner) kycGaps.push(`Beneficial ownership certification for ${own.owner}${own.pct ? ` (${own.pct}% owner)` : ''}`);
 
@@ -202,7 +203,7 @@ export async function draftAfterCall(ctx: AfterCallContext): Promise<AfterCallDr
     const r = await generateText({
       task: 'freeform',
       prompt: `You are a commercial banker's assistant. From the call transcript and signals, reply with ONLY a JSON object: {"summary": string (3-4 sentences), "tasks": [{"subject": string, "dueDate": "YYYY-MM-DD"}] (exactly 3, the commitments made on the call; never a date before today, ${localToday()} — use today instead, and any dates in the email must match the task due dates), "emailSubject": string, "emailBody": string (plain text recap to the client, signed by the RM), "kycGaps": string[] (documents or reviews still needed)}.`,
-      context: JSON.stringify({ client: ctx.accountName, kycStatus: ctx.kycStatus, worldCheck: { pep: ctx.pep, sanctions: ctx.sanctions, adverseMedia: ctx.adverseMedia }, gong: ctx.gong, transcript: ctx.note?.body ?? '', draft: base }),
+      context: JSON.stringify({ client: ctx.accountName, kycStatus: ctx.kycStatus, screening: { sanctions: ctx.sanctions, adverseMedia: ctx.adverseMedia }, callSentiment: ctx.gong, transcript: ctx.note?.body ?? '', draft: base }),
     });
     return r.source === 'model' && r.text ? mergeAiDraft(base, r.text) : base;
   } catch {

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { CalendarDays, Check, CircleCheck, FileText, ListChecks, Lock, Mail, Plus, ShieldAlert, ShieldCheck, Sparkles, TrendingDown, TriangleAlert, X } from 'lucide-react';
-import { approveAfterCall, draftAfterCall, fetchAfterCallContext, fetchCallRecord, type AfterCallDraft } from '../personas/customer/afterCall';
+import { CalendarDays, Check, CircleCheck, FileText, ListChecks, Lock, Mail, Plus, ShieldAlert, ShieldCheck, Sparkles, TrendingDown, TriangleAlert, UsersRound, X } from 'lucide-react';
+import { approveAfterCall, draftAfterCall, fetchAfterCallContext, fetchCallRecord, hasOwnershipChange, type AfterCallDraft } from '../personas/customer/afterCall';
 import { Badge, Button, Panel, Pending, useLive } from './controls';
 
 type Tone = 'neg' | 'warn' | 'pos' | 'plain';
@@ -20,7 +20,7 @@ const RECORD_CHANGED = 'cumulus:call-record-changed';
 
 /**
  * "After the call" for the V2 company page: drafts the post-call work from the latest transcript,
- * Gong sentiment and WorldCheck, lets the banker edit it, and writes it all to CRM on one Approve.
+ * call sentiment and compliance screening, lets the banker edit it, and writes it all to CRM on one Approve.
  */
 export function AfterCall({ accountId }: { accountId: string }) {
   const [version, setVersion] = useState(0);
@@ -95,13 +95,13 @@ export function AfterCall({ accountId }: { accountId: string }) {
           {c.gong && <Chip tone="plain" icon={<ListChecks size={18} aria-hidden />}>{c.gong.actionItems} action items</Chip>}
           <span className="ca-ac-group" data-rec="compliance">
             <Chip tone={kycBad ? 'warn' : 'pos'} icon={kycBad ? <ShieldAlert size={18} aria-hidden /> : <ShieldCheck size={18} aria-hidden />}>KYC {c.kycStatus || '—'}</Chip>
-            {c.pep && <Chip tone="neg" icon={<TriangleAlert size={18} aria-hidden />}>PEP hit</Chip>}
+            {hasOwnershipChange(c.note.body) && <Chip tone="warn" icon={<UsersRound size={18} aria-hidden />}>Ownership change</Chip>}
             {c.sanctions && <Chip tone="neg" icon={<TriangleAlert size={18} aria-hidden />}>Sanctions hit</Chip>}
             {c.adverseMedia && <Chip tone="warn" icon={<TriangleAlert size={18} aria-hidden />}>Adverse media</Chip>}
           </span>
         </div>
         <div className="ca-ac-cta">
-          <p>Agentforce reads the transcript with Gong and WorldCheck, then drafts the tasks, the client email and the KYC gaps for you to review.</p>
+          <p>Agentforce reads the call transcript and the client's signals, then drafts the tasks, the client email and the KYC gaps for you to review.</p>
           <Button style="primary" onClick={() => void run()}>{busy === 'draft' ? 'Drafting…' : <><Sparkles size={16} aria-hidden /> Draft follow-ups</>}</Button>
         </div>
       </div>
