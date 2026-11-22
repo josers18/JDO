@@ -1,7 +1,7 @@
-# DRAFT — Meeting_Note__c.Notes__c for the Nov 15 call (not yet written to JDO)
+# DRAFT — Meeting_Note__c.Notes__c for the Nov 20 call (not yet written to JDO)
 
 Title__c: Treasury Services proposal review — call transcript
-Date__c: 2026-11-15
+Date__c: 2026-11-20
 Attendees: Allen Carter (Relationship Manager), Marisol Rodriguez (CEO), Daniel Okafor (CFO)
 Duration: 41 min
 
@@ -21,15 +21,15 @@ Allen Carter: That's helpful to know now. We'll need to update ownership on file
 
 Daniel Okafor: What do you need from us?
 
-Allen Carter: A beneficial ownership certification covering Mr. Vega, the formation documents for the holdings company, and an updated org chart. I'll send the list today.
+Allen Carter: A beneficial ownership certification covering Mr. Vega, the formation documents for the holdings company, and an updated org chart. I'll send the list on Monday.
 
 Marisol Rodriguez: Fine. And we'd like to see the sweep working before we commit. Can your team do a demo?
 
 Allen Carter: Yes. Let me set up a working session with our treasury specialist.
 
-Daniel Okafor: If you can get us revised pricing by the 22nd, we can take it to the board in December.
+Daniel Okafor: If you can get us revised pricing by the 25th, we can take it to the board in December.
 
-Allen Carter: I'll have it to you by the 22nd. So, to recap: revised pricing by November 22, the ownership document list today, and a sweep demo before our next call.
+Allen Carter: I'll have it to you by the 25th. So, to recap: revised pricing by November 25, the ownership document list on Monday, and a sweep demo before our next call.
 
 Marisol Rodriguez: And let's keep the January 4 check-in.
 
@@ -38,6 +38,6 @@ Allen Carter: January 4 it is. Thank you both.
 ---
 
 Action items (as spoken):
-1. Revised pricing on ACH per-item and account analysis fees — due 2026-11-22
-2. Send beneficial ownership / entity document checklist for Rodriguez Holdings LLC and Tomas Vega — due 2026-11-15
+1. Revised pricing on ACH per-item and account analysis fees — due 2026-11-25
+2. Send beneficial ownership / entity document checklist for Rodriguez Holdings LLC and Tomas Vega — due 2026-11-23
 3. Schedule liquidity sweep demo with treasury specialist — before 2027-01-04

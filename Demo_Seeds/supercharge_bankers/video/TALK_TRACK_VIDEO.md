@@ -1,36 +1,39 @@
 # Video talk track: "After the call"
 
-*ReactCommercial V2 (org jdo-oe0sdd) · Rodriguez Industries · Supercharge Bankers demo. Run `./make-video.sh`; the voice-over is generated in ElevenLabs from the **Say** lines. Draft, 2026-11-19.*
+*Commercial Bankers Cockpit (org jdo-oe0sdd) · Rodriguez Industries · Supercharge Bankers demo. Run `./make-video.sh`; the voice-over is generated in ElevenLabs from the **Say** lines. Draft, 2026-11-19.*
 
 The recorder (`record.mjs`) logs in, opens the V2 company page on its **Notes & tools** tab before capture starts, and clears what the panel wrote (today's Tasks on the account, "Call summary" notes, KYC back to Expired) before and after every take.
 
 **Actions:** `draft` (clicks Draft follow-ups, waits for the draft), `approve` (clicks Approve, waits for "Saved …"), `reload` (reopens the Notes tab so the panel re-reads CRM), plus `slide`, `spot`, `point`, `card`, `pause`.
-**Targets:** `panel`, `summary`, `tasks`, `email`, `gaps`, `compliance`, `approve`, `status`, `notes`, `transcript`, `kyc`, or text: `panel:<text>`, `notes:<text>`, `text:<text>`.
+**Targets:** `panel`, `summary`, `tasks`, `email`, `gaps`, `compliance`, `approve`, `status`, `notes`, `transcript`, `kyc`, or text: `panel:<text>`, `notes:<text>`, `text:<text>`, `summary:<regex>` (underlines the matching sentence of the drafted call summary).
 
 ---
 
 ## S01 · Open
-- do: slide 12 Commercial banking · Rodriguez Industries | Forty-one minutes on the phone. *Then the paperwork.* | Allen Carter, relationship manager · Treasury Services proposal review, Nov 15 | Nov 15 = The call: pricing pushback, a new parent company ; *Now = Allen opens the client in ReactCommercial V2 ; One click = Summary, tasks, email, KYC | One transcript · every follow-up drafted · approved in one click
-- do: spot 6 panel -- After the call | The latest call, ready to wrap up | Reads the Nov 15 transcript ; Plus Gong sentiment and WorldCheck screening
+- do: slide 12 Commercial banking · Rodriguez Industries | Forty-one minutes on the phone. *Then the paperwork.* | Allen Carter, relationship manager · Treasury Services proposal review, Nov 20 | Nov 20 = The call: pricing pushback, a new parent company ; *Now = Allen opens the client in the Commercial Bankers Cockpit ; One click = Summary, tasks, email, KYC | One transcript · every follow-up drafted · approved in one click
+- do: spot 6 panel -- After the call | The latest call, ready to wrap up | Reads the Nov 20 transcript ; Plus call sentiment and compliance screening
 
-**Say:** Allen Carter is a commercial relationship manager. On November fifteenth he spent forty-one minutes on the phone with Rodriguez Industries, reviewing a Treasury Services proposal. Normally the next hour goes to notes, tasks and a recap email. Here, the client's page already has an After the call panel, built from the call transcript.
+**Say:** Allen Carter is a commercial relationship manager. On Friday, November twentieth, he spent forty-one minutes on the phone with Rodriguez Industries, reviewing a Treasury Services proposal. Normally the next hour goes to notes, tasks and a recap email. Here, the client's page already has an After the call panel, built from the call transcript.
 
 ## S02 · The signals
-- do: point 4 panel:Sentiment negative -- Gong: the call went badly
-- do: point 4 compliance -- KYC expired, and a PEP hit
+- do: point 4 panel:Sentiment negative -- Call sentiment: it went badly
+- do: point 4 compliance -- KYC expired, and the ownership changed
 
-**Say:** Before he does anything, the panel shows what matters. Gong scored the call negative, with three action items. Know Your Customer is expired, and the latest WorldCheck screening flagged a politically exposed person.
+**Say:** Before he does anything, the panel shows what matters. The call sentiment came back negative, with three action items. The know-your-customer review is expired, and the call surfaced a change in ownership.
 
 ## S03 · Draft
 - do: draft
-- do: spot 7 summary -- The call, summarized | Drafted from the transcript and signals | Pricing pushback against another bank ; New parent company and a new owner ; Next check-in January fourth
+- do: pause 3
+- do: point 3.8 summary:pric
+- do: point 4.2 summary:owner|parent|restructur
+- do: point 2.8 summary:check.?in|january
 
-**Say:** Allen clicks Draft follow-ups. Agentforce reads the transcript with the Gong and WorldCheck signals and writes the call summary: the client pushed back on pricing against another bank, they are restructuring under a new holding company with a new thirty percent owner, and the next check-in is January fourth.
+**Say:** Allen clicks Draft follow-ups. Agentforce reads the transcript along with the call sentiment and writes the call summary: the client pushed back on pricing against another bank, they are restructuring under a new holding company with a new thirty percent owner, and the next check-in is January fourth.
 
 ## S04 · The commitments
 - do: point 6 tasks -- Three commitments, with due dates
 
-**Say:** It turns the three commitments from the call into follow-up tasks with their due dates: revised pricing by November twenty-second, the ownership document checklist, and a liquidity sweep demo before the January call.
+**Say:** It turns the three commitments from the call into follow-up tasks with their due dates: revised pricing by November twenty-fifth, the ownership document checklist, and a liquidity sweep demo before the January call.
 
 ## S05 · The recap email
 - do: point 6 email -- A recap for the CFO, logged not sent
@@ -38,9 +41,9 @@ The recorder (`record.mjs`) logs in, opens the V2 company page on its **Notes & 
 **Say:** It drafts the recap email to Daniel Okafor, the chief financial officer, in Allen's voice. It lists what was agreed and the documents the bank needs. It's logged to the record, not sent, so Allen stays in control.
 
 ## S06 · What compliance needs
-- do: spot 7 gaps -- The KYC gaps | Caught from what the client said | A new parent entity: formation documents ; Beneficial ownership for the new owner ; PEP hit: refresh due diligence
+- do: spot 7 gaps -- The KYC gaps | Caught from what the client said | KYC review expired: refresh it ; A new parent entity: formation documents ; Beneficial ownership for the new owner
 
-**Say:** And it catches what compliance needs. The client mentioned the new parent company almost in passing. The panel turns that into KYC gaps: formation documents, a beneficial ownership certification for the new owner, and refreshed due diligence for the PEP hit.
+**Say:** And it catches what compliance needs. The client mentioned the new parent company almost in passing. The panel turns that into KYC gaps: the expired review, formation documents for the new parent, and a beneficial ownership certification for the new owner.
 
 ## S07 · Approve
 - do: point 3 approve -- Everything is editable; one click saves it
@@ -58,5 +61,7 @@ The recorder (`record.mjs`) logs in, opens the V2 company page on its **Notes & 
 
 ## S09 · Close
 - do: card From call to CRM in one click
+- do: pause 4.5
+- do: card Designed around the banker. Context from Data 360. Governed by Salesforce.
 
-**Say:** From a forty-one minute call to a clean record, in one click. That's the banker's hour back.
+**Say:** From a forty-one minute call to a clean record, in one click. Because the cockpit is headless, the front end is designed around the banker, with Data Three Sixty serving the context they need, while the security, governance and agents stay in Salesforce, so nothing is compromised. That's the banker's hour back.

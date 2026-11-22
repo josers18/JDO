@@ -383,7 +383,7 @@ async function click(page, loc) {
 
 // Panels have no ids, so tagPanels() marks them by their header title (re-run after each screen change).
 const PANELS = { "After the call": "panel", "Recorded in Salesforce": "notes" };
-const SCOPES = { text: null, panel: '[data-rec="panel"]', notes: '[data-rec="notes"]' };
+const SCOPES = { summary: null, text: null, panel: '[data-rec="panel"]', notes: '[data-rec="notes"]' };
 const NAMED = {
   panel: '[data-rec="panel"]',
   summary: 'textarea[aria-label="Call summary"]',
@@ -425,7 +425,30 @@ async function resolveTargets(page, targets) {
         if (named[target]) t = [...document.querySelectorAll(named[target])].filter((e) => e.getBoundingClientRect().height > 0).at(-1) ?? null;
         else {
           const i = target.indexOf(":");
-          t = findPhrase([scopes[target.slice(0, i)], target.slice(i + 1)]);
+          if (target.slice(0, i) === "summary") {
+            // The summary is a <textarea>, which has no text-node rects: mirror its text in an invisible div on top, range the matching sentence.
+            const ta = document.querySelector('textarea[aria-label="Call summary"]');
+            if (ta) {
+              const host = ta.parentElement;
+              host.style.position = "relative";
+              let m = document.getElementById("rec-mirror");
+              if (!m) { m = document.createElement("div"); m.id = "rec-mirror"; host.appendChild(m); }
+              const cs = getComputedStyle(ta);
+              Object.assign(m.style, { position: "absolute", left: ta.offsetLeft + "px", top: ta.offsetTop + "px", width: ta.offsetWidth + "px", height: ta.offsetHeight + "px", boxSizing: "border-box", padding: cs.padding, border: cs.border, font: cs.font, lineHeight: cs.lineHeight, letterSpacing: cs.letterSpacing, whiteSpace: "pre-wrap", overflowWrap: "break-word", color: "transparent", pointerEvents: "none", overflow: "hidden" });
+              m.textContent = ta.value;
+              const re = new RegExp(target.slice(i + 1), "i");
+              for (const sm of ta.value.matchAll(/[^.!?]+[.!?]+/g)) {
+                if (re.test(sm[0])) {
+                  const lead = sm[0].length - sm[0].trimStart().length;
+                  const r = document.createRange();
+                  r.setStart(m.firstChild, sm.index + lead);
+                  r.setEnd(m.firstChild, sm.index + sm[0].length);
+                  t = r;
+                  break;
+                }
+              }
+            }
+          } else t = findPhrase([scopes[target.slice(0, i)], target.slice(i + 1)]);
         }
         if (!t) { missing.push(target); continue; }
         if (!moved) moved = revealIfHidden(t instanceof Range ? t.startContainer.parentElement : t);
