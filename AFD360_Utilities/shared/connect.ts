@@ -119,6 +119,17 @@ export function editConnectParameter(
   value: string,
 ) {
   const next = { ...values, [name]: value };
+  if (values[name] !== value) {
+    if (op.path.startsWith("/ssot/data-graphs/data/") && ["dataGraphEntityName", "dataspace"].includes(name)) {
+      delete next.lookupKeys;
+      delete next.id;
+    }
+    if (
+      op.path.startsWith("/ssot/profile/{dataModelName}/{id}") &&
+      ["dataModelName", "dataspace", "searchKey"].includes(name)
+    )
+      delete next.id;
+  }
   if (
     name !== "offset" &&
     value !== values[name] &&

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { ArrowRight, Asterisk, BookOpen, CircleDashed, GitBranch, RotateCcw, Search, Send } from "lucide-react";
 import {
@@ -15,8 +15,10 @@ import {
 import type { OrgSummary, OrgsResponse, WireEntry } from "../../../shared/types";
 import { maskBody, maskUrl } from "../../../shared/redaction";
 import { WirePanel } from "../chat/WirePanel";
+import { connectLookup, lookupParameters } from "../../../shared/connectLookup";
+import { CustomerRecordPicker } from "./CustomerRecordPicker";
 import { ResourcePicker } from "./ResourcePicker";
-import { callConnect, collectionFor } from "./resourceOptions";
+import { callConnect } from "./resourceOptions";
 import { ConnectResult } from "./ConnectResult";
 
 const docs = "https://developer.salesforce.com/docs/data/connectapi/references/spec";
@@ -278,17 +280,52 @@ function OperationForm({
     return entries.length ? Object.fromEntries(entries) : undefined;
   };
   const bodyFields = op.body?.fields ?? [];
-  const editField = (f: ConnectField) => (
-    <Field
-      key={f.name}
-      field={f}
-      value={fields[f.name] ?? ""}
-      change={(v) => {
-        setSample("");
-        setFields((old) => ({ ...old, [f.name]: v }));
-      }}
-    />
-  );
+  function renderField(field: ConnectField & { location?: string }, value: string, change: (v: string) => void) {
+    const graph = op.path.startsWith("/ssot/data-graphs/data/");
+    const records =
+      field.location &&
+      ((graph && ["lookupKeys", "id"].includes(field.name)) ||
+        (op.path.startsWith("/ssot/profile/{dataModelName}/{id}") && field.name === "id"));
+    const source = !records && org && connectLookup(op, field, operations, version);
+    const params = source && lookupParameters(source, { ...fields, ...values });
+    return (
+      <div key={field.name}>
+        <Field field={field} value={value} change={change} />
+        {org && records && (
+          <CustomerRecordPicker
+            key={JSON.stringify([org.id, values.dataspace, graph ? values.dataGraphEntityName : values.dataModelName])}
+            orgId={org.id}
+            dataspace={values.dataspace || ""}
+            graph={graph}
+            objectName={(graph ? values.dataGraphEntityName : values.dataModelName) || ""}
+            searchKey={graph ? undefined : values.searchKey}
+            lookup={field.name === "lookupKeys"}
+            select={change}
+            append={append}
+          />
+        )}
+        {org && source && params && (
+          <ResourcePicker
+            key={JSON.stringify([version, params])}
+            field={field}
+            source={source}
+            params={params}
+            value={value}
+            orgId={org.id}
+            version={version}
+            maxVersion={maxVersion}
+            select={change}
+            append={append}
+          />
+        )}
+      </div>
+    );
+  }
+  const editField = (f: ConnectField) =>
+    renderField(f, fields[f.name] ?? "", (v) => {
+      setSample("");
+      setFields((old) => ({ ...old, [f.name]: v }));
+    });
   const requestBody = () => (useJson ? (raw.trim() ? JSON.parse(raw) : undefined) : guidedBody());
   function toggleEditor() {
     try {
@@ -400,28 +437,11 @@ function OperationForm({
             <InputGroups
               fields={op.parameters}
               values={values}
-              render={(p) => {
-                const source = p.location === "path" && collectionFor(op, p.name, operations);
-                const change = (v: string) => setValues((old) => editConnectParameter(op, old, p.name, v));
-                return (
-                  <div key={p.name}>
-                    <Field field={p} value={values[p.name] ?? ""} change={change} />
-                    {source && org && source.since <= version && (
-                      <ResourcePicker
-                        key={JSON.stringify([version, ...source.parameters.map((f) => values[f.name])])}
-                        parameter={p.name}
-                        source={source}
-                        orgId={org.id}
-                        version={version}
-                        maxVersion={maxVersion}
-                        values={values}
-                        select={change}
-                        append={append}
-                      />
-                    )}
-                  </div>
-                );
-              }}
+              render={(p) =>
+                renderField(p, values[p.name] ?? "", (v) =>
+                  setValues((old) => editConnectParameter(op, old, p.name, v)),
+                )
+              }
             />
           </section>
         )}
@@ -535,7 +555,7 @@ function OperationForm({
             lastInput && op.method === "GET" && result.status === 200 && Number(lastInput.values.offset) > 0
               ? () => {
                   const values = { ...lastInput.values, offset: "0" };
-                  setValues(draft => draft.offset === lastInput.values.offset ? { ...draft, offset: "" } : draft);
+                  setValues((draft) => (draft.offset === lastInput.values.offset ? { ...draft, offset: "" } : draft));
                   void send({ ...lastInput, values }, false);
                 }
               : undefined
@@ -561,6 +581,7 @@ export function ConnectModule({ orgs }: { orgs: OrgsResponse }) {
     select(key);
   }
   const [wire, setWire] = useState<WireEntry[]>([]);
+  const appendWire = useCallback((entries: WireEntry[]) => setWire((old) => [...old, ...entries]), []);
   const org = orgs.orgs.find((o) => o.id === orgs.activeOrgId);
   useEffect(() => {
     const controller = new AbortController();
@@ -677,7 +698,7 @@ export function ConnectModule({ orgs }: { orgs: OrgsResponse }) {
               ? { key: childKey, open: (id) => setSelected(operationKey(child), { [childKey]: id }) }
               : undefined
           }
-          append={(entries) => setWire((old) => [...old, ...entries])}
+          append={appendWire}
         />
       </div>
       <aside

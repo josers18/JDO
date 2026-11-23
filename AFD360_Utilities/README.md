@@ -11,8 +11,9 @@ Local test bench for Agentforce and Data 360 APIs, built for SEs to demo live to
   in a sandbox.
 - **API (Data 360 Connect REST).** Explore the 36 families in the [Salesforce v68.0 reference](https://developer.salesforce.com/docs/data/connectapi/references/spec).
   Pick a family or search all 428 operations by name, verb, or path. Each operation has its own parameter and
-  payload form. Choose existing resource identifiers from the org where a collection endpoint is available,
-  load a Salesforce example, edit fields or JSON, and inspect the response beside Wire. Switch between **Readable**
+  payload form. Use **Choose from org** for supported path, query, and request body inputs, including
+  data spaces, model and lake objects, segments, and configured models. Load more choices when a lookup returns
+  a continuation URL. You can also load a Salesforce example, edit fields or JSON, and inspect the response beside Wire. Switch between **Readable**
   and **Raw JSON** for the full response or an inspected record. List responses
   support record inspection and next-page requests when Salesforce returns a matching continuation URL.
   Required and conditional inputs appear first. Expand optional inputs for additional filters and body fields.

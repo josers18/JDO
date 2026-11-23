@@ -1,3 +1,4 @@
+import { decodeGraphBlob } from "../shared/graphBlob.ts";
 import { getOrgCredentials } from "./orgStore.ts";
 import { SfError, restUrl, sfJson } from "./salesforce.ts";
 import type { WireSink } from "./wire.ts";
@@ -138,6 +139,19 @@ async function listOrEmpty<T>(orgId: string, label: string, path: string, pick: 
 const metadata = (orgId: string, entityType: string, dataspace: string, wire?: WireSink) =>
   listOrEmpty<MetaEntity>(orgId, `Metadata (${entityType})`, withQuery("/ssot/metadata", `entityType=${entityType}`, scope(dataspace)), (r) => r?.metadata, wire);
 
+export async function recordObject(orgId: string, dataspace: string, name: string, graph: boolean, wire: WireSink) {
+  const { myDomain } = getOrgCredentials(orgId);
+  const read = <T>(path: string, params: Record<string, string>) => sfJson<T>({
+    orgId, method: "GET", label: "Record lookup metadata",
+    url: restUrl(myDomain, withQuery(path, new URLSearchParams(params).toString(), scope(dataspace))), wire,
+  });
+  const graphs = graph ? (await read<{dataGraphMetadata: DataGraphMeta[]}>("/ssot/data-graphs/metadata", {dataGraphEntityName: name})).dataGraphMetadata.filter(g => g.developerName === name) : [];
+  const entity = graph ? graphs[0]?.primaryObjectName ?? graphs[0]?.dgObject?.developerName : name;
+  if (!entity) return null;
+  const response = await read<{metadata: MetaEntity[]}>("/ssot/metadata", {entityType: "DataModelObject", entityName: entity});
+  return buildCatalog(response.metadata ?? [], [], [], graphs).find(o => o.name === name && (graph ? o.type === "DG" : o.category === "Profile")) ?? null;
+}
+
 export async function catalog(orgId: string, dataspace: string, refresh: boolean, wire?: WireSink): Promise<QueryCatalog> {
   const key = `${orgId}|${dataspace}`;
   const hit = catalogs.get(key);
@@ -270,12 +284,9 @@ const API_LABELS: Record<QueryApiCall["kind"], string> = {
 function unblob(record: unknown): Record<string, unknown> {
   const r = (record && typeof record === "object" ? record : { value: record }) as Record<string, unknown>;
   if (typeof r.json_blob__c !== "string") return r;
-  const text = r.json_blob__c.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { json_blob__c: text };
-  }
+  const decoded = decodeGraphBlob(r.json_blob__c);
+  if (decoded && typeof decoded === "object" && !Array.isArray(decoded)) return decoded as Record<string, unknown>;
+  return { ...r, json_blob__c: decoded };
 }
 
 const typeOf = (v: unknown) =>

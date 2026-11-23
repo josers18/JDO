@@ -1,4 +1,4 @@
-import { resourceId } from "../web/src/connect/resourceOptions";
+import { connectLookup, lookupOptions, lookupParameters, resourceId } from "../shared/connectLookup";
 import { describe, it, expect } from "vitest";
 import snapshot from "../server/connect-catalog.json";
 import {
@@ -113,4 +113,36 @@ describe("Connect API catalog", () => {
     ).not.toContain(secret);
     expect(maskHeaders({ "set-cookie": secret })).toEqual({ "set-cookie": "••••" });
   });
+});
+
+describe("org lookup choices", () => {
+  it("discovers ML filters without applying the current filter or page to discovery", () => {
+    const op = catalog.operations.find((o) => operationKey(o) === "GET /ssot/machine-learning/configured-models")!;
+    const field = op.parameters.find((p) => p.name === "modelType")!;
+    const source = connectLookup(op, field, catalog.operations, 67)!;
+    expect(lookupParameters(source, { modelType: "Predictive", offset: "75" })).toEqual({});
+    expect([
+      ...lookupOptions(source, field, {
+        configuredModels: [{ modelType: "Predictive" }, { modelType: "invalid" }],
+        other: [{ modelType: "Generative" }],
+      }),
+    ]).toEqual([["Predictive", "Predictive"]]);
+  });
+  it("selects data space names for write bodies through a GET", () => {
+    const op = catalog.operations.find((o) => operationKey(o) === "POST /ssot/activation-targets")!;
+    const field = op.body!.fields.find((f) => f.name === "dataSpaceName")!;
+    const source = connectLookup(op, field, catalog.operations, 67)!;
+    expect(operationKey(source.operation)).toBe("GET /ssot/data-spaces");
+    expect([
+      ...lookupOptions(source, field, { dataSpaces: [{ id: "123", name: "default", label: "Default space" }] }),
+    ]).toEqual([["default", "Default space"]]);
+  });
+});
+
+it("clears a selected record when its data graph or space changes", () => {
+  const op = catalog.operations.find((o) => o.path === "/ssot/data-graphs/data/{dataGraphEntityName}")!;
+  const values = { dataGraphEntityName: "Accounts", lookupKeys: "[ssot__Id__c=001]" };
+  expect(editConnectParameter(op, values, "dataspace", "retail").lookupKeys).toBeUndefined();
+  expect(editConnectParameter(op, values, "dataGraphEntityName", "Individuals").lookupKeys).toBeUndefined();
+  expect(editConnectParameter(op, values, "noCache", "true").lookupKeys).toBe(values.lookupKeys);
 });

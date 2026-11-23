@@ -1,6 +1,7 @@
+import { decodeGraphBlob } from "../../../shared/graphBlob";
 import { useState } from "react";
 import { ResponseValue, ViewSwitch, fieldLabel } from "./ResponseValue";
-import { resourceId } from "./resourceOptions";
+import { resourceId } from "../../../shared/connectLookup";
 import type { WireEntry } from "../../../shared/types";
 
 type Row = Record<string, unknown>;
@@ -20,7 +21,11 @@ const familyColumns: Record<string, string[]> = {
   Connections: ["label", "name", "connectorType", "status"],
 };
 
-function cellText(value: unknown) {
+function cellText(value: unknown, key: string) {
+  if (key === "json_blob__c" && typeof value === "string") {
+    value = decodeGraphBlob(value);
+    if (record(value) && typeof value.ssot__Name__c === "string") return value.ssot__Name__c;
+  }
   if (value == null) return "—";
   if (typeof value === "boolean") return value ? "Yes" : "No";
   if (Array.isArray(value)) return `${value.length} items`;
@@ -152,11 +157,14 @@ export function ConnectResult({
                 <tbody>
                   {records.slice(0, limit).map((row, i) => (
                     <tr key={i} className="border-b border-line">
-                      {columns.map((c) => (
-                        <td key={c} className="max-w-48 truncate px-2 py-2" title={cellText(row[c])}>
-                          {cellText(row[c])}
-                        </td>
-                      ))}
+                      {columns.map((c) => {
+                        const text = cellText(row[c], c);
+                        return (
+                          <td key={c} className="max-w-48 truncate px-2 py-2" title={text}>
+                            {text}
+                          </td>
+                        );
+                      })}
                       <td>
                         <button
                           className="rounded px-2 py-1 font-medium underline"

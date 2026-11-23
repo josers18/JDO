@@ -1,7 +1,10 @@
+import { decodeGraphBlob } from "../../../shared/graphBlob";
 import { useState } from "react";
 
 export const fieldLabel = (key: string) =>
-  key
+  (key === "json_blob__c" ? "Graph record" : key)
+    .replace(/^ssot__/, "")
+    .replace(/__(?:dlm|c)$/, "")
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/([A-Z])([A-Z][a-z])/g, "$1 $2")
     .replace(/_/g, " ")
@@ -72,6 +75,8 @@ export function ResponseValue({ value }: { value: unknown }) {
       <span className="text-sm text-ink-3">Empty list</span>
     );
   const fields = Object.entries(value);
+  if (fields.length === 1 && fields[0][0] === "json_blob__c" && typeof fields[0][1] === "string")
+    return <ResponseValue value={decodeGraphBlob(fields[0][1])} />;
   if (!fields.length) return <span className="text-sm text-ink-3">Empty object</span>;
   return (
     <dl className="divide-y divide-line text-sm">
@@ -81,7 +86,13 @@ export function ResponseValue({ value }: { value: unknown }) {
             {fieldLabel(k)}
           </dt>
           <dd className="min-w-0 break-words">
-            {v && typeof v === "object" ? <Nested value={v} /> : <ResponseValue value={v} />}
+            {k === "json_blob__c" && typeof v === "string" ? (
+              <ResponseValue value={decodeGraphBlob(v)} />
+            ) : v && typeof v === "object" ? (
+              <Nested value={v} />
+            ) : (
+              <ResponseValue value={v} />
+            )}
           </dd>
         </div>
       ))}

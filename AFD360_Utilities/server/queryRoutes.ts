@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { getOrgCredentials } from "./orgStore.ts";
 import { restUrl, sfJson, SfError } from "./salesforce.ts";
-import { apiRead, cancel, catalog, dataSpaces, queryError, rows, status, submit } from "./query.ts";
+import { apiRead, cancel, catalog, recordObject, dataSpaces, queryError, rows, status, submit } from "./query.ts";
 import type { WireSink } from "./wire.ts";
 import type { QueryApiCall, QueryRunOptions, WireEntry } from "../shared/types.ts";
 
@@ -46,6 +46,11 @@ queryApi.post(
   "/catalog",
   route(async ({ orgId, dataspace, refresh }, wire) => ({ catalog: await catalog(orgId, space(dataspace), Boolean(refresh), wire) })),
 );
+
+queryApi.post("/record-object", route(async ({orgId, dataspace, name, graph}, wire) => {
+  if (typeof name !== "string" || !name) throw Error("Choose a graph or profile DMO.");
+  return { object: await recordObject(orgId, space(dataspace), name, graph === true, wire) };
+}));
 
 queryApi.post(
   "/run",
