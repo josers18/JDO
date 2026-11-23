@@ -119,6 +119,23 @@ describe('fetchAfterCallContext', () => {
     expect(vi.mocked(executeGraphQL).mock.calls[0][0]).not.toContain('Meeting_Note__c');
     expect(c?.note).toEqual({ title: 'Treasury Services proposal review — call transcript', date: '2026-11-15', body: 'Transcript body' });
   });
+  it('prefers the call transcript over a newer generated story note', async () => {
+    vi.mocked(queryDataCloud).mockResolvedValue({ rows: [] } as never);
+    vi.mocked(executeGraphQL).mockResolvedValue(core({ Id: '001' }) as never);
+    vi.mocked(fetchNotes).mockResolvedValue([
+      { id: 's1', title: 'Quarterly relationship review', date: '2026-11-23', body: 'Story' },
+      { id: 'n2', title: 'Treasury Services proposal review — call transcript', date: '2026-11-15', body: 'Transcript body' },
+    ]);
+    expect((await fetchAfterCallContext('001'))?.note?.body).toBe('Transcript body');
+  });
+  it('falls back to the newest non-summary note when no transcript exists', async () => {
+    vi.mocked(queryDataCloud).mockResolvedValue({ rows: [] } as never);
+    vi.mocked(executeGraphQL).mockResolvedValue(core({ Id: '001' }) as never);
+    vi.mocked(fetchNotes).mockResolvedValue([
+      { id: 's1', title: 'Quarterly relationship review', date: '2026-11-23', body: 'Story' },
+    ]);
+    expect((await fetchAfterCallContext('001'))?.note?.body).toBe('Story');
+  });
   it('has no note when only summaries exist', async () => {
     vi.mocked(executeGraphQL).mockResolvedValue(core({ Id: '001' }) as never);
     vi.mocked(fetchNotes).mockResolvedValue([{ id: 'n3', title: 'Call summary - X', date: '2026-11-21', body: 'S' }]);

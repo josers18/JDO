@@ -72,7 +72,9 @@ export async function fetchAfterCallContext(accountId: string): Promise<AfterCal
   const a = q?.Account?.edges?.[0]?.node;
   if (!a) return null;
   // The panel's own "Call summary — …" notes are newer than the call; always draft from the call itself.
-  const n = notes.find(note => !/^call summary\s*[—–-]/i.test(note.title));
+  // Generated relationship stories are also newer, so prefer a note titled "… call transcript" over the newest note.
+  const drafts = notes.filter(note => !/^call summary\s*[—–-]/i.test(note.title));
+  const n = drafts.find(note => /call transcript$/i.test(note.title)) ?? drafts[0];
   const g = gongRows[0];
   const w = amlRows[0];
   return {
