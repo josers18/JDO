@@ -84,6 +84,76 @@ private class StoryFeedTest {
         System.assertEquals(3, [SELECT COUNT() FROM InteractionSummary WHERE AccountId = :a.Id]);
         System.assertEquals(1, [SELECT COUNT() FROM ContentDocument WHERE Id = :manualDoc]);
         System.assertEquals(4, notesOn(a.Id)); // 3 generated + the manual note
+        for (Account other : [SELECT Id FROM Account WHERE Id != :a.Id]) {
+            System.assertEquals(3, [SELECT COUNT() FROM Interaction WHERE AccountId = :other.Id]);
+            System.assertEquals(3, [SELECT COUNT() FROM InteractionSummary WHERE AccountId = :other.Id]);
+            System.assertEquals(3, notesOn(other.Id));
+        }
+    }
+
+    @IsTest
+    static void repairsIncompleteRecentStem() {
+        Account a = [SELECT Id FROM Account WHERE Name = 'Story A'];
+        Date yesterday = D1.addDays(-1);
+        String s = StoryFeed.stem(a.Id, yesterday, 1);
+        // Seed a partial story from a failed run: Interaction + linked note, no summary.
+        Interaction i = new Interaction(External_ID__c = s, Name = 'Partial', AccountId = a.Id,
+            InteractionType = 'Phone Call', Description = 'partial');
+        insert i;
+        StoryTemplates.Story st = new StoryTemplates.Story();
+        st.title = 'Partial';
+        st.transcript = 'partial';
+        ContentVersion cv = StoryFeed.note(s, st);
+        insert cv;
+        Id docId = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id].ContentDocumentId;
+        insert new ContentDocumentLink(ContentDocumentId = docId, LinkedEntityId = a.Id, ShareType = 'I', Visibility = 'AllUsers');
+
+        Test.startTest();
+        runOn(D1);
+        Test.stopTest();
+
+        System.assertEquals(1, [SELECT COUNT() FROM Interaction WHERE AccountId = :a.Id]);
+        InteractionSummary sum = [SELECT InteractionId, External_ID__c FROM InteractionSummary WHERE AccountId = :a.Id];
+        System.assertEquals(s, sum.External_ID__c);
+        System.assertEquals(i.Id, sum.InteractionId);
+        System.assertEquals(1, [SELECT COUNT() FROM ContentVersion WHERE External_ID__c LIKE :('story:' + a.Id + ':%')]);
+        System.assertEquals(1, notesOn(a.Id));
+        String today = StoryFeed.stem(a.Id, D1, 1);
+        System.assertEquals(0, [SELECT COUNT() FROM Interaction WHERE External_ID__c = :today]);
+    }
+
+    @IsTest
+    static void noSignalsGetsRoutineCheckIn() {
+        for (Account a : [SELECT FinServ__KYCStatus__c, Tier__c FROM Account]) {
+            System.assertEquals(null, a.FinServ__KYCStatus__c);
+            System.assertEquals(null, a.Tier__c);
+        }
+        Test.startTest();
+        runOn(D1);
+        Test.stopTest();
+        List<InteractionSummary> sums = [SELECT InteractionPurpose, MeetingNotes FROM InteractionSummary];
+        System.assertEquals(3, sums.size());
+        for (InteractionSummary s : sums) {
+            System.assertEquals('Relationship Review', s.InteractionPurpose);
+            System.assert(String.isNotBlank(s.MeetingNotes));
+        }
+    }
+
+    @IsTest
+    static void rotatingSliceCoversDifferentAccounts() {
+        System.assertEquals(0, StoryFeed.sliceOffset(3, 1, 3));
+        System.assertEquals(1, StoryFeed.sliceOffset(4, 1, 3));
+        System.assertEquals(2, StoryFeed.sliceOffset(5, 1, 3));
+        System.assertEquals(4, StoryFeed.sliceOffset(2, 50, 96));
+
+        Set<Id> seen = new Set<Id>();
+        for (Integer k = 0; k < 3; k++) {
+            List<SObject> slice = new List<SObject>();
+            for (SObject o : new StoryFeed(1, D1.addDays(k)).start(null)) slice.add(o);
+            System.assertEquals(1, slice.size());
+            seen.add(slice[0].Id);
+        }
+        System.assertEquals(3, seen.size(), 'three consecutive days cover all three accounts');
     }
 
     @IsTest

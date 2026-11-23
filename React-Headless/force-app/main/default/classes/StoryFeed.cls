@@ -52,7 +52,7 @@ public with sharing class StoryFeed implements Database.Batchable<SObject>, Data
             return slice;
         }
         Integer take = Math.min(chunkSize, total);
-        Integer offset = Math.mod(onDate.dayOfYear() * chunkSize, total);
+        Integer offset = sliceOffset(onDate.dayOfYear(), chunkSize, total);
         for (Integer i = 0; i < take; i++) {
             slice.add(all[Math.mod(offset + i, total)]);
         }
@@ -79,15 +79,19 @@ public with sharing class StoryFeed implements Database.Batchable<SObject>, Data
             if (cm.Contact != null && cm.Contact.AccountId != null) responders.add(cm.Contact.AccountId);
         }
 
-        // Existing generated stems per account, across all three record types.
+        // Existing generated stems per account, and which parts of each stem exist.
         Map<Id, Set<String>> stems = new Map<Id, Set<String>>();
+        Set<String> intStems = new Set<String>();
+        Set<String> sumStems = new Set<String>();
         for (Interaction r : [SELECT AccountId, External_ID__c FROM Interaction
                               WHERE AccountId IN :ids AND External_ID__c LIKE 'story:%']) {
             addStem(stems, r.AccountId, r.External_ID__c);
+            intStems.add(r.External_ID__c);
         }
         for (InteractionSummary r : [SELECT AccountId, External_ID__c FROM InteractionSummary
                                      WHERE AccountId IN :ids AND External_ID__c LIKE 'story:%']) {
             addStem(stems, r.AccountId, r.External_ID__c);
+            sumStems.add(r.External_ID__c);
         }
         List<String> cvPatterns = new List<String>();
         for (Id i : ids) cvPatterns.add(PREFIX + String.valueOf(i) + ':%');
@@ -97,24 +101,45 @@ public with sharing class StoryFeed implements Database.Batchable<SObject>, Data
             cvDocByStem.put(r.External_ID__c, r.ContentDocumentId);
             addStem(stems, accountOf(r.External_ID__c), r.External_ID__c);
         }
+        Set<String> linked = new Set<String>();
+        if (!cvDocByStem.isEmpty()) {
+            for (ContentDocumentLink l : [SELECT ContentDocumentId, LinkedEntityId FROM ContentDocumentLink
+                                          WHERE ContentDocumentId IN :cvDocByStem.values()
+                                          AND LinkedEntityId IN :ids]) {
+                linked.add('' + l.ContentDocumentId + l.LinkedEntityId);
+            }
+        }
 
+        // Per account: repair the latest stem if incomplete (or rerun of today's), skip if a complete
+        // story is within 30 days, otherwise start today's stem.
         Map<Id, String> todayStem = new Map<Id, String>();
+        Map<Id, Date> storyDate = new Map<Id, Date>();
         Map<Id, StoryTemplates.Story> stories = new Map<Id, StoryTemplates.Story>();
         Set<String> expiredStems = new Set<String>();
         for (Account a : accounts) {
             Set<String> own = stems.containsKey(a.Id) ? stems.get(a.Id) : new Set<String>();
-            if (hasRecentStory(own)) {
+            String latest = latestOf(own);
+            String today = stem(a.Id, onDate, 1);
+            Date latestDate = (latest == null) ? null : dateOf(latest);
+            Boolean recent = latestDate != null && latestDate <= onDate && latestDate > onDate.addDays(-MIN_GAP_DAYS);
+            String s;
+            if (recent && (latest == today || !isComplete(latest, a.Id, intStems, sumStems, cvDocByStem, linked))) {
+                s = latest; // same-day rerun or repair of a partial story: same stem, no new story
+            } else if (recent) {
                 skipped++;
                 continue;
+            } else {
+                s = today;
             }
-            String s = stem(a.Id, onDate, 1);
+            Date d = dateOf(s);
             todayStem.put(a.Id, s);
+            storyDate.put(a.Id, d);
             StoryTemplates.Signals sg = new StoryTemplates.Signals();
             sg.kycStatus = a.FinServ__KYCStatus__c;
             sg.openCases = openCases.containsKey(a.Id) ? openCases.get(a.Id) : 0;
             sg.campaignResponder = responders.contains(a.Id);
             sg.tier = a.Tier__c;
-            stories.put(a.Id, StoryTemplates.build(a.Id, sg, onDate));
+            stories.put(a.Id, StoryTemplates.build(a.Id, sg, d));
             Set<String> withNew = new Set<String>(own);
             withNew.add(s);
             expiredStems.addAll(olderThanKept(withNew));
@@ -125,7 +150,7 @@ public with sharing class StoryFeed implements Database.Batchable<SObject>, Data
         List<Interaction> ints = new List<Interaction>();
         for (Id accId : order) {
             StoryTemplates.Story st = stories.get(accId);
-            DateTime startAt = DateTime.newInstance(onDate, Time.newInstance(10, 0, 0, 0));
+            DateTime startAt = DateTime.newInstance(storyDate.get(accId), Time.newInstance(10, 0, 0, 0));
             ints.add(new Interaction(
                 External_ID__c = todayStem.get(accId),
                 Name = st.title.left(255),
@@ -193,14 +218,6 @@ public with sharing class StoryFeed implements Database.Batchable<SObject>, Data
             Id docId = cvDocByStem.get(todayStem.get(accId));
             if (docId != null) docToAccount.put(docId, accId);
         }
-        Set<String> linked = new Set<String>();
-        if (!docToAccount.isEmpty()) {
-            for (ContentDocumentLink l : [SELECT ContentDocumentId, LinkedEntityId FROM ContentDocumentLink
-                                          WHERE ContentDocumentId IN :docToAccount.keySet()
-                                          AND LinkedEntityId IN :docToAccount.values()]) {
-                linked.add('' + l.ContentDocumentId + l.LinkedEntityId);
-            }
-        }
         List<ContentDocumentLink> links = new List<ContentDocumentLink>();
         for (Id docId : docToAccount.keySet()) {
             Id accId = docToAccount.get(docId);
@@ -248,8 +265,8 @@ public with sharing class StoryFeed implements Database.Batchable<SObject>, Data
     private static ContentVersion note(String stemValue, StoryTemplates.Story st) {
         return new ContentVersion(
             External_ID__c = stemValue,
-            Title = st.title,
-            PathOnClient = st.title + '.snote',
+            Title = st.title.left(255),
+            PathOnClient = st.title.left(255) + '.snote',
             VersionData = Blob.valueOf(escapeHtml(st.transcript))
         );
     }
@@ -261,12 +278,25 @@ public with sharing class StoryFeed implements Database.Batchable<SObject>, Data
             .replace('\r\n', '\n').replace('\n', '<br>');
     }
 
-    private Boolean hasRecentStory(Set<String> own) {
+    /** First slice index for a day: (dayOfYear x chunkSize) mod total. */
+    @TestVisible
+    private static Integer sliceOffset(Integer dayOfYear, Integer chunkSize, Integer total) {
+        return Math.mod(dayOfYear * chunkSize, total);
+    }
+
+    private static String latestOf(Set<String> own) {
+        String latest;
         for (String s : own) {
-            Date d = dateOf(s);
-            if (d != null && d != onDate && d > onDate.addDays(-MIN_GAP_DAYS)) return true;
+            if (latest == null || s > latest) latest = s;
         }
-        return false;
+        return latest;
+    }
+
+    // Complete = Interaction, InteractionSummary and a note linked to the account all exist for the stem.
+    private static Boolean isComplete(String s, Id accId, Set<String> intStems, Set<String> sumStems,
+                                      Map<String, Id> cvDocByStem, Set<String> linked) {
+        return intStems.contains(s) && sumStems.contains(s) && cvDocByStem.containsKey(s)
+            && linked.contains('' + cvDocByStem.get(s) + accId);
     }
 
     private static List<String> olderThanKept(Set<String> own) {
