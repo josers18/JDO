@@ -9,6 +9,15 @@ Local test bench for Agentforce and Data 360 APIs, built for SEs to demo live to
   - a **Wire** panel with every Salesforce call.
 - **MCP.** An MCP Apps host for Salesforce-hosted MCP servers: list and call tools, and render their HXL widgets
   in a sandbox.
+- **API (Data 360 Connect REST).** Explore the 36 families in the [Salesforce v68.0 reference](https://developer.salesforce.com/docs/data/connectapi/references/spec).
+  Pick a family or search all 428 operations by name, verb, or path. Each operation has its own parameter and
+  payload form. Choose existing resource identifiers from the org where a collection endpoint is available,
+  load a Salesforce example, edit fields or JSON, and inspect the response beside Wire. Switch between **Readable**
+  and **Raw JSON** for the full response or an inspected record. List responses
+  support record inspection and next-page requests when Salesforce returns a matching continuation URL.
+  Required and conditional inputs appear first. Expand optional inputs for additional filters and body fields.
+  **Reset form** clears the current inputs and response while keeping its call history in Wire.
+  Review and approve POST, PATCH, PUT, and DELETE requests before they are sent to the displayed org.
 - **Query (Data 360).** Browse a data space's objects and run them through the Query API:
   - a SQL editor with catalog autocomplete;
   - REST read forms for data graphs, insights, profiles and Universal ID;
