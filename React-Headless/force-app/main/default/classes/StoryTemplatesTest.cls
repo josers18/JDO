@@ -32,7 +32,7 @@ private class StoryTemplatesTest {
 
     @IsTest
     static void kycExpiredMentionsReview() {
-        StoryTemplates.Story st = StoryTemplates.build(ACCT, sig('Expired', null, null, null), Date.newInstance(2026, 11, 20));
+        StoryTemplates.Story st = StoryTemplates.build(ACCT, sig('Overdue', null, null, null), Date.newInstance(2026, 11, 20));
         System.assert(st.recap.contains('KYC'), st.recap);
         System.assertEquals('KYC Refresh', st.purpose);
     }
@@ -41,8 +41,30 @@ private class StoryTemplatesTest {
     static void signalsSelectPurpose() {
         Date d = Date.newInstance(2026, 11, 20);
         System.assertEquals('KYC Refresh', StoryTemplates.build(ACCT, sig('Overdue', 3, true, null), d).purpose);
-        System.assertEquals('Service Follow-up', StoryTemplates.build(ACCT, sig('Current', 1, true, null), d).purpose);
-        System.assertEquals('Campaign Follow-up', StoryTemplates.build(ACCT, sig(null, 0, true, null), d).purpose);
+        Set<String> seen = new Set<String>();
+        for (Integer i = 0; i < 40; i++) {
+            Id a = (Id) ('001000000000' + String.valueOf(100 + i) + 'AAA');
+            seen.add(StoryTemplates.build(a, sig('Current', 1, true, null), d).purpose);
+            System.assertNotEquals('KYC Refresh', StoryTemplates.build(a, sig('Current', 1, true, null), d).purpose);
+        }
+        System.assert(seen.contains('Service Follow-up') && seen.contains('Campaign Follow-up'), String.valueOf(seen));
+        System.assertEquals('Relationship Review', StoryTemplates.build(ACCT, sig('Current', 0, false, null), d).purpose);
+    }
+
+    @IsTest
+    static void kycLeadsOnlyWhenUrgentOtherwiseRotates() {
+        Date d = Date.newInstance(2026, 11, 20);
+        Set<String> mild = new Set<String>();
+        for (Integer i = 0; i < 60; i++) {
+            Id a = (Id) ('001000000000' + String.valueOf(100 + i) + 'AAA');
+            StoryTemplates.Signals stale = sig('Expired', 0, false, 'Gold');
+            stale.nextReview = d.addDays(-75);
+            System.assertEquals('KYC Refresh', StoryTemplates.build(a, stale, d).purpose);
+            StoryTemplates.Signals mildSig = sig('Expired', 0, false, 'Gold');
+            mildSig.nextReview = d.addDays(-20);
+            mild.add(StoryTemplates.build(a, mildSig, d).purpose);
+        }
+        System.assert(mild.contains('KYC Refresh') && mild.size() >= 3, String.valueOf(mild));
     }
 
     @IsTest

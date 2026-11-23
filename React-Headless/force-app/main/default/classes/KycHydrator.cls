@@ -68,7 +68,13 @@ public with sharing class KycHydrator {
             if (a.FinServ__LastReview__c == null) { u.FinServ__LastReview__c = lastReview; changed = true; }
             if (a.FinServ__NextReview__c == null) { u.FinServ__NextReview__c = nextReview; changed = true; }
             if (a.FinServ__ReviewFrequency__c == null) { u.FinServ__ReviewFrequency__c = 'Annually'; changed = true; }
-            if (changed) toUpdate.add(u);
+            if (changed) {
+                toUpdate.add(u);
+                // keep the caller's in-memory rows current so story signals see the hydrated dates
+                if (a.FinServ__LastReview__c == null) a.FinServ__LastReview__c = lastReview;
+                if (a.FinServ__NextReview__c == null) a.FinServ__NextReview__c = nextReview;
+                if (a.FinServ__ReviewFrequency__c == null) a.FinServ__ReviewFrequency__c = 'Annually';
+            }
         }
 
         if (!newDocs.isEmpty()) log('insert document', Database.insert(newDocs, false));

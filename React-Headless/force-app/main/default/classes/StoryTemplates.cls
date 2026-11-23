@@ -10,6 +10,7 @@ public with sharing class StoryTemplates {
         public Integer openCases;
         public Boolean campaignResponder;
         public String tier;
+        public Date nextReview;
     }
 
     public class Story {
@@ -199,22 +200,30 @@ public with sharing class StoryTemplates {
         List<List<String>> pool;
         Boolean kycBad = sg.kycStatus != null
             && (sg.kycStatus.equalsIgnoreCase('Expired') || sg.kycStatus.equalsIgnoreCase('Overdue'));
-        if (kycBad) {
+        // KYC leads only when the status is Overdue or the review is stale (over 60 days past due).
+        // Otherwise every applicable purpose takes its turn by account hash.
+        Boolean kycUrgent = (sg.kycStatus != null && sg.kycStatus.equalsIgnoreCase('Overdue'))
+            || (kycBad && sg.nextReview != null && onDate != null && sg.nextReview < onDate.addDays(-60));
+        if (kycUrgent) {
             purpose = 'KYC Refresh';
             pool = KYC;
-        } else if (sg.openCases != null && sg.openCases > 0) {
-            purpose = 'Service Follow-up';
-            pool = SERVICE;
-        } else if (sg.campaignResponder == true) {
-            purpose = 'Campaign Follow-up';
-            pool = CAMPAIGN;
-        } else if (sg.tier != null) {
-            Integer k = Math.mod(Integer.valueOf(Math.floor(h / 6.0)), 3); // different slice than idx so all 6 variants stay reachable
-            purpose = (k == 0) ? 'Treasury Review' : (k == 1) ? 'Credit Renewal' : 'Relationship Review';
-            pool = (k == 0) ? TREASURY : (k == 1) ? CREDIT : RELATIONSHIP;
         } else {
-            purpose = 'Relationship Review';
-            pool = RELATIONSHIP;
+            List<String> options = new List<String>();
+            if (kycBad) options.add('KYC Refresh');
+            if (sg.openCases != null && sg.openCases > 0) options.add('Service Follow-up');
+            if (sg.campaignResponder == true) options.add('Campaign Follow-up');
+            if (sg.tier != null) {
+                options.add('Treasury Review');
+                options.add('Credit Renewal');
+            }
+            options.add('Relationship Review');
+            // different slice than idx so all 6 variants of each pool stay reachable
+            purpose = options[Math.mod(Integer.valueOf(Math.floor(h / 7.0)), options.size())];
+            pool = purpose == 'KYC Refresh' ? KYC
+                : purpose == 'Service Follow-up' ? SERVICE
+                : purpose == 'Campaign Follow-up' ? CAMPAIGN
+                : purpose == 'Treasury Review' ? TREASURY
+                : purpose == 'Credit Renewal' ? CREDIT : RELATIONSHIP;
         }
         Integer idx = Math.mod(h, pool.size());
         List<String> pick = pool[idx];

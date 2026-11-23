@@ -141,6 +141,7 @@ public with sharing class StoryFeed implements Database.Batchable<SObject>, Data
             sg.openCases = openCases.containsKey(a.Id) ? openCases.get(a.Id) : 0;
             sg.campaignResponder = responders.contains(a.Id);
             sg.tier = a.Tier__c;
+            sg.nextReview = a.FinServ__NextReview__c;
             stories.put(a.Id, StoryTemplates.build(a.Id, sg, d));
             Set<String> withNew = new Set<String>(own);
             withNew.add(s);
