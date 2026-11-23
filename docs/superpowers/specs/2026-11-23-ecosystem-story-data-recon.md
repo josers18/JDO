@@ -110,14 +110,10 @@ Scope: backfill is demo-scoped by the user's ruling (8,550 of 36,251 accounts ha
 
 **(3) Rerun creates zero duplicates: PASS.** Reran `StoryFeed.run(6500)` (job `707am000040mTrYAAU`, same day, same slice as the earlier 6,500 job). 130 of 130 scopes, 0 errors. Counts before and after: story ContentVersion 8,550 / 8,550, Interaction 8,550 / 8,550, InteractionSummary 8,550 / 8,550. Zero duplicate `External_ID__c` values on Interaction and ContentVersion. Case 11,714, VoiceCall 360 and Task 11,080 unchanged.
 
-**(2) Data 360 join for 10 sampled accounts: FAIL, blocked by stream freshness (not by the data).** Sample: `001am00002A9fDOAAZ`, `...fIEAAZ`, `...fLSAAZ`, `...fOgAAJ`, `...fRuAAJ`, `...fYMAAZ`, `...fbaAAB`, `...fgQAAR`, `...fjeAAB`, `...fmsAAB`. The join returned 0 rows.
+**(2) Data 360 join for 10 sampled accounts: PASS after stream refresh.** The first attempt returned 0 rows because the `ContentVersion` stream (last refresh 01:55Z, 1,311 rows) and the `ContentDocumentLink` / `ContentDocument` streams (last refresh 2025-12-31) pre-dated the story notes. All three are `UPSERT` streams, so I ran Refresh Now > Full Refresh from the Lightning UI (REST run is refused for UPSERT). Results: `ContentVersion` SUCCESS 19:00Z, 9,870 rows; `ContentDocument` SUCCESS 19:01Z, 9,868 rows; `ContentDocumentLink` SUCCESS 19:02Z, 19,723 rows. The stored refresh mode is unchanged.
 
-| Leg | DMO | State |
-|---|---|---|
-| Summaries | `InteractionSummary_Home__dlm` | OK. Stream refreshes (last 2026-11-23 18:40Z); the sampled account has its story summary, latest row 2026-11-23 14:25Z. |
-| Note versions | `ssot__ContentDocumentVersion__dlm` | STALE. Stream `ContentVersion` last refresh 2026-11-23 01:55Z with 1,311 rows, before the story notes were created (14:25Z onward). |
-| Note-to-account links | `ssot__ContentDocumentRelationship__dlm` | STALE. Stream `ContentDocumentLink` last refresh 2025-12-31, 857 rows, 0 for the sampled account. `ContentDocument` stream is also last refreshed 2025-12-31. |
+Join: `ssot__ContentDocumentRelationship__dlm` (`ssot__RelatedItemId__c` = account) to `ssot__ContentDocumentVersion__dlm` (on `ssot__ContentDocumentId__c`, created 2026-11-23 or later), plus `InteractionSummary_Home__dlm` (`AccountId__c`, `External_ID_c__c LIKE 'story:%'`). Sample: `001am00002A9fDOAAZ`, `...fIEAAZ`, `...fLSAAZ`, `...fOgAAJ`, `...fRuAAJ`, `...fYMAAZ`, `...fbaAAB`, `...fgQAAR`, `...fjeAAB`, `...fmsAAB`. All 10 returned exactly 1 note and 1 summary.
 
-Both content streams are `UPSERT` with no schedule hours. Joins need these fields: relationship `ssot__RelatedItemId__c` = account, relationship `ssot__ContentDocumentId__c` = version `ssot__ContentDocumentId__c`. The version DMO has no `External_ID__c` field, so story notes can only be recognized by title or date. Re-run the join after the two streams are refreshed.
+Caveats: the version DMO has no `External_ID__c`, so story notes are recognized by creation date. The sample is the first 2,000 story accounts ordered by Id, so it is clustered rather than spread across books. The three content streams are not on a schedule, so new story notes reach Data 360 only after another refresh; run one after the final backfill.
 
 **(1) and (4):** (1) holds for the 8,550 backfilled accounts only. (4) waits on the V2 bundle deploy.
