@@ -14,14 +14,15 @@
 
 - Org alias `jdo-oe0sdd`; API version 67.0. Apex lives in `React-Headless/force-app/main/default/classes/`; each class has a `-meta.xml` and a `*Test.cls`.
 - ContentNote is the only notes home. The UI never reads `Meeting_Note__c` after Task 6; it is kept (marked migrated), not deleted.
-- Generated records are idempotent: every Interaction, InteractionSummary, VoiceCall and ContentVersion carries `External_ID__c` = `story:<accountId>:<yyyymmdd>:<n>`. Reruns upsert; zero duplicates.
+- Generated records are idempotent: every Interaction, InteractionSummary and ContentVersion carries `External_ID__c` = `story:<accountId>:<yyyymmdd>:<n>`. Reruns upsert; zero duplicates.
 - Story text comes from deterministic template pools seeded by account id. No model call per record, no callout from Apex to Data 360 or Snowflake.
 - Retention: backfill 1 story per account; afterwards at most 1 new story per account per 30 days; keep the latest 3 generated stories per account, expire older generated ones.
 - Existing 535 ContentNotes are never modified or deleted. Notes without an Account are skipped and listed.
 - KYC data stays native: identification documents (`FinServ__IdentificationDocument__c`) and review dates (`FinServ__LastReview__c`, `FinServ__NextReview__c`, `FinServ__ReviewFrequency__c`) only. The empty Party objects are not touched. No KYC data in Snowflake.
 - Compliance events are a query, not an object: `BT_Synth_Relationship_Graph` (BUSINESS_OWNER edges), `BT_WorldCheck_AML`, `BT_Zoominfo_Firmographics`, plus Account KYC and identification-document expiry.
 - No pushing. Vendor-neutral copy in narration and UI (no vendor names in story text).
-- Never run `StoryFeed` against the org before Task 1's gates pass.
+- Never run `StoryFeed` against the org before Task 1's gates pass (they passed 2026-11-23; see the recon doc).
+- Recon rulings: the generator creates no VoiceCall (its on-create flow creates a Case) and no Case rows; any Case a later task seeds is created Status=New, no ContactId, no assignment-rule header. The ContentVersion trigger body is uninspected, so the Task 9 pilot must watch for side effects.
 
 ## Review Focus
 
@@ -53,7 +54,7 @@
 - Create: `React-Headless/force-app/main/default/classes/StoryTemplates.cls` (+ meta, `StoryTemplatesTest.cls`)
 
 **Interfaces:**
-- Produces: `StoryTemplates.build(Id accountId, StoryTemplates.Signals s, Date on) -> StoryTemplates.Story`, where `Signals` = `{String kycStatus, Integer openCases, Boolean campaignResponder, String tier}` and `Story` = `{String interactionType, String title, String transcript, String recap, String nextSteps, String purpose, Boolean voiceCall}`. Deterministic: same inputs give identical output.
+- Produces: `StoryTemplates.build(Id accountId, StoryTemplates.Signals s, Date on) -> StoryTemplates.Story`, where `Signals` = `{String kycStatus, Integer openCases, Boolean campaignResponder, String tier}` and `Story` = `{String interactionType, String title, String transcript, String recap, String nextSteps, String purpose}`. Deterministic: same inputs give identical output.
 
 - [ ] **Step 1: Tests.** `sameInputsSameStory`: two calls with equal args return equal `transcript`. `noSignalsGetsRoutineCheckIn`: all-null signals give a non-empty `transcript` and `purpose = 'Relationship Review'`. `kycExpiredMentionsReview`: `kycStatus='Expired'` makes `recap` contain 'KYC'. `htmlSafe`: no pool string contains `<` or `&`.
 - [ ] **Step 2: Run, expect FAIL** (`sf apex run test -n StoryTemplatesTest -o jdo-oe0sdd -r human -w 10`).
@@ -69,7 +70,7 @@
 
 **Interfaces:**
 - Consumes: `StoryTemplates.build`.
-- Produces: `StoryFeed.run(Integer chunkSize)` (starts the batch, returns the job Id), `StoryFeed.stem(Id accountId, Date on, Integer n) -> String` (`story:<id>:<yyyymmdd>:<n>`), `StoryFeed` schedulable on daily cron `0 0 2 * * ?`. Per account it upserts Interaction (`AccountId`, `InteractionType`, `StartTime`, `EndTime`, `Description` = transcript), InteractionSummary (`InteractionId`, `AccountId`, `MeetingNotes` = recap, `NextSteps`, `InteractionPurpose`, `Status`='Complete'), VoiceCall when `voiceCall` (`RelatedRecordId` = account, `Description`), and ContentNote via ContentVersion (`Title`, `PathOnClient` = '<title>.snote', `VersionData` = escaped HTML of transcript, `External_ID__c`) + ContentDocumentLink (`LinkedEntityId` = account, `ShareType`='I', `Visibility`='AllUsers').
+- Produces: `StoryFeed.run(Integer chunkSize)` (starts the batch, returns the job Id), `StoryFeed.stem(Id accountId, Date on, Integer n) -> String` (`story:<id>:<yyyymmdd>:<n>`), `StoryFeed` schedulable on daily cron `0 0 2 * * ?`. Per account it upserts Interaction (`AccountId`, `InteractionType`, `StartTime`, `EndTime`, `Description` = transcript), InteractionSummary (`InteractionId`, `AccountId`, `MeetingNotes` = recap, `NextSteps`, `InteractionPurpose`, `Status`='Complete'), and ContentNote via ContentVersion (`Title`, `PathOnClient` = '<title>.snote', `VersionData` = escaped HTML of transcript, `External_ID__c`) + ContentDocumentLink (`LinkedEntityId` = account, `ShareType`='I', `Visibility`='AllUsers').
 
 - [ ] **Step 1: Tests** with `@TestSetup` of 3 accounts: `createsAllRecordsPerAccount` (1 Interaction, 1 Summary, 1 ContentNote linked to the account each); `rerunCreatesNoDuplicates` (run twice with same date, counts unchanged); `retentionExpiresOldGenerated` (4th story deletes the oldest generated, a non-generated note on the same account survives); `skipsAccountWithinThirtyDays`; `accountWithoutOwnerStillGetsStory`; `noteBodyEscaping` (`<` and `&` in a transcript round-trip).
 - [ ] **Step 2: Run, expect FAIL.**
@@ -92,13 +93,13 @@
 ### Task 5: Notes in the app (write, read, After the call)
 
 **Files:**
-- Modify: `CrmWriteRest.cls` (new `handleNote`, new `GET /notes?accountId=`), `CrmWriteRestTest.cls`; `_shared/src/data/crmWriteClient.ts` (add `'note'` to `CrmAction`; add `fetchNotes(accountId: string): Promise<AccountNote[]>`); `ReactCommercial/src/personas/customer/afterCall.ts` (+ `afterCall.test.ts`), `ReactCommercial/src/atlas/AfterCall.tsx` (`CallRecord`).
-- Skip the Apex GET and use GraphQL instead only if Task 1 Step 3 says ContentNote is readable.
+- Modify: `CrmWriteRest.cls` (new `handleNote`), `CrmWriteRestTest.cls`; `_shared/src/data/crmWriteClient.ts` (add `'note'` to `CrmAction`; add `fetchNotes(accountId: string): Promise<AccountNote[]>`); `ReactCommercial/src/personas/customer/afterCall.ts` (+ `afterCall.test.ts`), `ReactCommercial/src/atlas/AfterCall.tsx` (`CallRecord`).
+- Recon (Task 1) found GraphQL reads ContentNote and reads ContentDocumentLink when filtered by `LinkedEntityId`, so reads use GraphQL: drop the Apex GET endpoint and implement `fetchNotes` with `executeGraphQL` (link query by `LinkedEntityId`, then ContentNote by `Id`).
 
 **Interfaces:**
 - Produces: `{"action":"note","accountId","subject","description","eventDate"}` writes ContentVersion + link and returns `{success, id}`; `fetchNotes(accountId) -> AccountNote[]` where `AccountNote = {id: string; title: string; date: string; body: string}`, newest first. `fetchAfterCallContext` and `fetchCallRecord` use `fetchNotes`; `approveAfterCall` calls `crmWrite({action:'note', ...})` instead of `meetingNote`.
 
-- [ ] **Step 1: Apex tests** in `CrmWriteRestTest`: `noteRequiresAccountAndTitle` (400s like `meetingNote`), `noteCreatesLinkedContentNote`, `noteBodyEscaping`, `notesEndpointReturnsNewestFirst`.
+- [ ] **Step 1: Apex tests** in `CrmWriteRestTest`: `noteRequiresAccountAndTitle` (400s like `meetingNote`), `noteCreatesLinkedContentNote`, `noteBodyEscaping`. TS: `fetchNotes` returns newest first.
 - [ ] **Step 2: TS tests** in `afterCall.test.ts`: update the existing `fetchAfterCallContext` and `approveAfterCall` cases to mock `fetchNotes` and expect the `note` action (the existing "skips newer 'Call summary —' notes" and "6 writes" assertions stay).
 - [ ] **Step 3: Run both, expect FAIL.** (`sf apex run test -n CrmWriteRestTest ...`; `npm run test -- run src/personas/customer/afterCall.test.ts` from the ReactCommercial bundle.)
 - [ ] **Step 4: Implement** `handleNote` mirroring `handleMeetingNote` (line 465) and the TS changes above. `meetingNote` action stays for now.
