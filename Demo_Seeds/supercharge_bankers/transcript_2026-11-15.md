@@ -1,7 +1,7 @@
-# DRAFT — Meeting_Note__c.Notes__c for the Nov 20 call (not yet written to JDO)
+# DRAFT — Meeting_Note__c.Notes__c for the Nov 15 call (not yet written to JDO)
 
 Title__c: Treasury Services proposal review — call transcript
-Date__c: 2026-11-20
+Date__c: 2026-11-15
 Attendees: Allen Carter (Relationship Manager), Marisol Rodriguez (CEO), Daniel Okafor (CFO)
 Duration: 41 min
 

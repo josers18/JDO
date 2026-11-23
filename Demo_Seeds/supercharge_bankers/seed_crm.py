@@ -2,7 +2,7 @@
 
 Hero: Rodriguez Industries, Account 001am00002A9jm4AAB (KYC Expired).
 Creates the CEO + CFO Contacts and three Meeting_Note__c records ending in the
-Nov 20 call transcript the "After the call" panel reads. Existing records are
+Nov 15 call transcript the "After the call" panel reads. Existing records are
 matched by name / title, so re-runs never duplicate. Writes ids.json.
 
     python3 seed_crm.py             # seed
@@ -28,7 +28,7 @@ CONTACTS = [
 
 def transcript():
     # The md file carries a draft header; the note body starts at the Attendees line.
-    lines = open(os.path.join(HERE, "transcript_2026-11-20.md")).read().splitlines()
+    lines = open(os.path.join(HERE, "transcript_2026-11-15.md")).read().splitlines()
     start = next(i for i, l in enumerate(lines) if l.startswith("Attendees:"))
     return "\n".join(lines[start:]).strip()
 
@@ -41,8 +41,8 @@ NOTES = [
     {"Date__c": "2026-11-03", "Title__c": "Proposal walkthrough",
      "Notes__c": "Sent the Treasury Services proposal (liquidity sweep, ACH origination, "
                  "positive pay). Daniel raised renewal timing on their current bank and asked for "
-                 "a detailed fee schedule. Follow-up call set for Nov 20."},
-    {"Date__c": "2026-11-20", "Title__c": "Treasury Services proposal review — call transcript",
+                 "a detailed fee schedule. Follow-up call set for Nov 15."},
+    {"Date__c": "2026-11-15", "Title__c": "Treasury Services proposal review — call transcript",
      "Notes__c": None},  # filled from the transcript file
 ]
 

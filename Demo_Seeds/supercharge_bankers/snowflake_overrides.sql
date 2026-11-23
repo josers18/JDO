@@ -6,7 +6,7 @@
 --
 -- The generators rewrite the newest Gong week (Mon 03:00 ET) and add a new
 -- WorldCheck day (daily 03:20 ET). SP_APPLY_SUPERCHARGE_DEMO_OVERRIDES updates
--- the hero's newest row in place (RECORD_ID unchanged) so the Nov 20 call
+-- the hero's newest row in place (RECORD_ID unchanged) so the Nov 15 call
 -- story holds: negative/declining sentiment, pricing + competitor topics,
 -- 3 action items, Jan 4 follow-up, PEP hit on screening.
 -- Rollback at the bottom.
@@ -29,7 +29,7 @@ BEGIN
       OVERALL_SENTIMENT = 'Negative', SENTIMENT_TREND = 'Declining',
       KEY_TOPICS_FLAGS = 'Pricing|Competitor', ACTION_ITEMS_COUNT = 3,
       TOTAL_TALK_TIME_MINUTES = 41, DEAL_RISK_SCORE = 36.53,
-      LAST_CALL_DATE = '2026-11-20', NEXT_SCHEDULED_CALL_DATE = '2027-01-04',
+      LAST_CALL_DATE = '2026-11-15', NEXT_SCHEDULED_CALL_DATE = '2027-01-04',
       RM_NAME = 'Allen Carter'
    WHERE ACCOUNT_ID = :hero AND PROFILE_WEEK = :wk;
 

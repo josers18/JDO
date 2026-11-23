@@ -10,8 +10,8 @@ The recorder (`record.mjs`) logs in, opens the V2 company page on its **Notes & 
 ---
 
 ## S01 · Open
-- do: slide 12 Commercial banking · Rodriguez Industries | Forty-one minutes on the phone. *Then the paperwork.* | Allen Carter, relationship manager · Treasury Services proposal review, Nov 20 | Nov 20 = The call: pricing pushback, a new parent company ; *Now = Allen opens the client in the Commercial Bankers Cockpit ; One click = Summary, tasks, email, KYC | One transcript · every follow-up drafted · approved in one click
-- do: spot 6 panel -- After the call | The latest call, ready to wrap up | Reads the Nov 20 transcript ; Plus call sentiment and compliance screening
+- do: slide 12 Commercial banking · Rodriguez Industries | Forty-one minutes on the phone. *Then the paperwork.* | Allen Carter, relationship manager · Treasury Services proposal review, Nov 15 | Nov 15 = The call: pricing pushback, a new parent company ; *Now = Allen opens the client in the Commercial Bankers Cockpit ; One click = Summary, tasks, email, KYC | One transcript · every follow-up drafted · approved in one click
+- do: spot 6 panel -- After the call | The latest call, ready to wrap up | Reads the Nov 15 transcript ; Plus call sentiment and compliance screening
 
 **Say:** Allen Carter is a commercial relationship manager. On Friday, November twentieth, he spent forty-one minutes on the phone with Rodriguez Industries, reviewing a Treasury Services proposal. Normally the next hour goes to notes, tasks and a recap email. Here, the client's page already has an After the call panel, built from the call transcript.
 
