@@ -44,10 +44,10 @@ private class KycHydratorTest {
         Test.stopTest();
         List<FinServ__IdentificationDocument__c> d = docs(a.Id);
         System.assertEquals(1, d.size());
-        System.assert(d[0].FinServ__ExpirationDate__c >= Date.today().addYears(1));
+        System.assert(d[0].FinServ__ExpirationDate__c >= Date.today().addDays(365));
         Account r = requery(a.Id);
         System.assert(r.FinServ__NextReview__c > Date.today());
-        System.assert(r.FinServ__LastReview__c <= Date.today());
+        System.assert(r.FinServ__LastReview__c < r.FinServ__NextReview__c);
     }
 
     @IsTest
@@ -90,5 +90,49 @@ private class KycHydratorTest {
         System.assertEquals(1, [SELECT COUNT() FROM FinServ__IdentificationDocument__c
                                 WHERE FinServ__SourceSystemId__c = :('kyc:' + a.Id)]);
         System.assert(docs(a.Id)[0].FinServ__ExpirationDate__c > Date.today());
+    }
+
+    @IsTest
+    static void accountWithOnlyNextReviewGetsConsistentLastReview() {
+        Account a = mk('Kyc OnlyNext', 'Expired');
+        Date next = Date.today().addDays(-20);
+        a.FinServ__NextReview__c = next;
+        update a;
+        Test.startTest();
+        KycHydrator.hydrate(new List<Account>{ requery(a.Id) });
+        Test.stopTest();
+        Account r = requery(a.Id);
+        System.assertEquals(next, r.FinServ__NextReview__c);
+        System.assert(r.FinServ__LastReview__c < r.FinServ__NextReview__c);
+        System.assert(r.FinServ__NextReview__c < Date.today());
+    }
+
+    @IsTest
+    static void accountWithOnlyLastReviewGetsConsistentNextReview() {
+        Account a = mk('Kyc OnlyLast', 'Expired');
+        Date last = Date.today().addYears(-2);
+        a.FinServ__LastReview__c = last;
+        update a;
+        Test.startTest();
+        KycHydrator.hydrate(new List<Account>{ requery(a.Id) });
+        Test.stopTest();
+        Account r = requery(a.Id);
+        System.assertEquals(last, r.FinServ__LastReview__c);
+        System.assert(r.FinServ__LastReview__c < r.FinServ__NextReview__c);
+        System.assert(r.FinServ__NextReview__c < Date.today());
+    }
+
+    @IsTest
+    static void monthlyFrequencySpacesReviewDatesOneMonth() {
+        Account a = mk('Kyc Monthly', 'Completed - Valid');
+        a.FinServ__ReviewFrequency__c = 'Monthly';
+        update a;
+        Test.startTest();
+        KycHydrator.hydrate(new List<Account>{ requery(a.Id) });
+        Test.stopTest();
+        Account r = requery(a.Id);
+        System.assertEquals(r.FinServ__NextReview__c.addMonths(-1), r.FinServ__LastReview__c);
+        System.assert(r.FinServ__NextReview__c > Date.today());
+        System.assertEquals('Monthly', r.FinServ__ReviewFrequency__c);
     }
 }

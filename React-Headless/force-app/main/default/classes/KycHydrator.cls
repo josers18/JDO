@@ -28,21 +28,29 @@ public with sharing class KycHydrator {
             Boolean past = status == 'Expired' || status == 'Overdue';
             Boolean valid = status == 'Completed - Valid';
 
+            Integer cycle = cycleMonths(a.FinServ__ReviewFrequency__c);
             Date expiry;
-            Date lastReview;
-            Date nextReview;
+            Date nextReview; // used only when both review dates are null
             if (past) {
                 expiry = today.addDays(-(30 + Math.mod(h, 150)));
                 nextReview = today.addDays(-(10 + Math.mod(h, 80)));
-                lastReview = nextReview.addYears(-1);
             } else if (valid) {
                 expiry = today.addDays(365 + Math.mod(h, 700));
-                lastReview = today.addDays(-(10 + Math.mod(h, 80)));
-                nextReview = lastReview.addYears(1);
+                nextReview = today.addDays(10 + Math.mod(h, 80));
             } else {
                 expiry = today.addDays(30 + Math.mod(h, 60));
-                lastReview = today.addDays(-(300 + Math.mod(h, 50)));
-                nextReview = lastReview.addYears(1);
+                nextReview = today.addDays(10 + Math.mod(h, 50));
+            }
+            // A missing review date is derived from the existing one so Last < Next always holds.
+            Date lastReview;
+            if (a.FinServ__NextReview__c != null) {
+                nextReview = a.FinServ__NextReview__c;
+                lastReview = nextReview.addMonths(-cycle);
+            } else if (a.FinServ__LastReview__c != null) {
+                lastReview = a.FinServ__LastReview__c;
+                nextReview = lastReview.addMonths(cycle);
+            } else {
+                lastReview = nextReview.addMonths(-cycle);
             }
 
             if (!hasDoc.contains(a.Id)) {
@@ -65,6 +73,12 @@ public with sharing class KycHydrator {
 
         if (!newDocs.isEmpty()) log('insert document', Database.insert(newDocs, false));
         if (!toUpdate.isEmpty()) log('update account', Database.update(toUpdate, false));
+    }
+
+    private static Integer cycleMonths(String frequency) {
+        if (frequency == 'Monthly') return 1;
+        if (frequency == 'Quarterly') return 3;
+        return 12;
     }
 
     private static void log(String what, List<Database.SaveResult> res) {
