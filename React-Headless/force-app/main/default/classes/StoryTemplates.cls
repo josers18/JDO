@@ -209,7 +209,7 @@ public with sharing class StoryTemplates {
             purpose = 'Campaign Follow-up';
             pool = CAMPAIGN;
         } else if (sg.tier != null) {
-            Integer k = Math.mod(h, 3);
+            Integer k = Math.mod(Integer.valueOf(Math.floor(h / 6.0)), 3); // different slice than idx so all 6 variants stay reachable
             purpose = (k == 0) ? 'Treasury Review' : (k == 1) ? 'Credit Renewal' : 'Relationship Review';
             pool = (k == 0) ? TREASURY : (k == 1) ? CREDIT : RELATIONSHIP;
         } else {

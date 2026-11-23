@@ -67,4 +67,22 @@ private class StoryTemplatesTest {
         }
         System.assert(purposes.size() >= 5, String.valueOf(purposes));
     }
+
+    @IsTest
+    static void tierBranchReachesAllVariants() {
+        Map<String, Set<String>> titles = new Map<String, Set<String>>();
+        for (Integer i = 0; i < 900; i++) {
+            String suffix = String.valueOf(1000 + i);
+            Id a = (Id) ('00100000000' + suffix + 'AAA');
+            StoryTemplates.Story st = StoryTemplates.build(a, sig(null, 0, false, 'Gold'), null);
+            if (!titles.containsKey(st.purpose)) {
+                titles.put(st.purpose, new Set<String>());
+            }
+            titles.get(st.purpose).add(st.title);
+        }
+        for (String p : new List<String>{ 'Treasury Review', 'Credit Renewal', 'Relationship Review' }) {
+            System.assert(titles.containsKey(p), p + ' unreachable');
+            System.assertEquals(6, titles.get(p).size(), p + ' reached ' + titles.get(p).size());
+        }
+    }
 }
