@@ -59,6 +59,7 @@ export const api = {
   mcpRead: (orgId: string, url: string, uri: string) => mcpCall<{ result: any }>("/read", { orgId, url, uri }),
   // Data 360 Query: same contract as MCP, the Wire entries ride along on every reply and error.
   dataSpaces: (orgId: string) => queryCall<{ dataSpaces: string[] }>("/data-spaces", { orgId }),
+  readNote: (orgId: string, documentId: string) => queryCall<{ content: string }>("/note", { orgId, documentId }),
   queryCatalog: (orgId: string, dataspace: string, refresh = false) => queryCall<{ catalog: QueryCatalog }>("/catalog", { orgId, dataspace, refresh }),
   queryRun: (orgId: string, sql: string, dataspace: string, rowLimit: number, options: QueryRunOptions = {}) =>
     queryCall<{ page: QueryPage }>("/run", { orgId, sql, dataspace, rowLimit, ...options }),

@@ -30,6 +30,7 @@ interface CallOptions {
   headers?: Record<string, string>;
   turn?: number | null;
   wire?: WireSink;
+  responseText?: boolean;
   auth?: boolean; // default true
   signal?: AbortSignal;
 }
@@ -122,7 +123,7 @@ export async function sfJson<T = unknown>(opts: CallOptions): Promise<T> {
   for (let attempt = 0; ; attempt++) {
     const token = opts.auth === false ? null : await getToken(opts.orgId, opts.wire, attempt > 0);
     const { res, entry, t0 } = await send(opts, token);
-    const body = await readBody(res);
+    const body = opts.responseText && res.ok ? await res.text() : await readBody(res);
     entry.responseBody = maskBody(body);
     entry.durationMs = Date.now() - t0;
     opts.wire?.(entry);
