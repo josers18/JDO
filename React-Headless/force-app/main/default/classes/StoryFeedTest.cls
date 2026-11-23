@@ -43,6 +43,18 @@ private class StoryFeedTest {
     }
 
     @IsTest
+    static void runHydratesKycDocumentForAccountLackingOne() {
+        Account a = [SELECT Id FROM Account WHERE Name = 'Story A'];
+        System.assertEquals(0, [SELECT COUNT() FROM FinServ__IdentificationDocument__c WHERE FinServ__Account__c = :a.Id]);
+        Test.startTest();
+        runOn(D1);
+        Test.stopTest();
+        System.assertEquals(1, [SELECT COUNT() FROM FinServ__IdentificationDocument__c
+                                WHERE FinServ__SourceSystemId__c = :('kyc:' + a.Id)]);
+        System.assertEquals(1, [SELECT COUNT() FROM Interaction WHERE AccountId = :a.Id]);
+    }
+
+    @IsTest
     static void stemFormat() {
         Id accId = [SELECT Id FROM Account LIMIT 1].Id;
         System.assertEquals('story:' + accId + ':20260105:1', StoryFeed.stem(accId, D1, 1));

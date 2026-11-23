@@ -61,7 +61,9 @@ public with sharing class StoryFeed implements Database.Batchable<SObject>, Data
 
     public void execute(Database.BatchableContext ctx, List<SObject> scope) {
         Set<Id> ids = new Map<Id, SObject>(scope).keySet();
-        List<Account> accounts = [SELECT Id, FinServ__KYCStatus__c, Tier__c FROM Account WHERE Id IN :ids];
+        List<Account> accounts = [SELECT Id, FinServ__KYCStatus__c, Tier__c, FinServ__LastReview__c,
+                                  FinServ__NextReview__c, FinServ__ReviewFrequency__c FROM Account WHERE Id IN :ids];
+        KycHydrator.hydrate(accounts);
 
         Map<Id, Integer> openCases = new Map<Id, Integer>();
         for (AggregateResult ar : [
