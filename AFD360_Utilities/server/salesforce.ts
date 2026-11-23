@@ -1,5 +1,5 @@
 import { getOrgCredentials } from "./orgStore.ts";
-import { maskBody, newWireEntry, type WireSink } from "./wire.ts";
+import { maskBody, maskHeaders, newWireEntry, type WireSink } from "./wire.ts";
 import { parseSse, type SseEvent } from "./sse.ts";
 import type { WireEntry } from "../shared/types.ts";
 
@@ -78,7 +78,7 @@ async function send(opts: CallOptions, token: string | null): Promise<{ res: Res
   try {
     const res = await fetch(opts.url, { method: opts.method, headers, body: payload, signal: opts.signal });
     entry.status = res.status;
-    entry.responseHeaders = Object.fromEntries(res.headers.entries());
+    entry.responseHeaders = maskHeaders(Object.fromEntries(res.headers.entries()));
     return { res, entry, t0 };
   } catch (e) {
     entry.error = (e as Error).message;

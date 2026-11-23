@@ -84,6 +84,16 @@ Tests:
   render through `@modelcontextprotocol/ext-apps` `AppBridge` in the double-iframe sandbox (:3002, CSP header
   built from the resource's declared domains). Widget-initiated `tools/call` and `resources/read` go through the
   server.
+- **Connect REST API** (`web/src/connect/`, `server/connectRoutes.ts`, `shared/connect.ts`). The API rail reads
+  the bundled v68.0 operation catalog. Salesforce's OpenAPI path and operation parameters, input schemas
+  (including inherited fields), and named request examples drive the forms. Calls use the active org's core
+  OAuth token on the server. The server resolves the verb and path from the catalog, validates the inputs,
+  encodes the parameters, and requires explicit approval for every non-GET. The response view and Wire
+  use the same masked exchange. The initial request version is v67.0 or the operation's minimum, whichever
+  is higher. The form allows selecting any version from that minimum through v68.0.
+  To refresh the snapshot, capture the Swagger YAML loaded by the [Salesforce reference](https://developer.salesforce.com/docs/data/connectapi/references/spec),
+  convert it to OpenAPI JSON, and run `python3 scripts/build_connect_catalog.py spec.json`. The v68.0 source
+  contains mojibake quotation marks in some examples. Normalize these before converting the YAML.
 - **Query (Data 360)** (`web/src/query/`, `server/query.ts`):
   - **Catalog.** Built per data space from `/ssot/metadata`, `/ssot/data-graphs/metadata` and `/ssot/search-index`,
     then cached on the server; the reload button refetches it. It covers DMOs, DLOs, calculated insights,
@@ -151,6 +161,7 @@ Tests:
 | `/api/orgs/:id/agents` | Agent list (BotDefinition and Agent API support) |
 | `/api/conversations*` | Create (starts a session and warms HXL), list, get, delete; `messages` and `confirm` stream a turn over SSE; `usage/:traceId` returns a turn's Data 360 token usage (`server/usage.ts`) and logs the lookup to the conversation's wire |
 | `/api/mcp/connect`, `/call`, `/app-call`, `/read` | Hosted MCP client and MCP Apps host proxy |
+| `/api/connect/catalog`, `/api/connect/call` | Read the operation catalog or send one catalog-defined Connect REST request with masked Wire telemetry |
 | `/api/query/data-spaces`, `/catalog`, `/run`, `/status`, `/rows`, `/cancel` | Data 360 Query API: data spaces, object catalog, SQL submit, polling, paging, cancel. Each response carries its `wire` entries |
 | `/api/query/read` | REST reads: data graph, calculated insight, profile, Universal ID lookup |
 | `/api/notebook/status`, `/run`, `/interrupt`, `/restart` | Notebook kernel for an org: status (starts it), run a cell (outputs plus masked `wire`), interrupt, restart |
