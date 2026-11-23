@@ -12,6 +12,7 @@ import type {
   OrgsResponse,
   QueryApiCall,
   QueryCatalog,
+  QueryObject,
   QueryPage,
   QueryReply,
   QueryRunOptions,
@@ -60,6 +61,8 @@ export const api = {
   // Data 360 Query: same contract as MCP, the Wire entries ride along on every reply and error.
   dataSpaces: (orgId: string) => queryCall<{ dataSpaces: string[] }>("/data-spaces", { orgId }),
   readNote: (orgId: string, documentId: string) => queryCall<{ content: string }>("/note", { orgId, documentId }),
+  recordObject: (orgId: string, dataspace: string, name: string, graph: boolean) =>
+    queryCall<{ object: QueryObject | null }>("/record-object", { orgId, dataspace, name, graph }),
   queryCatalog: (orgId: string, dataspace: string, refresh = false) => queryCall<{ catalog: QueryCatalog }>("/catalog", { orgId, dataspace, refresh }),
   queryRun: (orgId: string, sql: string, dataspace: string, rowLimit: number, options: QueryRunOptions = {}) =>
     queryCall<{ page: QueryPage }>("/run", { orgId, sql, dataspace, rowLimit, ...options }),
