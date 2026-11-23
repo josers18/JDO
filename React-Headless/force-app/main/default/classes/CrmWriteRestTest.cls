@@ -850,6 +850,60 @@ private class CrmWriteRestTest {
     }
 
     @IsTest
+    static void noteRequiresAccountAndTitle() {
+        setupRequest('{"action":"note","subject":"No account"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode, 'missing account should 400');
+        Account a = new Account(Name = 'Test Treasury Client');
+        insert a;
+        setupRequest('{"action":"note","accountId":"' + a.Id + '"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode, 'missing title should 400');
+        System.assertEquals(0, [SELECT COUNT() FROM ContentVersion], 'no note on a rejected request');
+    }
+
+    @IsTest
+    static void noteCreatesLinkedContentNote() {
+        Account a = new Account(Name = 'Test Treasury Client');
+        insert a;
+        String rid = '8b0d3c3e-6f1e-4b8a-9c2d-1a2b3c4d5e6f';
+        setupRequest('{"action":"note","requestId":"' + rid + '","accountId":"' + a.Id + '","subject":"Call summary — Treasury review","description":"Pricing pushback","eventDate":"2026-11-15"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'note should 200');
+        Id docId = (Id) parseBody().get('id');
+        System.assertEquals(ContentDocument.SObjectType, docId.getSObjectType(), 'returns the ContentDocument (ContentNote) id');
+        ContentNote n = [SELECT Title, FileType FROM ContentNote WHERE Id = :docId];
+        System.assertEquals('Call summary — Treasury review', n.Title, 'title');
+        System.assertEquals('SNOTE', n.FileType, 'stored as a note');
+        ContentVersion cv = [SELECT External_ID__c, ContentModifiedDate FROM ContentVersion WHERE ContentDocumentId = :docId AND IsLatest = true];
+        System.assertEquals('note:' + rid, cv.External_ID__c, 'request id marker');
+        System.assertEquals(Date.newInstance(2026, 11, 15), cv.ContentModifiedDate.dateGmt(), 'eventDate carried as the note date');
+        ContentDocumentLink l = [SELECT ShareType, Visibility FROM ContentDocumentLink WHERE ContentDocumentId = :docId AND LinkedEntityId = :a.Id];
+        System.assertEquals('V', l.ShareType, 'viewer share');
+        System.assertEquals('AllUsers', l.Visibility, 'visibility');
+        System.assertEquals(0, [SELECT COUNT() FROM Meeting_Note__c], 'note action does not write Meeting_Note__c');
+    }
+
+    @IsTest
+    static void noteBodyEscaping() {
+        Account a = new Account(Name = 'Test Treasury Client');
+        insert a;
+        setupRequest(JSON.serialize(new Map<String, Object>{
+            'action' => 'note', 'accountId' => a.Id, 'subject' => 'Escaping',
+            'description' => 'Fees < 5% & rates > 2%\nLine two\r\nLine three'
+        }));
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'note should 200');
+        Id docId = (Id) parseBody().get('id');
+        ContentNote n = [SELECT Content FROM ContentNote WHERE Id = :docId];
+        System.assertEquals('Fees &lt; 5% &amp; rates &gt; 2%<br>Line two<br>Line three', n.Content.toString(), 'HTML-escaped body with <br> line breaks');
+    }
+
+    @IsTest
     static void updatesKyc() {
         Account a = new Account(Name = 'Test Treasury Client', FinServ__KYCStatus__c = 'Expired');
         insert a;

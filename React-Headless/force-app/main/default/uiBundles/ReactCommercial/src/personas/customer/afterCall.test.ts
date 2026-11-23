@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@shared', () => ({ executeGraphQL: vi.fn(), queryDataCloud: vi.fn(), generateText: vi.fn(), crmWrite: vi.fn() }));
+vi.mock('@shared', () => ({ executeGraphQL: vi.fn(), queryDataCloud: vi.fn(), generateText: vi.fn(), crmWrite: vi.fn(), fetchNotes: vi.fn() }));
 
-import { crmWrite, executeGraphQL, queryDataCloud } from '@shared';
-import { approveAfterCall, composeAfterCall, fetchAfterCallContext, mergeAiDraft, hasOwnershipChange, parseActionItems, type AfterCallContext } from './afterCall';
+import { crmWrite, executeGraphQL, fetchNotes, queryDataCloud } from '@shared';
+import { approveAfterCall, composeAfterCall, fetchAfterCallContext, fetchCallRecord, mergeAiDraft, hasOwnershipChange, parseActionItems, type AfterCallContext } from './afterCall';
 
 // Seeded Supercharge Bankers transcript (Demo_Seeds/supercharge_bankers, 2026-11-15 call).
 const TRANSCRIPT = "Attendees: Allen Carter (Relationship Manager), Marisol Rodriguez (CEO), Daniel Okafor (CFO)\nDuration: 41 min\n\n---\n\nAllen Carter: Thanks for making time, both of you. I wanted to walk through the Treasury Services proposal we sent on the 3rd and hear where you've landed.\n\nDaniel Okafor: Honestly, we're not there yet. The pricing on the sweep and the per-item ACH fees came in higher than we expected. We've had another bank in this month and their number was lower.\n\nAllen Carter: Understood. Can you share which pieces were the gap?\n\nDaniel Okafor: Mainly the ACH per-item fee and the monthly account analysis charge. The liquidity sweep itself we like.\n\nMarisol Rodriguez: The bigger issue for me is timing. We're restructuring. As of October 30 we set up Rodriguez Holdings LLC as a parent, and Tomas Vega came in as a 30 percent owner. So whatever we sign, it has to be with the new structure.\n\nAllen Carter: That's helpful to know now. We'll need to update ownership on file before we can open anything under the new entity.\n\nDaniel Okafor: What do you need from us?\n\nAllen Carter: A beneficial ownership certification covering Mr. Vega, the formation documents for the holdings company, and an updated org chart. I'll send the list today.\n\nMarisol Rodriguez: Fine. And we'd like to see the sweep working before we commit. Can your team do a demo?\n\nAllen Carter: Yes. Let me set up a working session with our treasury specialist.\n\nDaniel Okafor: If you can get us revised pricing by the 22nd, we can take it to the board in December.\n\nAllen Carter: I'll have it to you by the 22nd. So, to recap: revised pricing by November 22, the ownership document list today, and a sweep demo before our next call.\n\nMarisol Rodriguez: And let's keep the January 4 check-in.\n\nAllen Carter: January 4 it is. Thank you both.\n\n---\n\nAction items (as spoken):\n1. Revised pricing on ACH per-item and account analysis fees — due 2026-11-22\n2. Send beneficial ownership / entity document checklist for Rodriguez Holdings LLC and Tomas Vega — due 2026-11-15\n3. Schedule liquidity sweep demo with treasury specialist — before 2027-01-04";
@@ -87,7 +87,7 @@ describe('mergeAiDraft', () => {
 });
 
 describe('approveAfterCall', () => {
-  it('writes 3 tasks, a logged email, a meeting note and the KYC update', async () => {
+  it('writes 3 tasks, a logged email, a ContentNote summary and the KYC update', async () => {
     vi.mocked(crmWrite).mockResolvedValue({ success: true, id: 'x' });
     const n = await approveAfterCall(ctx, composeAfterCall(ctx, '2026-11-01'));
     expect(n).toBe(6);
@@ -95,7 +95,8 @@ describe('approveAfterCall', () => {
     expect(actions.filter(a => a.action === 'task' && a.type === 'To Do')).toHaveLength(3);
     expect(actions.find(a => a.type === 'Email')).toMatchObject({ status: 'Completed', whoId: '003b' });
     expect(actions.find(a => a.action === 'kyc')).toMatchObject({ status: 'Required', accountId: ctx.accountId });
-    expect(actions.find(a => a.action === 'meetingNote')).toMatchObject({ accountId: ctx.accountId });
+    expect(actions.find(a => a.action === 'note')).toMatchObject({ accountId: ctx.accountId, subject: 'Call summary — Treasury Services proposal review' });
+    expect(actions.some(a => a.action === 'meetingNote')).toBe(false);
   });
   it('reports partial failures', async () => {
     vi.mocked(crmWrite).mockReset().mockResolvedValue({ success: true, id: 'x' }).mockRejectedValueOnce(new Error('boom'));
@@ -104,26 +105,34 @@ describe('approveAfterCall', () => {
 });
 
 describe('fetchAfterCallContext', () => {
-  const note = (id: string, title: string, date: string, body: string) => ({ node: { Id: id, Title__c: { value: title }, Date__c: { value: date }, Notes__c: { value: body } } });
+  const core = (account: Record<string, unknown>) => ({ uiapi: { query: { Account: { edges: [{ node: account }] }, Contact: { edges: [] } } } });
   it('drafts from the call transcript, skipping newer "Call summary —" notes', async () => {
     vi.mocked(queryDataCloud).mockResolvedValue({ rows: [] } as never);
-    vi.mocked(executeGraphQL).mockResolvedValue({ uiapi: { query: {
-      Account: { edges: [{ node: { Id: '001', Name: { value: 'Rodriguez Industries' }, FinServ__KYCStatus__c: { value: 'Required' } } }] },
-      Meeting_Note__c: { edges: [
-        note('n3', 'Call summary — Treasury Services proposal review', '2026-11-21', 'Model summary'),
-        note('n2', 'Treasury Services proposal review — call transcript', '2026-11-15', 'Transcript body'),
-        note('n1', 'Proposal walkthrough', '2026-11-03', 'Older'),
-      ] },
-      Contact: { edges: [] },
-    } } } as never);
+    vi.mocked(executeGraphQL).mockResolvedValue(core({ Id: '001', Name: { value: 'Rodriguez Industries' }, FinServ__KYCStatus__c: { value: 'Required' } }) as never);
+    vi.mocked(fetchNotes).mockResolvedValue([
+      { id: 'n3', title: 'Call summary — Treasury Services proposal review', date: '2026-11-21', body: 'Model summary' },
+      { id: 'n2', title: 'Treasury Services proposal review — call transcript', date: '2026-11-15', body: 'Transcript body' },
+      { id: 'n1', title: 'Proposal walkthrough', date: '2026-11-03', body: 'Older' },
+    ]);
     const c = await fetchAfterCallContext('001');
+    expect(fetchNotes).toHaveBeenCalledWith('001');
+    expect(vi.mocked(executeGraphQL).mock.calls[0][0]).not.toContain('Meeting_Note__c');
     expect(c?.note).toEqual({ title: 'Treasury Services proposal review — call transcript', date: '2026-11-15', body: 'Transcript body' });
   });
   it('has no note when only summaries exist', async () => {
-    vi.mocked(executeGraphQL).mockResolvedValue({ uiapi: { query: {
-      Account: { edges: [{ node: { Id: '001' } }] },
-      Meeting_Note__c: { edges: [note('n3', 'Call summary - X', '2026-11-21', 'S')] },
-    } } } as never);
+    vi.mocked(executeGraphQL).mockResolvedValue(core({ Id: '001' }) as never);
+    vi.mocked(fetchNotes).mockResolvedValue([{ id: 'n3', title: 'Call summary - X', date: '2026-11-21', body: 'S' }]);
     expect((await fetchAfterCallContext('001'))?.note).toBeNull();
+  });
+});
+
+describe('fetchCallRecord', () => {
+  it('shows the KYC fields and the latest 3 ContentNotes', async () => {
+    vi.mocked(executeGraphQL).mockResolvedValue({ uiapi: { query: { Account: { edges: [{ node: { Id: '001', FinServ__KYCStatus__c: { value: 'Required' }, KYC_Summary__c: { value: '• Docs' } } }] } } } } as never);
+    const notes = ['a', 'b', 'c', 'd'].map((id, i) => ({ id, title: `T${id}`, date: `2026-11-2${4 - i}`, body: id }));
+    vi.mocked(fetchNotes).mockResolvedValue(notes);
+    const r = await fetchCallRecord('001');
+    expect(vi.mocked(executeGraphQL).mock.lastCall?.[0]).not.toContain('Meeting_Note__c');
+    expect(r).toEqual({ kycStatus: 'Required', kycSummary: '• Docs', notes: notes.slice(0, 3) });
   });
 });

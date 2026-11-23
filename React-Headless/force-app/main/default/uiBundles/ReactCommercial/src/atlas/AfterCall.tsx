@@ -79,7 +79,7 @@ export function AfterCall({ accountId }: { accountId: string }) {
         </li>
         <li style={{ '--i': saved.draft.tasks.length + 1 } as React.CSSProperties}>
           <span className="ca-ac-icon ca-ac-plain"><FileText size={18} aria-hidden /></span>
-          <div><strong>Call summary — {saved.title}</strong><small>Meeting note on the company record</small></div>
+          <div><strong>Call summary — {saved.title}</strong><small>Note on the company record</small></div>
           <Check className="ca-ac-tick" size={18} aria-hidden />
         </li>
         <li className="ca-ac-written-kyc" style={{ '--i': saved.draft.tasks.length + 2 } as React.CSSProperties}>
@@ -108,7 +108,7 @@ export function AfterCall({ accountId }: { accountId: string }) {
     ) : (
       <div className="ca-ac-form">
         <div className="ca-ac-block">
-          <SectionHead icon={<FileText size={20} aria-hidden />} title="Call summary" meta="Saved as a meeting note" />
+          <SectionHead icon={<FileText size={20} aria-hidden />} title="Call summary" meta="Saved as a note" />
           <textarea aria-label="Call summary" rows={4} value={draft.summary} onChange={e => set({ summary: e.target.value })} />
         </div>
 
@@ -162,7 +162,7 @@ export function AfterCall({ accountId }: { accountId: string }) {
   </Panel>;
 }
 
-/** Read-only view of what CRM holds now: KYC status and gaps plus the latest meeting notes. */
+/** Read-only view of what CRM holds now: KYC status and gaps plus the latest notes (ContentNote). */
 export function CallRecord({ accountId }: { accountId: string }) {
   const [n, setN] = useState(0);
   useEffect(() => {
@@ -177,7 +177,7 @@ export function CallRecord({ accountId }: { accountId: string }) {
       <p><strong>KYC status</strong> · {r.kycStatus || '—'}</p>
       {r.kycSummary && <p className="ca-aftercall-pre">{r.kycSummary}</p>}
       {r.notes.length ? r.notes.map(n => <article className="ca-conversation-entry" key={n.id}><time>{n.date}</time><h3>{n.title}</h3><p className="ca-aftercall-clamp">{n.body}</p></article>)
-        : <p>No meeting notes are recorded for this company.</p>}
+        : <p>No notes are recorded for this company.</p>}
     </> : <p>This company could not be read from Salesforce.</p>}</Pending>
   </Panel>;
 }

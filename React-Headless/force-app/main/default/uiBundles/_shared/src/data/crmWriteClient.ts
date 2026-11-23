@@ -18,7 +18,7 @@ import { invalidateAtlasReads } from './atlasReadCache';
  */
 import { createDataSDK } from '@salesforce/platform-sdk';
 
-export type CrmAction = 'task' | 'event' | 'case' | 'email' | 'update' | 'delete' | 'goal' | 'lifeEvent' | 'lead' | 'opportunity' | 'meetingNote' | 'kyc';
+export type CrmAction = 'task' | 'event' | 'case' | 'email' | 'update' | 'delete' | 'goal' | 'lifeEvent' | 'lead' | 'opportunity' | 'meetingNote' | 'note' | 'kyc';
 
 export interface CrmWriteInput {
   action: CrmAction;
@@ -33,7 +33,8 @@ export interface CrmWriteInput {
   /** Owner (Assigned To) — reassign a Task/Event on update. */
   ownerId?: string;
   /** Account for a Case, Opportunity, meetingNote (Meeting_Note__c: subject → Title__c,
-   *  description → Notes__c, eventDate → Date__c) or kyc (status → FinServ__KYCStatus__c,
+   *  description → Notes__c, eventDate → Date__c), note (ContentNote linked to the Account:
+   *  subject → Title, description → body, a past eventDate → note date) or kyc (status → FinServ__KYCStatus__c,
    *  description → KYC_Summary__c; no other Account field is writable). */
   accountId?: string;
   /** SObject to update/delete (required when action === 'update' | 'delete'). */

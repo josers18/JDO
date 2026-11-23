@@ -153,6 +153,8 @@ global with sharing class CrmWriteRest {
                 handleOpportunity(res, reqBody);
             } else if (action == 'meetingnote') {
                 handleMeetingNote(res, reqBody);
+            } else if (action == 'note') {
+                handleNote(res, reqBody);
             } else if (action == 'kyc') {
                 handleKyc(res, reqBody);
             } else if (action == 'update') {
@@ -160,7 +162,7 @@ global with sharing class CrmWriteRest {
             } else if (action == 'delete') {
                 handleDelete(res, reqBody);
             } else {
-                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, goal, lifeEvent, lead, opportunity, meetingNote, kyc, update, or delete.');
+                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, goal, lifeEvent, lead, opportunity, meetingNote, note, kyc, update, or delete.');
             }
             if (receipt != null) {
                 if (res.statusCode == 200) {
@@ -479,6 +481,47 @@ global with sharing class CrmWriteRest {
         n.Date__c = String.isBlank(req.eventDate) ? Date.today() : Date.valueOf(req.eventDate);
         insert n;
         writeSuccess(res, n.Id);
+    }
+
+    /**
+     * ContentNote on an Account (the native Notes related list): a ContentVersion
+     * ('.snote', HTML-escaped body like StoryFeed's notes) plus a ContentDocumentLink.
+     * subject -> Title, description -> body. A past eventDate ('YYYY-MM-DD') becomes the
+     * note's ContentModifiedDate (midnight GMT); today, a future date or none keeps now.
+     * External_ID__c = 'note:<requestId>' (or a generated UUID). Returns the ContentNote id.
+     */
+    private static void handleNote(RestResponse res, WriteRequest req) {
+        Id acctId = accountIdOf(req);
+        if (acctId == null) {
+            writeError(res, 400, 'An account is required for a note.');
+            return;
+        }
+        if (String.isBlank(req.subject)) {
+            writeError(res, 400, 'A title is required for a note.');
+            return;
+        }
+        String body = escapeNoteHtml(req.description);
+        ContentVersion cv = new ContentVersion(
+            Title = req.subject.left(255),
+            PathOnClient = req.subject.left(249) + '.snote',
+            VersionData = Blob.valueOf(String.isBlank(body) ? ' ' : body),
+            External_ID__c = 'note:' + (String.isNotBlank(req.requestId) ? req.requestId : UUID.randomUUID().toString())
+        );
+        Date noteDay = String.isBlank(req.eventDate) ? null : Date.valueOf(req.eventDate);
+        if (noteDay != null && noteDay < Date.today()) {
+            cv.ContentModifiedDate = Datetime.newInstanceGmt(noteDay, Time.newInstance(0, 0, 0, 0));
+        }
+        insert cv;
+        Id docId = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id].ContentDocumentId;
+        insert new ContentDocumentLink(ContentDocumentId = docId, LinkedEntityId = acctId, ShareType = 'V', Visibility = 'AllUsers');
+        writeSuccess(res, docId);
+    }
+
+    /** Same escaping as StoryFeed.escapeHtml; the UI's fetchNotes decodes it back. */
+    private static String escapeNoteHtml(String text) {
+        if (text == null) return '';
+        return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            .replace('\r\n', '\n').replace('\n', '<br>');
     }
 
     /**

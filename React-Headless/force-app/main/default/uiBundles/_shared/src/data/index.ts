@@ -43,6 +43,7 @@ export { queryDataCloud, queryDataCloudForBook, bookAccountFilter, type DataClou
 export { runPromptFlow, stripHtml, type PromptFlow } from './promptClient';
 export { crmWrite, fetchCurrentUser, type CrmAction, type CrmWriteInput, type CrmWriteResult, type CurrentUser } from './crmWriteClient';
 export { fetchAccountEmail } from './accountLookup';
+export { fetchNotes, decodeNoteBody, type AccountNote } from './notes';
 export { searchUsers, searchAccounts, searchFinancialPlans, searchContacts, type LookupHit } from './lookupSearch';
 export { generateText, type AiGenerateTask, type AiGenerateInput, type AiGenerateResult } from './aiGenerateClient';
 export {

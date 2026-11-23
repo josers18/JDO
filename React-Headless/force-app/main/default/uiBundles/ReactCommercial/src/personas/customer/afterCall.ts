@@ -4,7 +4,7 @@
  * list, all approved in one click.
  *
  * Sources:
- *   · Meeting_Note__c (latest transcript), Account KYC fields, Contacts → GraphQL
+ *   · ContentNote (latest transcript, via fetchNotes), Account KYC fields, Contacts → GraphQL
  *     (read from CRM directly so a just-logged note shows before the Data Cloud
  *     stream refresh lands)
  *   · BT_Gong_Call_Sentiment__dlm, BT_WorldCheck_AML__dlm → Data Cloud
@@ -13,7 +13,7 @@
  * API is on, AiGenerateRest rewrites it and any field the model gets wrong
  * falls back to the composed value.
  */
-import { executeGraphQL, queryDataCloud, generateText, crmWrite } from '@shared';
+import { executeGraphQL, queryDataCloud, generateText, crmWrite, fetchNotes } from '@shared';
 
 export interface AfterCallContext {
   accountId: string;
@@ -49,9 +49,6 @@ const contextQuery = (acct: string) => `query AfterCall {
     Account(first: 1, where: { Id: { eq: "${acct}" } }) {
       edges { node { Id Name @optional { value } FinServ__KYCStatus__c @optional { value } } }
     }
-    Meeting_Note__c(first: 10, where: { Account__c: { eq: "${acct}" } }, orderBy: { Date__c: { order: DESC } }) {
-      edges { node { Id Title__c @optional { value } Date__c @optional { value } Notes__c @optional { value } } }
-    }
     Contact(first: 10, where: { AccountId: { eq: "${acct}" } }) {
       edges { node { Id Name @optional { value } Title @optional { value } Email @optional { value } } }
     }
@@ -65,8 +62,9 @@ interface ContextShape {
 export async function fetchAfterCallContext(accountId: string): Promise<AfterCallContext | null> {
   const acct = accountId.replace(/[^A-Za-z0-9]/g, '');
   const rows = (sql: string) => queryDataCloud<Record<string, unknown>>(sql, 1).then(r => r.rows).catch((): Record<string, unknown>[] => []);
-  const [core, gongRows, amlRows] = await Promise.all([
+  const [core, notes, gongRows, amlRows] = await Promise.all([
     executeGraphQL<ContextShape>(contextQuery(acct)),
+    fetchNotes(acct),
     rows(`SELECT overall_sentiment__c sent, sentiment_trend__c trend, key_topics_flags__c topics, action_items_count__c items, next_scheduled_call_date__c nxt, rm_name__c rm FROM BT_Gong_Call_Sentiment__dlm WHERE account_id__c = '${acct}' ORDER BY profile_week__c DESC LIMIT 1`),
     rows(`SELECT sanctions_hit__c sanc, adverse_media_hit__c media FROM BT_WorldCheck_AML__dlm WHERE account_id__c = '${acct}' ORDER BY profile_date__c DESC LIMIT 1`),
   ]);
@@ -74,14 +72,14 @@ export async function fetchAfterCallContext(accountId: string): Promise<AfterCal
   const a = q?.Account?.edges?.[0]?.node;
   if (!a) return null;
   // The panel's own "Call summary — …" notes are newer than the call; always draft from the call itself.
-  const n = q?.Meeting_Note__c?.edges?.map(e => e.node).find(node => !/^call summary\s*[—–-]/i.test(gs(node, 'Title__c')));
+  const n = notes.find(note => !/^call summary\s*[—–-]/i.test(note.title));
   const g = gongRows[0];
   const w = amlRows[0];
   return {
     accountId: acct,
     accountName: gs(a, 'Name'),
     kycStatus: gs(a, 'FinServ__KYCStatus__c'),
-    note: n ? { title: gs(n, 'Title__c'), date: gs(n, 'Date__c'), body: gs(n, 'Notes__c') } : null,
+    note: n ? { title: n.title, date: n.date, body: n.body } : null,
     contacts: (q?.Contact?.edges ?? []).map(({ node }) => ({
       id: String(node.Id ?? ''), name: gs(node, 'Name'), title: gs(node, 'Title'), email: gs(node, 'Email'),
     })),
@@ -212,12 +210,12 @@ export async function draftAfterCall(ctx: AfterCallContext): Promise<AfterCallDr
 }
 
 /** One-click approve: 3 Tasks, the email logged as a completed Email Task (not
- *  sent), the summary as a Meeting Note, and KYC set to Required with the gaps. */
+ *  sent), the summary as a ContentNote on the Account, and KYC set to Required with the gaps. */
 export async function approveAfterCall(ctx: AfterCallContext, d: AfterCallDraft): Promise<number> {
   const writes = [
     ...d.tasks.map(t => crmWrite({ action: 'task', subject: t.subject, dueDate: t.dueDate, type: 'To Do', whatId: ctx.accountId, ...(d.email.contactId ? { whoId: d.email.contactId } : {}), priority: 'High' })),
     crmWrite({ action: 'task', subject: `Email: ${d.email.subject}`, description: `To: ${d.email.to}\n\n${d.email.body}`, type: 'Email', status: 'Completed', whatId: ctx.accountId, ...(d.email.contactId ? { whoId: d.email.contactId } : {}) }),
-    crmWrite({ action: 'meetingNote', accountId: ctx.accountId, subject: `Call summary — ${ctx.note?.title?.replace(/\s*[—–-]\s*call transcript$/i, '') || 'latest call'}`, description: d.summary, eventDate: new Date().toISOString().slice(0, 10) }),
+    crmWrite({ action: 'note', accountId: ctx.accountId, subject: `Call summary — ${ctx.note?.title?.replace(/\s*[—–-]\s*call transcript$/i, '') || 'latest call'}`, description: d.summary, eventDate: new Date().toISOString().slice(0, 10) }),
     crmWrite({ action: 'kyc', accountId: ctx.accountId, status: 'Required', description: d.kycGaps.map(g => `• ${g}`).join('\n') }),
   ];
   const results = await Promise.allSettled(writes);
@@ -232,26 +230,23 @@ export interface CallRecord {
   notes: { id: string; title: string; date: string; body: string }[];
 }
 
-/** What CRM holds now (Account KYC + latest Meeting Notes), read directly so a just-approved
+/** What CRM holds now (Account KYC + latest 3 ContentNotes), read directly so a just-approved
  *  draft shows after a reload without waiting for the Data Cloud stream refresh. */
 export async function fetchCallRecord(accountId: string): Promise<CallRecord | null> {
   const acct = accountId.replace(/[^A-Za-z0-9]/g, '');
-  const data = await executeGraphQL<ContextShape>(`query CallRecord {
+  const [data, notes] = await Promise.all([executeGraphQL<ContextShape>(`query CallRecord {
   uiapi { query {
     Account(first: 1, where: { Id: { eq: "${acct}" } }) {
       edges { node { Id FinServ__KYCStatus__c @optional { value } KYC_Summary__c @optional { value } } }
     }
-    Meeting_Note__c(first: 3, where: { Account__c: { eq: "${acct}" } }, orderBy: { Date__c: { order: DESC } }) {
-      edges { node { Id Title__c @optional { value } Date__c @optional { value } Notes__c @optional { value } } }
-    }
   } }
-}`);
+}`), fetchNotes(acct)]);
   const q = data.uiapi?.query;
   const a = q?.Account?.edges?.[0]?.node;
   if (!a) return null;
   return {
     kycStatus: gs(a, 'FinServ__KYCStatus__c'),
     kycSummary: gs(a, 'KYC_Summary__c'),
-    notes: (q?.Meeting_Note__c?.edges ?? []).map(({ node }) => ({ id: String(node.Id ?? ''), title: gs(node, 'Title__c'), date: gs(node, 'Date__c'), body: gs(node, 'Notes__c') })),
+    notes: notes.slice(0, 3),
   };
 }
