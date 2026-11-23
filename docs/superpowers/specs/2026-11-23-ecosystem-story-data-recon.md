@@ -103,3 +103,21 @@ Answer for Tasks 3 and 5: GraphQL can read ContentNote directly, and can read Co
 - `list_segments`: 21 segments, mostly Account-targeted (`ssot__Account__dlm`). Examples: "Accounts with recent trade activity" 36,814 members; "High Value Enterprise Accounts" 33,871 (refresh every 24h); "Equipment Financing Special Promo" 32; "High-Value Buying Committee Members" 4,797 (AccountContact). Several `Dynamic` campaign-audience segments show recordCount 0.
 - `list_activation_targets`: 4 ACTIVE targets: Marketing Cloud Engagement (SalesforceMarketingCloud), AWS S3 (Legacy), Data Cloud Loyalty (CuratedEntity), Data Cloud DMO.
 - `create_segment` and `publish_segment` exist as tools but were not called, so whether segment creation and publishing succeed is not verified. The Account DMO is populated, so an Account-targeted segment is feasible.
+
+## Task 9 acceptance (2026-11-23)
+
+Scope: backfill is demo-scoped by the user's ruling (8,550 of 36,251 accounts have a story). The remaining ~26k accounts and the daily schedule are the final step after all demos.
+
+**(3) Rerun creates zero duplicates: PASS.** Reran `StoryFeed.run(6500)` (job `707am000040mTrYAAU`, same day, same slice as the earlier 6,500 job). 130 of 130 scopes, 0 errors. Counts before and after: story ContentVersion 8,550 / 8,550, Interaction 8,550 / 8,550, InteractionSummary 8,550 / 8,550. Zero duplicate `External_ID__c` values on Interaction and ContentVersion. Case 11,714, VoiceCall 360 and Task 11,080 unchanged.
+
+**(2) Data 360 join for 10 sampled accounts: FAIL, blocked by stream freshness (not by the data).** Sample: `001am00002A9fDOAAZ`, `...fIEAAZ`, `...fLSAAZ`, `...fOgAAJ`, `...fRuAAJ`, `...fYMAAZ`, `...fbaAAB`, `...fgQAAR`, `...fjeAAB`, `...fmsAAB`. The join returned 0 rows.
+
+| Leg | DMO | State |
+|---|---|---|
+| Summaries | `InteractionSummary_Home__dlm` | OK. Stream refreshes (last 2026-11-23 18:40Z); the sampled account has its story summary, latest row 2026-11-23 14:25Z. |
+| Note versions | `ssot__ContentDocumentVersion__dlm` | STALE. Stream `ContentVersion` last refresh 2026-11-23 01:55Z with 1,311 rows, before the story notes were created (14:25Z onward). |
+| Note-to-account links | `ssot__ContentDocumentRelationship__dlm` | STALE. Stream `ContentDocumentLink` last refresh 2025-12-31, 857 rows, 0 for the sampled account. `ContentDocument` stream is also last refreshed 2025-12-31. |
+
+Both content streams are `UPSERT` with no schedule hours. Joins need these fields: relationship `ssot__RelatedItemId__c` = account, relationship `ssot__ContentDocumentId__c` = version `ssot__ContentDocumentId__c`. The version DMO has no `External_ID__c` field, so story notes can only be recognized by title or date. Re-run the join after the two streams are refreshed.
+
+**(1) and (4):** (1) holds for the 8,550 backfilled accounts only. (4) waits on the V2 bundle deploy.
