@@ -521,6 +521,7 @@ global with sharing class CrmWriteRest {
     private static String escapeNoteHtml(String text) {
         if (text == null) return '';
         return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            .replace('"', '&quot;').replace('\'', '&#39;')
             .replace('\r\n', '\n').replace('\n', '<br>');
     }
 

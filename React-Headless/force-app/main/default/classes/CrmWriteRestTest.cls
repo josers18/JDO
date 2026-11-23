@@ -892,7 +892,7 @@ private class CrmWriteRestTest {
         insert a;
         setupRequest(JSON.serialize(new Map<String, Object>{
             'action' => 'note', 'accountId' => a.Id, 'subject' => 'Escaping',
-            'description' => 'Fees < 5% & rates > 2%\nLine two\r\nLine three'
+            'description' => 'Fees < 5% & rates > 2% "x" it\'s\nLine two\r\nLine three'
         }));
         Test.startTest();
         CrmWriteRest.write();
@@ -900,7 +900,7 @@ private class CrmWriteRestTest {
         System.assertEquals(200, RestContext.response.statusCode, 'note should 200');
         Id docId = (Id) parseBody().get('id');
         ContentNote n = [SELECT Content FROM ContentNote WHERE Id = :docId];
-        System.assertEquals('Fees &lt; 5% &amp; rates &gt; 2%<br>Line two<br>Line three', n.Content.toString(), 'HTML-escaped body with <br> line breaks');
+        System.assertEquals('Fees &lt; 5% &amp; rates &gt; 2% &quot;x&quot; it&#39;s<br>Line two<br>Line three', n.Content.toString(), 'HTML-escaped body with <br> line breaks');
     }
 
     @IsTest

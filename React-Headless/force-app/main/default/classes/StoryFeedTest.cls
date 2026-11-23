@@ -209,8 +209,8 @@ private class StoryFeedTest {
 
     @IsTest
     static void noteBodyEscaping() {
-        String transcript = 'RM: Fees < 1% & no minimum.\nClient: Great > expected.';
-        System.assertEquals('RM: Fees &lt; 1% &amp; no minimum.<br>Client: Great &gt; expected.',
+        String transcript = 'RM: Fees < 1% & no minimum.\nClient: Great > expected. It\'s "fine".';
+        System.assertEquals('RM: Fees &lt; 1% &amp; no minimum.<br>Client: Great &gt; expected. It&#39;s &quot;fine&quot;.',
             StoryFeed.escapeHtml(transcript));
 
         StoryTemplates.Story st = new StoryTemplates.Story();
@@ -224,7 +224,7 @@ private class StoryFeedTest {
         System.assertEquals('SNOTE', n.FileType);
         String body = n.Content.toString();
         String back = body.replaceAll('(?i)<p>|</p>', '').replace('<br>', '\n')
-            .replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&');
+            .replace('&lt;', '<').replace('&gt;', '>').replace('&quot;', '"').replace('&#39;', '\'').replace('&amp;', '&');
         System.assertEquals(transcript, back, 'stored body: ' + body);
     }
 }

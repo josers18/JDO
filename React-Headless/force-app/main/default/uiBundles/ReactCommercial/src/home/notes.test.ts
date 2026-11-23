@@ -5,7 +5,7 @@ vi.mock('@shared/data/graphqlClient', () => ({ executeGraphQL }));
 import { decodeNoteBody, fetchNotes } from '@shared/data/notes';
 
 /** Mirror of StoryFeed.escapeHtml / CrmWriteRest.escapeNoteHtml (Apex). */
-const escapeHtml = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\r\n/g, '\n').replace(/\n/g, '<br>');
+const escapeHtml = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/\r\n/g, '\n').replace(/\n/g, '<br>');
 const b64 = (s: string) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 const noteNode = (id: string, title: string, modified: string, body: string) =>
   ({ node: { Id: id, Title: { value: title }, ContentModifiedDate: { value: modified }, Content: { value: b64(body) } } });
@@ -14,6 +14,11 @@ beforeEach(() => executeGraphQL.mockReset());
 
 it('round-trips the Apex note escaping back to plain text', () => {
   const text = 'Fees < 5% & rates > 2% — "ok"\nLine two &amp; literal\n\nAction items:\n1. Pricing — due 2026-11-22';
+  expect(decodeNoteBody(b64(escapeHtml(text)))).toBe(text);
+});
+
+it('round-trips straight quotes and apostrophes', () => {
+  const text = `She said "it's fine" & left`;
   expect(decodeNoteBody(b64(escapeHtml(text)))).toBe(text);
 });
 
