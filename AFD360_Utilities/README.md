@@ -13,7 +13,13 @@ Local test bench for Agentforce and Data 360 APIs, built for SEs to demo live to
   - a SQL editor with catalog autocomplete;
   - REST read forms for data graphs, insights, profiles and Universal ID;
   - a sortable, filterable result grid;
-  - vector and hybrid searches joined to their chunk text.
+  - vector and hybrid searches joined to their chunk text;
+  - **Content → Notes** lists current notes and their linked Account IDs. Run the query to read the first
+    full CRM note above the results. Select another row to read its body. A note linked to two accounts has
+    a row for each. Notes without a mapped account link have an empty Account ID.
+  - **Content → Images, HTML, Documents** reads current files directly from the content version source and joins
+    linked accounts when mapped. Files without an account link still appear. Open a result row to view the file
+    in Salesforce. Data spaces without the source fields use the mapped document and version objects. See the [Salesforce Files data model](https://help.salesforce.com/s/articleView?id=005314319&type=1).
 - **Notebook (Python).** Jupyter-style cells on a Python kernel per org, preloaded with the Data Cloud Python
   connector (`salesforce-cdp-connector`): connect, query a DMO into a pandas DataFrame, chart it. Tables and figures
   render under each cell with a one-line summary (time, rows, Data Cloud vs transfer time, size, HTTP calls). The

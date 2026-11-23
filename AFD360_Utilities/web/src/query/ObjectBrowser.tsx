@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { ChevronRight, Loader2, Play, RefreshCw, Search } from "lucide-react";
+import { contentKinds, contentQuery } from "../../../shared/contentQueries";
 import { rankObjects } from "../../../shared/sqlAssist";
 import { DRAG_FROM, DRAG_TYPE } from "./SqlEditor";
 import type { QueryCatalog, QueryObject, QueryObjectType } from "../../../shared/types";
@@ -46,6 +47,7 @@ interface Props {
   catalog: QueryCatalog | null;
   loading: boolean;
   error: string | null;
+  onContent: (sql: string) => void;
   onRefresh: () => void;
   onOpen: (o: QueryObject) => void;
   onField: (name: string, from?: string) => void;
@@ -130,6 +132,17 @@ export function ObjectBrowser(p: Props) {
             </button>
           ))}
         </div>
+        <section aria-label="Content" className="border-t border-side-line pt-2">
+          <h3 className="text-sm font-semibold">Content</h3>
+          <div className="grid grid-cols-2 gap-1 pt-1">
+            {contentKinds.map(kind => {
+              const sql = contentQuery(kind, p.catalog?.objects ?? []);
+              return <button key={kind} disabled={!sql || p.loading} onClick={() => sql && p.onContent(sql)}
+                title={sql ? `Write the ${kind.toLowerCase()} query` : "Requires current file version fields in this data space"}
+                className="rounded-md border border-side-line bg-side-2 px-2 py-1 text-left text-xs font-medium hover:underline disabled:opacity-50">{kind}</button>;
+            })}
+          </div>
+        </section>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto border-t border-side-line px-2 py-2">

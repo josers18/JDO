@@ -5,6 +5,7 @@ import { ObjectBrowser } from "./ObjectBrowser";
 import { CallPanel, apiUsageOf, type Telemetry } from "./CallPanel";
 import { SqlEditor, insertAtCursor } from "./SqlEditor";
 import { ApiForm, FORMS, type RootSearch } from "./ApiForm";
+import { NoteBody } from "./NoteBody";
 import { RecordPanel } from "./RecordPanel";
 import { download, toCsv, toXlsx } from "./export";
 import { addToSelect, searchWithChunks, sqlParams } from "../../../shared/sqlAssist";
@@ -354,6 +355,11 @@ export function QueryModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOpenA
   const filtered = filters.some((f) => f.trim());
   const selectedAt = selected === null ? -1 : order.indexOf(selected);
 
+  const readerRow = selectedAt >= 0 ? selected : order[0];
+  const cell = (name: string) => readerRow == null ? undefined : rows[readerRow]?.[columns.findIndex(c => c.name === name)];
+  const noteId = String(cell("note_id") ?? (cell("file_type") === "SNOTE" ? cell("content_document_id") : "") ?? "");
+  const showNote = /^069[a-zA-Z0-9]{12}(?:[a-zA-Z0-9]{3})?$/.test(noteId);
+
   const exportAs = (kind: "csv" | "xlsx") => {
     const names = columns.map((c) => c.name);
     const base = source;
@@ -386,6 +392,7 @@ export function QueryModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOpenA
         loading={catalogLoading}
         error={catalogError}
         onRefresh={() => loadCatalog(true)}
+        onContent={text => { setMode("sql"); setSql(text); }}
         onOpen={openObject}
         onField={addField}
       />
@@ -510,6 +517,8 @@ export function QueryModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOpenA
           />
         </div>
 
+        {showNote && <NoteBody key={org.id + noteId} orgId={org.id} documentId={noteId}
+          title={String(cell("title") ?? "")} accountId={String(cell("account_id") ?? "")} addWire={addWire} />}
         {view === "json" && columns.length ? (
           <JsonView columns={columns} rows={shownRows} />
         ) : (
@@ -528,12 +537,12 @@ export function QueryModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOpenA
               loadingMore={loadingMore}
               onMore={loadMore}
               remaining={status ? status.rowCount - rows.length : 0}
-              selected={selected}
+              selected={showNote ? readerRow ?? null : selected}
               onSelect={(i) => setSelected(i === selected ? null : i)}
             />
             {/* Previous and next step through the rows as shown; a row the filters hide closes. */}
-            {selected !== null && selectedAt >= 0 && (
-              <RecordPanel columns={columns} row={rows[selected]} index={selectedAt} count={order.length} onMove={(at) => setSelected(order[at])} onClose={closeRecord} />
+            {!showNote && selected !== null && selectedAt >= 0 && (
+              <RecordPanel org={org} columns={columns} row={rows[selected]} index={selectedAt} count={order.length} onMove={(at) => setSelected(order[at])} onClose={closeRecord} />
             )}
           </div>
         )}
