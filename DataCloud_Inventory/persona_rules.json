@@ -17,7 +17,10 @@
   "overrides": {
     "ConversationParticipant_Home": ["All"],
     "Databricks_File_Federation_Sample": ["Platform"],
-    "NotebookFilesStream": ["Platform"]
+    "NotebookFilesStream": ["Platform"],
+    "asset_Databricks": ["Platform"],
+    "DataCustomCodeLogs": ["Platform"],
+    "test_alt_join_Heroku": ["Platform"]
   },
   "suppress_rules": [
     {"reason": "Test", "pattern": "^test_|_test$|Sample|Demo_Connector"},
