@@ -156,4 +156,6 @@
 
 **Files (expected):** `CrmWriteRest.cls` (+ test): `campaignMember` action; `StoryFeed.cls`: CampaignMember upsert by `External_ID__c`; a search index over notes if Task 1 says it is possible; `Demo_Seeds/ecosystem_story/segment_activation.md`: the segment definition and the activation steps the demo narrates.
 
-- [ ] **Step 1:** After Task 1, expand this task into bite-sized TDD steps and get the user's nod on the segment definition before creating anything in Data 360.
+**Trimmed 2026-11-24 (user ruling, enough to finish the demos):** Task 10 is the segment plus its doc only. The `CrmWriteRest` `campaignmember` action and the `StoryFeed` CampaignMember upserts are **deferred**: UC-12's write-back scene (a reviewed follow-up Task through `AtlasActionReview`) does not need them. The segment "Retail Campaign Responders (UC-12)" is built in the browser, unpublished, with no activation target (see `Demo_Seeds/ecosystem_story/segment_activation.md`). The Retail Growth "Campaign responders" view reads Data 360 directly. Revisit the deferred items in the final step.
+
+- [x] **Step 1:** Segment definition agreed with the user and built unpublished (lookback P360D, 8,140 on last recount).

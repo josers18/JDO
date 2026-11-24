@@ -146,7 +146,7 @@ By live query over the data (an account in the target banker's book that has the
 - Whether a text index can be built over note content or must use the `InteractionSummary` copy.
 - Whether the Snowflake override procedures can add Rodriguez's new-owner edge (the Snowflake MCP failed to connect this session; run it manually or fix the connection).
 - Hydration volumes for identification documents and review dates per account (storage).
-- `CrmWriteRest` support for CampaignMember writes.
+- `CrmWriteRest` support for CampaignMember writes. **Deferred (2026-11-24):** UC-12's write-back scene creates a Task through `AtlasActionReview` instead, so neither the `campaignmember` action nor the `StoryFeed` CampaignMember upserts are built. Revisit in the final step.
 - Whether ReactRetail and ReactWealth already have surfaces for prospect scoring and triage (a survey found none).
 
 ## Out of scope for this doc
