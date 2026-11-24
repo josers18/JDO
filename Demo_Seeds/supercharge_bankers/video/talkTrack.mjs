@@ -3,7 +3,8 @@
 
 const ARG_REQUIRED = {};
 /** draft: click Draft follow-ups and wait for the draft; approve: click Approve and wait for the saved line; reload: reopen the Notes tab (the panel re-reads CRM). */
-const NO_ARG = new Set(["draft", "approve", "reload"]);
+// `voice` marks where in a segment the narration starts (default: the segment start), so a line can wait for the screen.
+const NO_ARG = new Set(["draft", "approve", "reload", "voice"]);
 const KNOWN = new Set([...NO_ARG, "pause", "point", "spot", "slide", "card"]);
 /** Actions that hold the frame for their `seconds` (and that measured timing may squeeze). */
 export const HELD = new Set(["point", "spot", "slide"]);
@@ -15,7 +16,7 @@ export const POINT_TARGETS = ["panel", "summary", "tasks", "email", "gaps", "com
 /** `<scope>:<phrase>` targets ring the newest visible element (or phrase) with that text, inside the scope. */
 export const POINT_SCOPES = ["text", "panel", "notes", "summary"];
 /** Air after a voice clip before the next segment starts. */
-export const VOICE_BREATH_S = 0.5;
+export const VOICE_BREATH_S = 0.8;
 
 const words = (s) => s.split(/\s+/).filter(Boolean).length;
 
@@ -75,7 +76,7 @@ export function parseTalkTrack(markdown) {
   let cur = null;
   let inSay = false;
   for (const raw of markdown.split(/\r?\n/)) {
-    const h = /^##\s+(S\d+)\s*·\s*(.+?)\s*$/.exec(raw);
+    const h = /^##\s+(S\d+[a-z]?)\s*·\s*(.+?)\s*$/.exec(raw);
     if (h) {
       cur = { id: h[1], title: h[2], actions: [], say: "", seconds: 0 };
       segments.push(cur);
@@ -136,6 +137,7 @@ export function applyVoiceTiming(segments, clips) {
     const c = byId.get(seg.id);
     if (!c) throw new Error(`${seg.id}: no voice clip; re-run the voice step`);
     if (c.text !== seg.say) throw new Error(`${seg.id}: voice clip is stale (Say line changed); re-run the voice step`);
+    seg.voiceSeconds = c.ms / 1000 + VOICE_BREATH_S;
     seg.seconds = Math.max(c.ms / 1000 + VOICE_BREATH_S, holdSeconds(seg.actions) + 3);
   }
   return segments;
@@ -159,6 +161,8 @@ export function applyMeasuredTiming(segments, timing) {
   for (const seg of segments) {
     const t = byId.get(seg.id);
     if (!t) continue;
+    // A line held until a `voice` cue still has to finish inside its segment.
+    if (t.voiceAtMs && seg.voiceSeconds) seg.seconds = Math.max(seg.seconds, t.voiceAtMs / 1000 + seg.voiceSeconds);
     const actionsMs = t.actionsMs ?? (t.overrunMs > 0 ? t.seconds * 1000 + t.overrunMs : 0);
     const points = seg.actions.filter((a) => HELD.has(a.type));
     if (!points.length) {

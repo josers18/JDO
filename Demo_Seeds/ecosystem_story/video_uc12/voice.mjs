@@ -75,7 +75,14 @@ const probe = (file) =>
 
 if (step === "clips") {
   const { parseTalkTrack } = await import(join(HERE, "talkTrack.mjs"));
-  const segments = parseTalkTrack(readFileSync(resolve(opt("--track", join(HERE, "TALK_TRACK_VIDEO.md"))), "utf8"));
+  const trackPath = resolve(opt("--track", join(HERE, "TALK_TRACK_VIDEO.md")));
+  // US English only, before any credits are spent: usspell.py lists each British spelling and exits 1.
+  try {
+    execFileSync("python3", ["-I", join(HERE, "usspell.py"), trackPath], { stdio: "inherit" });
+  } catch {
+    throw new Error("talk track has British spellings (see above); fix them before voicing");
+  }
+  const segments = parseTalkTrack(readFileSync(trackPath, "utf8"));
   const voiceDir = join(dir, "voice");
   mkdirSync(voiceDir, { recursive: true });
   const clips = [];
@@ -137,8 +144,10 @@ if (step === "clips") {
   const placed = clips.map((c) => {
     const t = timing.get(c.id);
     if (!t) throw new Error(`${c.id}: not in timing.json; re-record with --voice clips.json`);
-    const atMs = Math.max(t.startMs, prevEnd ? prevEnd + GAP_MS : 0);
-    if (atMs > t.startMs) late++;
+    // A segment can hold its line until a `voice` cue (voiceAtMs into the segment), so the words wait for the screen.
+    const dueMs = t.startMs + (t.voiceAtMs ?? 0);
+    const atMs = Math.max(dueMs, prevEnd ? prevEnd + GAP_MS : 0);
+    if (atMs > dueMs) late++;
     prevEnd = atMs + c.ms;
     return { ...c, atMs };
   });

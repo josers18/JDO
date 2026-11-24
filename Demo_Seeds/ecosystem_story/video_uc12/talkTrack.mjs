@@ -3,7 +3,8 @@
 
 const ARG_REQUIRED = { chip: ["All", "Premier Checking", "Mobile Banking", "HELOC Refi"], nav: ["Today", "Growth"], tab: ["Campaign responders"] };
 /** review: open "Review recommended action"; approve: submit the form and wait for the saved line; reload: reopen the page. */
-const NO_ARG = new Set(["review", "approve", "reload"]);
+// `voice` marks where in a segment the narration starts (default: the segment start), so a line can wait for the screen.
+const NO_ARG = new Set(["review", "approve", "reload", "voice"]);
 /** nav <label>: click a main-nav link; tab <label>: click a Growth tab; chip <label>: click a campaign filter; row <n>: select the nth ranked responder. */
 const KNOWN = new Set([...NO_ARG, "nav", "tab", "chip", "row", "pause", "point", "spot", "slide", "card"]);
 /** Actions that hold the frame for their `seconds` (and that measured timing may squeeze). */
@@ -76,7 +77,7 @@ export function parseTalkTrack(markdown) {
   let cur = null;
   let inSay = false;
   for (const raw of markdown.split(/\r?\n/)) {
-    const h = /^##\s+(S\d+)\s*·\s*(.+?)\s*$/.exec(raw);
+    const h = /^##\s+(S\d+[a-z]?)\s*·\s*(.+?)\s*$/.exec(raw);
     if (h) {
       cur = { id: h[1], title: h[2], actions: [], say: "", seconds: 0 };
       segments.push(cur);
@@ -138,6 +139,7 @@ export function applyVoiceTiming(segments, clips) {
     if (!c) throw new Error(`${seg.id}: no voice clip; re-run the voice step`);
     if (c.text !== seg.say) throw new Error(`${seg.id}: voice clip is stale (Say line changed); re-run the voice step`);
     // Holds get only a breath of slack past the voice, so the screen never sits silent for long.
+    seg.voiceSeconds = c.ms / 1000 + VOICE_BREATH_S;
     seg.seconds = Math.max(c.ms / 1000, holdSeconds(seg.actions)) + VOICE_BREATH_S;
   }
   return segments;
@@ -161,6 +163,8 @@ export function applyMeasuredTiming(segments, timing) {
   for (const seg of segments) {
     const t = byId.get(seg.id);
     if (!t) continue;
+    // A line held until a `voice` cue still has to finish inside its segment.
+    if (t.voiceAtMs && seg.voiceSeconds) seg.seconds = Math.max(seg.seconds, t.voiceAtMs / 1000 + seg.voiceSeconds);
     const actionsMs = t.actionsMs ?? (t.overrunMs > 0 ? t.seconds * 1000 + t.overrunMs : 0);
     const points = seg.actions.filter((a) => HELD.has(a.type));
     if (!points.length) {

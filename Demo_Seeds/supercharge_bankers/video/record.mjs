@@ -24,7 +24,6 @@ const ZOOM = CAPTURE.width / LAYOUT.width;
 const FPS = 30;
 const JPEG_QUALITY = 92;
 const VIDEO_BITRATE = "24M";
-const MOVE_STEPS = 30;
 const SCROLL_SETTLE_MS = 700;
 const TYPE_DELAY_MS = 25;
 const LOAD_TIMEOUT_MS = 90_000;
@@ -362,6 +361,31 @@ function revealIfHidden(el) {
 // Where the pointer is now, so each move glides from the last spot.
 const mouse = { x: CAPTURE.width / 2, y: CAPTURE.height / 2 };
 
+/**
+ * Move like a hand: a gentle arc (not a ruler line), eased in and out, timed by distance (Fitts-ish),
+ * overshooting a touch on long moves and settling back onto the target.
+ */
+async function glide(page, x, y) {
+  const { x: x0, y: y0 } = mouse;
+  const dist = Math.hypot(x - x0, y - y0);
+  if (dist < 2) return;
+  const ms = Math.min(1100, 350 + dist * 0.35);
+  const steps = Math.max(12, Math.round(ms / 16));
+  const bend = (Math.random() < 0.5 ? -1 : 1) * Math.min(120, dist * 0.12);
+  const cx = (x0 + x) / 2 + (-(y - y0) / dist) * bend, cy = (y0 + y) / 2 + ((x - x0) / dist) * bend;
+  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+  // Long moves land a few px past the target along the travel direction, then correct.
+  const over = dist > 300 ? Math.min(14, dist * 0.015) : 0;
+  const ex = x + ((x - x0) / dist) * over, ey = y + ((y - y0) / dist) * over;
+  for (let i = 1; i <= steps; i++) {
+    const t = ease(i / steps), u = 1 - t;
+    await page.mouse.move(u * u * x0 + 2 * u * t * cx + t * t * ex, u * u * y0 + 2 * u * t * cy + t * t * ey);
+    await sleep(ms / steps);
+  }
+  if (over) { await sleep(70); await page.mouse.move(x, y, { steps: 6 }); }
+  Object.assign(mouse, { x, y });
+}
+
 /** Scroll the element into view (smoothly, inside its own scroll pane) and glide the cursor to it. */
 async function moveTo(page, loc) {
   await loc.waitFor({ state: "visible", timeout: 8_000 });
@@ -371,14 +395,16 @@ async function moveTo(page, loc) {
   if (!box) return;
   const x = box.x + Math.min(box.width / 2, 160);
   const y = box.y + Math.min(box.height / 2, 60);
-  await page.mouse.move(x, y, { steps: MOVE_STEPS });
-  Object.assign(mouse, { x, y });
+  await glide(page, x, y);
 }
 
-/** Glide to the element, then click it (the overlay draws the ripple). */
+/** Glide to the element, pause like a hand would, then press where the cursor already is (no snap to center). */
 async function click(page, loc) {
   await moveTo(page, loc);
-  await loc.click();
+  await sleep(120);
+  await page.mouse.down();
+  await sleep(70);
+  await page.mouse.up();
 }
 
 // Panels have no ids, so tagPanels() marks them by their header title (re-run after each screen change).
@@ -548,9 +574,11 @@ const ids = (soql) => sf("data", "query", "-q", soql).result.records.map((r) => 
 /** Off camera: delete what the panel wrote today on the hero (Tasks, "Call summary" notes) and put KYC back to Expired. */
 function reset() {
   const tasks = ids(`SELECT Id FROM Task WHERE WhatId = '${HERO}' AND CreatedDate = TODAY`);
-  const notes = ids(`SELECT Id FROM Meeting_Note__c WHERE Account__c = '${HERO}' AND Title__c LIKE 'Call summary%'`);
+  // The panel saves the summary as a ContentNote on the account, so delete those documents (not Meeting_Note__c).
+  const notes = sf("data", "query", "-q", `SELECT ContentDocumentId FROM ContentDocumentLink WHERE LinkedEntityId = '${HERO}' AND ContentDocument.Title LIKE 'Call summary%'`)
+    .result.records.map((r) => r.ContentDocumentId);
   for (const id of tasks) sf("data", "delete", "record", "-s", "Task", "-i", id);
-  for (const id of notes) sf("data", "delete", "record", "-s", "Meeting_Note__c", "-i", id);
+  for (const id of notes) sf("data", "delete", "record", "-s", "ContentDocument", "-i", id);
   sf("data", "update", "record", "-s", "Account", "-i", HERO, "-v", "FinServ__KYCStatus__c=Expired KYC_Summary__c=''");
   console.log(`reset: ${tasks.length} tasks, ${notes.length} notes deleted, KYC Expired`);
 }
@@ -603,9 +631,9 @@ async function approve(page) {
 async function run(page, action) {
   const { type, arg } = action;
   // Any other action ends the current highlight; pauses don't change the screen, so it stays.
-  if (!["point", "spot", "pause"].includes(type)) await clearHighlight(page);
+  if (!["point", "spot", "pause", "voice"].includes(type)) await clearHighlight(page);
   // The story slide goes at the first thing to watch.
-  if (!["slide", "pause"].includes(type)) await hideSlide(page);
+  if (!["slide", "pause", "voice"].includes(type)) await hideSlide(page);
   switch (type) {
     case "draft":
       return draft(page);
@@ -613,6 +641,8 @@ async function run(page, action) {
       return approve(page);
     case "reload":
       return openNotes(page, true);
+    case "voice":
+      return; // a timing mark only: the main loop records when it was reached
     case "pause":
       return sleep(Number(arg) * 1000);
     case "point":
@@ -685,8 +715,10 @@ async function main() {
     console.log(`${seg.id} ${seg.title}`);
     Object.assign(notes, { n: 0, last: null });
     let pointMs = 0;
+    let voiceAtMs = 0;
     for (const action of seg.actions) {
       const a0 = Date.now();
+      if (action.type === "voice") voiceAtMs = a0 - start;
       await run(page, action);
       if (HELD.has(action.type)) pointMs += Date.now() - a0;
     }
@@ -698,7 +730,7 @@ async function main() {
       overrunMs = Math.round(-remaining);
       console.log(`${seg.id} overran by ${(overrunMs / 1000).toFixed(1)} s`);
     }
-    timing.push({ id: seg.id, startMs, seconds: seg.seconds, overrunMs, actionsMs, pointMs });
+    timing.push({ id: seg.id, startMs, seconds: seg.seconds, overrunMs, actionsMs, pointMs, voiceAtMs });
   }
   const totalMs = Date.now() - t0;
 
@@ -709,7 +741,7 @@ async function main() {
   await browser.close();
   reset();
   writeFileSync(join(out, "timing.json"), `${JSON.stringify(timing, null, 2)}\n`);
-  writeFileSync(join(out, "narration.srt"), toSrt(segments, timing.map((t) => t.startMs)));
+  writeFileSync(join(out, "narration.srt"), toSrt(segments, timing.map((t) => t.startMs + t.voiceAtMs)));
   if (offSize) console.log(`capture: ${offSize} of ${written} frames arrived smaller than ${CAPTURE.width}x${CAPTURE.height} and were scaled up`);
   console.log(`done: ${(totalMs / 1000).toFixed(1)} s, ${segments.length} cues, ${CAPTURE.width}x${CAPTURE.height} -> ${videoPath}`);
 }

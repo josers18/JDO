@@ -1,6 +1,6 @@
 # Video talk track: "After the call"
 
-*Commercial Bankers Cockpit (org jdo-oe0sdd) · Rodriguez Industries · Supercharge Bankers demo. Run `./make-video.sh`; the voice-over is generated in ElevenLabs from the **Say** lines. Draft, 2026-11-19.*
+*Commercial Bankers Cockpit (org jdo-oe0sdd) · Rodriguez Industries · Supercharge Bankers demo. Run `./make-video.sh`; the voice-over is generated in ElevenLabs from the **Say** lines. Draft, 2026-11-19; voice cues and Multi-Framework close, 2026-11-24.*
 
 The recorder (`record.mjs`) logs in, opens the V2 company page on its **Notes & tools** tab before capture starts, and clears what the panel wrote (today's Tasks on the account, "Call summary" notes, KYC back to Expired) before and after every take.
 
@@ -10,10 +10,10 @@ The recorder (`record.mjs`) logs in, opens the V2 company page on its **Notes & 
 ---
 
 ## S01 · Open
-- do: slide 12 Commercial banking · Rodriguez Industries | Forty-one minutes on the phone. *Then the paperwork.* | Allen Carter, relationship manager · Treasury Services proposal review, Nov 15 | Nov 15 = The call: pricing pushback, a new parent company ; *Now = Allen opens the client in the Commercial Bankers Cockpit ; One click = Summary, tasks, email, KYC | One transcript · every follow-up drafted · approved in one click
-- do: spot 6 panel -- After the call | The latest call, ready to wrap up | Reads the Nov 15 transcript ; Plus call sentiment and compliance screening
+- do: slide 11 Commercial banking · Rodriguez Industries | Forty-one minutes on the phone. *Then the paperwork.* | Allen Carter, relationship manager · Treasury Services proposal review, Nov 15 | Nov 15 = The call: pricing pushback, a new parent company ; *Now = Allen opens the client in the Commercial Bankers Cockpit ; One click = Summary, tasks, email, KYC | One transcript · every follow-up drafted · approved in one click
+- do: spot 5 panel -- After the call | The latest call, ready to wrap up | Reads the Nov 15 transcript ; Plus call sentiment and compliance screening
 
-**Say:** Allen Carter is a commercial relationship manager. On Friday, November twentieth, he spent forty-one minutes on the phone with Rodriguez Industries, reviewing a Treasury Services proposal. Normally the next hour goes to notes, tasks and a recap email. Here, the client's page already has an After the call panel, built from the call transcript.
+**Say:** Allen Carter is a commercial relationship manager. On November fifteenth, he spent forty-one minutes on the phone with Rodriguez Industries, reviewing a Treasury Services proposal. Normally the next hour goes to notes, tasks and a recap email. Here, the client's page already has an After the call panel, built from the call transcript.
 
 ## S02 · The signals
 - do: point 4 panel:Sentiment negative -- Call sentiment: it went badly
@@ -23,12 +23,16 @@ The recorder (`record.mjs`) logs in, opens the V2 company page on its **Notes & 
 
 ## S03 · Draft
 - do: draft
-- do: pause 3
-- do: point 3.8 summary:pric
-- do: point 4.2 summary:owner|parent|restructur
-- do: point 2.8 summary:check.?in|january
+- do: pause 1
 
-**Say:** Allen clicks Draft follow-ups. Agentforce reads the transcript along with the call sentiment and writes the call summary: the client pushed back on pricing against another bank, they are restructuring under a new holding company with a new thirty percent owner, and the next check-in is January fourth.
+**Say:** Allen clicks Draft follow-ups. Agentforce reads the transcript, along with the call sentiment, and writes everything that comes next.
+
+## S03b · The call summary
+- do: point 3.2 summary:pric
+- do: point 3.5 summary:owner|parent|restructur
+- do: point 2.4 summary:check.?in|january
+
+**Say:** First, the call summary. The client pushed back on pricing against another bank. They are restructuring under a new holding company, with a new thirty percent owner. And the next check-in is January fourth.
 
 ## S04 · The commitments
 - do: point 6 tasks -- Three commitments, with due dates
@@ -48,9 +52,13 @@ The recorder (`record.mjs`) logs in, opens the V2 company page on its **Notes & 
 ## S07 · Approve
 - do: point 3 approve -- Everything is editable; one click saves it
 - do: approve
+
+**Say:** Every field is editable. When it reads right, Allen clicks Approve. Nothing is written until he does, because the agent drafts and the banker decides. Now it saves everything to Salesforce.
+
+## S07b · Six records
 - do: spot 6 status -- One click, six records | Written straight to Salesforce | Three follow-up tasks ; The email, logged ; The call summary note ; KYC set to Required
 
-**Say:** Every field is editable. When it reads right, Allen clicks Approve. One click writes six records to Salesforce: three follow-up tasks, the logged email, the call summary note, and the KYC status set to Required, with the gaps attached.
+**Say:** That one click writes six records to Salesforce: three follow-up tasks, the logged email, the call summary note, and the KYC status set to Required, with the gaps listed for compliance.
 
 ## S08 · It landed
 - do: reload
@@ -62,6 +70,6 @@ The recorder (`record.mjs`) logs in, opens the V2 company page on its **Notes & 
 ## S09 · Close
 - do: card From call to CRM in one click
 - do: pause 4.5
-- do: card Designed around the banker. Context from Data 360. Governed by Salesforce.
+- do: card Built with React on Salesforce Multi-Framework. Context from Data 360. Governed by Salesforce.
 
-**Say:** From a forty-one minute call to a clean record, in one click. Because the cockpit is headless, the front end is designed around the banker, with Data Three Sixty serving the context they need, while the security, governance and agents stay in Salesforce, so nothing is compromised. That's the banker's hour back.
+**Say:** From a forty-one minute call to a clean record, in one click. And this cockpit is a React app, running natively on Salesforce with Salesforce Multi-Framework. So the team builds the banker's experience with the latest front-end tools, the same components and libraries they already use, shaped around how each banker works. Data Three Sixty serves the context, and sign-in, security and governance come built in from the platform. That's the banker's hour back.

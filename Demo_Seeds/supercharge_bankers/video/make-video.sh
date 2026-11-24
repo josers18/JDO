@@ -9,5 +9,5 @@ OUT="${VIDEO_OUT:-$HERE/video-out}"
 mkdir -p "$OUT"
 node "$HERE/voice.mjs" clips --track "$HERE/TALK_TRACK_VIDEO.md" --video-dir "$OUT"
 MEASURED=(); [[ -f "$OUT/timing.json" ]] && MEASURED=(--measured "$OUT/timing.json")
-node "$HERE/record.mjs" --track "$HERE/TALK_TRACK_VIDEO.md" --out "$OUT" --voice "$OUT/clips.json" "${MEASURED[@]}"
+node "$HERE/record.mjs" --track "$HERE/TALK_TRACK_VIDEO.md" --out "$OUT" --voice "$OUT/clips.json" ${MEASURED[@]+"${MEASURED[@]}"}
 node "$HERE/voice.mjs" mux --video-dir "$OUT"
