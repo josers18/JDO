@@ -69,7 +69,7 @@ Four fetch phases, then a join, then two writers. All in `generate_inventory.py`
 4. **`build_stream_dmos` / `build_rows` / `build_breakdowns` / `build_connectors`** —
    join maps to streams via the map `developerName` prefix (`{stream}_map_…`),
    tag each stream (`PersonaTagger` + `corrections/<org>.json`, see README),
-   emit the 32-column master plus Unmapped / Needs-Attention / Orphaned-DLO /
+   emit the 33-column master plus Unmapped / Needs-Attention / Orphaned-DLO /
    Summary / Connectors tables.
 5. **`write_xlsx`** (multi-sheet, frozen header + autofilter per sheet) and
    **`write_html`** (one file; embeds rows as JSON, vanilla-JS search/filter/sort, plus
