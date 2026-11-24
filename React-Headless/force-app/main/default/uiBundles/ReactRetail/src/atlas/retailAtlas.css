@@ -8866,3 +8866,13 @@
 .retail-advisory .wa-metric:focus-visible { outline-offset: -3px; }
 .retail-advisory .retail-outreach-links { display: flex; flex-wrap: wrap; }
 .retail-advisory .wa-actions { flex-wrap: wrap; }
+
+/* Campaign responders (Growth) */
+.biz-responder-grid { display: grid; grid-template-columns: minmax(260px, 2fr) 3fr; gap: 16px; align-items: start; }
+.biz-responder-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 480px; overflow: auto; }
+.biz-responder-list button { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; width: 100%; text-align: left; padding: 10px 12px; border: 1px solid var(--m-line, #d8dde6); border-radius: 10px; background: var(--m-surface, #fff); cursor: pointer; }
+.biz-responder-list button[aria-pressed='true'] { border-color: var(--m-accent); background: var(--m-soft); }
+.biz-responder-list small { display: block; color: var(--m-muted, #5b6472); }
+.biz-responder-list em { font-style: normal; font-weight: 600; }
+.biz-responder-detail { display: grid; gap: 10px; padding: 16px; border: 1px solid var(--m-line, #d8dde6); border-radius: 12px; background: var(--m-surface, #fff); }
+@media (max-width: 900px) { .biz-responder-grid { grid-template-columns: 1fr; } }

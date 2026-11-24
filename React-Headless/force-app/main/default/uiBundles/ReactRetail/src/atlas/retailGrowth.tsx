@@ -1,6 +1,7 @@
 import { atlasChartColors, atlasProbabilityBand } from '@shared/components/atlas/atlasChartColors';
 import { useState, type CSSProperties } from 'react';
 import { Link } from 'react-router';
+import { AtlasActionReview } from '@shared/components/atlas/AtlasActionReview';
 import { useCrmAction } from '@shared/components/home/useCrmAction';
 import { Modal } from '@shared/components/Modal';
 import { WHITESPACE_LEAD_SOURCE, whitespaceOpportunityName } from '@shared/data/whitespace';
@@ -19,7 +20,7 @@ const pct = (value: unknown) => numeric(value) == null ? '—' : `${Number(value
 
 export default function Growth({ ownerId }: { ownerId: string }) {
   const { params, update, choice } = useFilters();
-  const view = choice('view', ['needs', 'coverage', 'map', 'movers', 'planning'], 'needs');
+  const view = choice('view', ['needs', 'coverage', 'map', 'movers', 'planning', 'responders'], 'needs');
   const stage = params.get('cohort') ?? 'all';
   const life = useSource(`lifeMix:${ownerId}`, () => readSource('lifeMix', ownerId));
   const cohorts = life.data?.rows ?? [];
@@ -55,7 +56,7 @@ export default function Growth({ ownerId }: { ownerId: string }) {
           <p>{eligibles ? `${count(new Set(eligibles.map(row => row.acct)).size)} sampled customers · ${count(eligibles.length)} scored product relationships` : 'Selected customer opportunity evidence'}</p></div>
           <div className="r3-growth-purpose"><strong>Book mix → customer need → next step</strong><span>Cohort context and per-customer scores stay distinct.</span></div>
         </div>
-        <div className="r3-growth-toolbar"><Choices className="r3-product-controls" items={[[ 'needs','Needs explorer' ], ['map','Probability map'], ['movers','Book movers'], ['planning','Home & investing needs']]}
+        <div className="r3-growth-toolbar"><Choices className="r3-product-controls" items={[[ 'needs','Needs explorer' ], ['map','Probability map'], ['movers','Book movers'], ['planning','Home & investing needs'], ['responders','Campaign responders']]}
           selected={view} update={value => update({ view: value, offer: null, page: null })} /><Link to="/prospecting" className="r3-text-link">Work leads & referrals</Link></div>
         {view === 'needs' && <>
           <div className="ps-growth-tools"><button className="secondary" onClick={() => update({ view: 'movers', direction: 'rising', page: null, offer: null })}>Explore rising offers</button>
@@ -67,6 +68,7 @@ export default function Growth({ ownerId }: { ownerId: string }) {
         {view === 'map' && <Offers ownerId={ownerId} view="coverage" stage={stage} onSaved={refresh} />}
         {(view === 'movers' || view === 'coverage') && <Offers ownerId={ownerId} view={view} stage={stage} onSaved={refresh} />}
         {view === 'planning' && <Needs ownerId={ownerId} stage={stage} rows={cohorts} />}
+        {view === 'responders' && <Responders ownerId={ownerId} />}
       </section>
     </div>
     <p className="source-note">Life-stage averages and individual model probabilities are separate measures. The coverage and needs tables show selected relationships.</p>
@@ -320,5 +322,62 @@ function Needs({ ownerId, stage, rows }: { ownerId: string; stage: string; rows:
     })}</div>
     <Paging className="biz-pager" total={filter.length} shown={shown.length} offset={page * 4} previous={page > 0 ? () => update({ page: String(page - 1) }) : undefined}
       next={(page + 1) * 4 < filter.length ? () => update({ page: String(page + 1) }) : undefined} />
+  </section>;
+}
+
+const campaigns = [
+  ['premier', 'Premier Checking Onboarding', 'Premier Checking', 'CHK-ACQ', 'fit_chk'],
+  ['mobile', 'Mobile Banking Adoption', 'Mobile Banking', null, null],
+  ['heloc', 'HELOC Refi Outreach Q2', 'HELOC Refi', 'HEL-ACQ', 'fit_hel'],
+] as const;
+const responded = (row: Row) => campaigns.filter(([key]) => numeric(row[key]) === 1);
+
+function Responders({ ownerId }: { ownerId: string }) {
+  const { open } = useWorkspace();
+  const { params, update, choice } = useFilters();
+  const filter = choice('campaign', ['all', ...campaigns.map(([key]) => key)], 'all');
+  const counts = useSource(`responderCounts:${ownerId}`, () => readSource('campaignResponderCounts', ownerId));
+  const list = useSource(`responders:${ownerId}`, async () => {
+    const result = await readSource('campaignResponders', ownerId);
+    return { ...result, names: await bookNames(ownerId, result.rows, 'acct') };
+  });
+  const total = counts.data?.rows[0];
+  const none = counts.data != null && numeric(total?.responders) === 0;
+  const rows = (list.data?.rows ?? []).filter(row => filter === 'all' || numeric(row[filter]) === 1);
+  const selectedId = params.get('responder');
+  const chosen = rows.find(row => text(row.acct) === selectedId) ?? rows[0];
+  const id = chosen ? text(chosen.acct) : '';
+  const customer = chosen ? (list.data?.names.get(id) ?? text(chosen.name)) : '';
+  const hit = chosen ? responded(chosen) : [];
+  const lead = hit.map(([, , short]) => short).join(' + ');
+  const context = chosen ? `Responded to ${hit.map(([, full]) => full).join(', ')} · responder score ${numeric(chosen.score)?.toFixed(1) ?? '—'}` : '';
+  return <section className="biz-responders" data-retail-growth="responders">
+    <header className="biz-section-head"><div><span className="biz-eyebrow">Marketing response</span><h2>Campaign responders</h2>
+      <p>Customers in your book who responded to a live campaign, ranked by how many they answered and how well the matching offer fits.</p></div>
+      <Choices className="biz-modes" items={[['all', `All · ${count(total?.responders)}`], ...campaigns.map(([key, , short]) => [key, `${short} · ${count(total?.[key])}`] as [string, string])]}
+        selected={filter} update={value => update({ campaign: value, responder: null })} /></header>
+    <SourceNotice source={counts} warning={counts.data?.warning} />
+    {none ? <p className="source-note">No customers in this book have responded to the live campaigns.</p> : <>
+      <p className="source-note">{count(total?.multi)} customers answered more than one campaign. The list shows the top {count(list.data?.rows.length)} by score.</p>
+      <SourceNotice source={list} empty={!rows.length} warning={list.data?.warning} /></>}
+    {chosen && <div className="biz-responder-grid">
+      <ol className="biz-responder-list" aria-label="Ranked responders">{rows.map((row, i) => {
+        const key = text(row.acct);
+        return <li key={key}><button aria-pressed={key === id} onClick={() => update({ responder: key })}>
+          <b>{i + 1}</b><span><strong>{list.data?.names.get(key) ?? text(row.name)}</strong>
+            <small>{responded(row).map(([, , short]) => short).join(' · ')}</small></span><em>{numeric(row.score)?.toFixed(1)}</em></button></li>;
+      })}</ol>
+      <article className="biz-responder-detail">
+        <span className="badge">{count(chosen.campaigns)} {numeric(chosen.campaigns) === 1 ? 'campaign' : 'campaigns'} answered</span>
+        <h3>{customer}</h3><p>{text(chosen.stage, 'Life stage unavailable')}</p>
+        <Facts values={[['Responder score', numeric(chosen.score)?.toFixed(1) ?? '—'], ...campaigns.filter(([, , , , fit]) => fit).map(([key, , short, , fit]) =>
+          [`${short} offer fit`, numeric(chosen[key]) === 1 ? pct(chosen[fit as string]) : 'Did not respond'] as [string, string])]} />
+        <p className="source-note">Score = 10 per campaign answered + 70% of the matching offer’s modeled conversion. Mobile Banking has no offer model, so it adds only the response.</p>
+        <div className="atlas-retail-actions"><AccountLink id={id} />
+          <button className="secondary" onClick={() => open({ kind: 'prep', id, name: customer, context })}>Prep me</button></div>
+        <AtlasActionReview key={id} accountId={id} ownerId={ownerId} name={customer} subject={`Follow up: ${lead}`}
+          note={`${customer} responded to ${hit.map(([, full]) => full).join(' and ')}. Reach out to thank them and offer a conversation about next steps.`} />
+      </article>
+    </div>}
   </section>;
 }

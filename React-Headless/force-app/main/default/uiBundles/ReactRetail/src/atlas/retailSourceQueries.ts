@@ -526,6 +526,56 @@ SELECT x.*, a.ssot__Name__c AS name, p.is_owner__c AS is_owner, CAST(p.profile_q
   investing: { limit: 35, sql: (filter: string) => `
 SELECT c.account_id__c AS account_id, a.ssot__Name__c AS name,c.investment_propensity_score__c AS score,c.life_stage__c AS stage,CAST(c.profile_month__c AS VARCHAR) AS period FROM BT_Claritas_Demographics__dlm c JOIN ssot__Account__dlm a ON a.ssot__Id__c=c.account_id__c WHERE c.profile_month__c=(SELECT MAX(profile_month__c) FROM BT_Claritas_Demographics__dlm) AND c.investment_propensity_score__c>=70 AND c.account_id__c ${filter} ORDER BY score DESC LIMIT 12
   ` },
+  campaignResponders: { limit: 60, sql: (filter: string) => `
+  WITH r AS (
+    SELECT ac.ssot__AccountId__c AS acct,
+           COUNT(DISTINCT cm.ssot__CampaignId__c) AS campaigns,
+           MAX(CASE WHEN cm.ssot__CampaignId__c = '701am00002A9aDcAAJ' THEN 1 ELSE 0 END) AS premier,
+           MAX(CASE WHEN cm.ssot__CampaignId__c = '701am00002A9aDjAAJ' THEN 1 ELSE 0 END) AS mobile,
+           MAX(CASE WHEN cm.ssot__CampaignId__c = '701am00002A9aDaAAJ' THEN 1 ELSE 0 END) AS heloc
+    FROM ssot__CampaignMember__dlm cm
+    JOIN ssot__AccountContact__dlm ac ON ac.ssot__Id__c = cm.ssot__IndividualSourceId__c
+    WHERE cm.ssot__CampaignMemberStatus__c = 'Responded'
+      AND cm.ssot__CampaignId__c IN ('701am00002A9aDcAAJ', '701am00002A9aDjAAJ', '701am00002A9aDaAAJ')
+      AND ac.ssot__AccountId__c ${filter}
+    GROUP BY ac.ssot__AccountId__c
+  ),
+  o AS (
+    SELECT account_id__c AS acct,
+           MAX(CASE WHEN action_code__c = 'CHK-ACQ' THEN conversion_probability__c END) AS fit_chk,
+           MAX(CASE WHEN action_code__c = 'HEL-ACQ' THEN conversion_probability__c END) AS fit_hel
+    FROM BT_Offer_Eligibility__dlm
+    WHERE action_code__c IN ('CHK-ACQ', 'HEL-ACQ') AND account_id__c ${filter}
+    GROUP BY account_id__c
+  )
+  SELECT r.acct AS acct, a.ssot__Name__c AS name, r.campaigns, r.premier, r.mobile, r.heloc,
+         o.fit_chk, o.fit_hel, c.life_stage__c AS stage,
+         10 * r.campaigns + 0.7 * CASE WHEN r.premier = 1 AND r.heloc = 1 THEN GREATEST(COALESCE(o.fit_chk, 0), COALESCE(o.fit_hel, 0))
+                                       WHEN r.premier = 1 THEN COALESCE(o.fit_chk, 0)
+                                       WHEN r.heloc = 1 THEN COALESCE(o.fit_hel, 0) ELSE 0 END AS score
+  FROM r JOIN ssot__Account__dlm a ON a.ssot__Id__c = r.acct AND a.IsPersonAccount__c = 'true'
+  LEFT JOIN o ON o.acct = r.acct
+  LEFT JOIN BT_Claritas_Demographics__dlm c ON c.account_id__c = r.acct AND c.profile_month__c = (SELECT MAX(profile_month__c) FROM BT_Claritas_Demographics__dlm)
+  ORDER BY score DESC, name
+  ` },
+  campaignResponderCounts: { limit: 1, sql: (filter: string) => `
+  WITH r AS (
+    SELECT ac.ssot__AccountId__c AS acct,
+           COUNT(DISTINCT cm.ssot__CampaignId__c) AS campaigns,
+           MAX(CASE WHEN cm.ssot__CampaignId__c = '701am00002A9aDcAAJ' THEN 1 ELSE 0 END) AS premier,
+           MAX(CASE WHEN cm.ssot__CampaignId__c = '701am00002A9aDjAAJ' THEN 1 ELSE 0 END) AS mobile,
+           MAX(CASE WHEN cm.ssot__CampaignId__c = '701am00002A9aDaAAJ' THEN 1 ELSE 0 END) AS heloc
+    FROM ssot__CampaignMember__dlm cm
+    JOIN ssot__AccountContact__dlm ac ON ac.ssot__Id__c = cm.ssot__IndividualSourceId__c
+    WHERE cm.ssot__CampaignMemberStatus__c = 'Responded'
+      AND cm.ssot__CampaignId__c IN ('701am00002A9aDcAAJ', '701am00002A9aDjAAJ', '701am00002A9aDaAAJ')
+      AND ac.ssot__AccountId__c ${filter}
+    GROUP BY ac.ssot__AccountId__c
+  )
+  SELECT COUNT(*) AS responders, SUM(r.premier) AS premier, SUM(r.mobile) AS mobile, SUM(r.heloc) AS heloc,
+         SUM(CASE WHEN r.campaigns > 1 THEN 1 ELSE 0 END) AS multi
+  FROM r JOIN ssot__Account__dlm a ON a.ssot__Id__c = r.acct AND a.IsPersonAccount__c = 'true'
+  ` },
 };
 
 export type RetailSource = keyof typeof sourceQueries;
