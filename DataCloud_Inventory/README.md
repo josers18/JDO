@@ -38,6 +38,8 @@ the target org (`sf org login web -o <alias>`). No tokens live in the script.
   - `Personal Datasets` / `Business Datasets` — each persona's streams **plus**
     the shared `All` streams
   - `Needs Attention` — failed/warning last run, non-active status, or disabled
+    (zero-copy streams are judged on status/enabled only — their run status is
+    a stale leftover, since they query the source live)
   - `Orphaned DLOs` — DLOs in the org with no visible stream feeding them
   - `Summary by Persona` / `by Connector` / `by Category` / `by Source Object`
   - `Connectors` — per-connector rollup (stream count + source objects)
@@ -108,7 +110,7 @@ Prefer a rule over many corrections when a whole family is wrong — edit
 `Data Stream Name`, `Data Stream Label`, `Persona`, `Persona Basis`,
 `Suppressed`, `Suppress Reason`, `Notes`, `Corrected By`, `Stream Status`, `Enabled`,
 `Last Run Status`, `Last Refresh Date`, `Total Records`, `Last Added Records`,
-`Connector Type`, `Connector Name`, `Data Source`, `Data Stream Type`,
+`Connector Type`, `Connector Name`, `Data Source`, `Data Stream Type`, `Zero Copy`,
 `Source Object`, `Refresh Mode`, `Frequency Type`, `DLO Name`, `DLO Category`,
 `DLO Status`, `DLO Field Count`, `Data Space`, `Mapped DMO(s)` (`;`-separated),
 `Mapping Count`, `DMO Field Count`, `Is Mapped`, `Needs Attention`, `Record ID`.

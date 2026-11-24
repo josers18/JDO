@@ -341,7 +341,11 @@ def build_rows(streams: list[dict], stream_dmos: dict[str, set[str]],
         run = (s.get("lastRunStatus") or "").upper()
         status = (s.get("status") or "").upper()
         enabled = s.get("isEnabled")
-        needs_attn = (run in ATTENTION_RUN) or (status and status != "ACTIVE") or (enabled is False)
+        # Zero-copy (DIRECT_ACCESS) streams query the source live; their run
+        # status is a stale leftover, so only status/enabled count for them.
+        zero_copy = (s.get("dataAccessMode") or "").upper() == "DIRECT_ACCESS"
+        needs_attn = ((run in ATTENTION_RUN and not zero_copy)
+                      or bool(status and status != "ACTIVE") or (enabled is False))
         name = s.get("name")
         rule_tags, rule_basis = tagger.tag(s)
         pattern_reason = tagger.pattern_suppression(s)
@@ -378,6 +382,7 @@ def build_rows(streams: list[dict], stream_dmos: dict[str, set[str]],
             "Connector Name": cd.get("name"),
             "Data Source": s.get("dataSource"),
             "Data Stream Type": s.get("dataStreamType"),
+            "Zero Copy": zero_copy,
             "Source Object": cd.get("sourceObject"),
             "Refresh Mode": (s.get("refreshConfig") or {}).get("refreshMode"),
             "Frequency Type": ((s.get("refreshConfig") or {}).get("frequency") or {}).get("frequencyType"),
@@ -671,7 +676,9 @@ for(const n of Object.keys(pending)){
   if(same(strip(m),strip(minimal(n,CORR.streams[n]))))delete pending[n];else pending[n]=m;}
 localStorage.setItem(LSK,JSON.stringify(pending));
 const corrFor=n=>(n in pending)?pending[n]:CORR.streams[n];
-function applyRow(row){  // mirrors build_rows() in generate_inventory.py
+// Mirrors build_rows()'s persona/suppression precedence. Zero Copy and Needs
+// Attention come from the org (not corrections), so they're computed only there.
+function applyRow(row){
   const n=row[NAME],r=RULE[n],c=corrFor(n)||{};
   const tags=c.persona&&c.persona.length?c.persona:r.p.split("; ");
   row[PCOL]=tags.join("; ");row[PB]=c.persona&&c.persona.length?"correction":r.b;
