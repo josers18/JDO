@@ -1,6 +1,6 @@
 {
   "org": "jdo-oe0sdd",
-  "updated": "2026-10-20T16:37:31.532Z",
+  "updated": "2026-11-24T05:35:53.936Z",
   "streams": {
     "AccountAccountRelation_Home": {
       "persona": [
@@ -26,13 +26,11 @@
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
-    "Attrition_Inputs_Snowflake": {
-      "persona": [
-        "Business",
-        "Personal"
-      ],
+    "BT_Business_Product_Recommendations": {
+      "suppressed": true,
+      "reason": "Other",
       "by": "Jose Sifontes",
-      "at": "2026-10-20"
+      "at": "2026-10-21"
     },
     "BT_CSAT_Attrition_Inputs": {
       "persona": [
@@ -61,6 +59,12 @@
       "reason": "Other",
       "by": "Jose Sifontes",
       "at": "2026-10-20"
+    },
+    "BT_Personal_Product_Recommendations": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-21"
     },
     "BulkMessage_Home": {
       "suppressed": true,
@@ -150,11 +154,35 @@
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
+    "Customer_Jedi_Azure_SQL": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-11-24"
+    },
+    "DC_UnifiedssotIndividualIr1": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-11-24"
+    },
     "DataCleanRoom_Home": {
       "suppressed": true,
       "reason": "Other",
       "by": "Jose Sifontes",
       "at": "2026-10-20"
+    },
+    "DataCustomCodeLogs": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-11-24"
+    },
+    "Data_Masking": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-11-24"
     },
     "Deposits": {
       "persona": [
@@ -226,11 +254,41 @@
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
+    "Financial_Transactions_AWSRedshift": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-11-24"
+    },
+    "Financial_Transactions_DataBricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-11-24"
+    },
+    "Financial_Transactions_GCP": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-11-24"
+    },
     "Financial_Transactions_Heroku_Postgres": {
       "suppressed": true,
       "reason": "Other",
       "by": "Jose Sifontes",
       "at": "2026-10-20"
+    },
+    "Financial_Transactions_Redshift": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-11-24"
+    },
+    "GCP_Transactions": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-11-24"
     },
     "Individual_MDM": {
       "suppressed": true,
@@ -316,14 +374,6 @@
       "persona": [
         "Business",
         "Personal"
-      ],
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "Service_Now": {
-      "persona": [
-        "All",
-        "Business"
       ],
       "by": "Jose Sifontes",
       "at": "2026-10-20"
@@ -451,6 +501,12 @@
       "reason": "Other",
       "by": "Jose Sifontes",
       "at": "2026-10-20"
+    },
+    "account_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-11-24"
     },
     "asset_Databricks": {
       "suppressed": true,
