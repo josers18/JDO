@@ -331,6 +331,8 @@ const campaigns = [
   ['heloc', 'HELOC Refi Outreach Q2', 'HELOC Refi', 'HEL-ACQ', 'fit_hel'],
 ] as const;
 const responded = (row: Row) => campaigns.filter(([key]) => numeric(row[key]) === 1);
+/** Score band for the list chip: 3 campaigns lands at 50+, 2 at 40+. */
+const scoreTier = (score: number | null | undefined) => score == null ? 'low' : score >= 50 ? 'high' : score >= 40 ? 'mid' : 'low';
 
 function Responders({ ownerId }: { ownerId: string }) {
   const { open } = useWorkspace();
@@ -365,7 +367,8 @@ function Responders({ ownerId }: { ownerId: string }) {
         const key = text(row.acct);
         return <li key={key}><button aria-pressed={key === id} onClick={() => update({ responder: key })}>
           <b>{i + 1}</b><span><strong>{list.data?.names.get(key) ?? text(row.name)}</strong>
-            <small>{responded(row).map(([, , short]) => short).join(' · ')}</small></span><em>{numeric(row.score)?.toFixed(1)}</em></button></li>;
+            <small>{responded(row).map(([, , short]) => short).join(' · ')}</small></span>
+            <em className="biz-score" data-tier={scoreTier(numeric(row.score))} aria-label={`Responder score ${numeric(row.score)?.toFixed(1) ?? '—'}`}>{numeric(row.score)?.toFixed(1)}</em></button></li>;
       })}</ol>
       <article className="biz-responder-detail">
         <span className="badge">{count(chosen.campaigns)} {numeric(chosen.campaigns) === 1 ? 'campaign' : 'campaigns'} answered</span>

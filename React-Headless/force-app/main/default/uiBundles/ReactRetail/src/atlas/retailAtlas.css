@@ -8870,9 +8870,16 @@
 /* Campaign responders (Growth) */
 .biz-responder-grid { display: grid; grid-template-columns: minmax(260px, 2fr) 3fr; gap: 16px; align-items: start; }
 .biz-responder-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 480px; overflow: auto; }
-.biz-responder-list button { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; width: 100%; text-align: left; padding: 10px 12px; border: 1px solid var(--m-line, #d8dde6); border-radius: 10px; background: var(--m-surface, #fff); cursor: pointer; }
+.biz-responder-list button { display: grid; grid-template-columns: 28px 1fr auto; gap: 12px; align-items: center; width: 100%; text-align: left; padding: 12px 14px; border: 1px solid var(--m-line, #d8dde6); border-radius: 10px; background: var(--m-surface, #fff); cursor: pointer; }
 .biz-responder-list button[aria-pressed='true'] { border-color: var(--m-accent); background: var(--m-soft); }
 .biz-responder-list small { display: block; color: var(--m-muted, #5b6472); }
-.biz-responder-list em { font-style: normal; font-weight: 600; }
+/* Responder score chip: the number the list is ranked by, so it carries the weight. */
+.biz-responder-list .biz-score { font-style: normal; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; min-width: 58px; padding: 6px 12px; border-radius: 999px; text-align: center; line-height: 1.2; }
+.biz-responder-list .biz-score[data-tier='high'] { background: var(--m-accent); color: #fff; }
+.biz-responder-list .biz-score[data-tier='mid'] { background: color-mix(in srgb, var(--m-accent) 16%, var(--m-paper, #fff)); color: var(--m-accent); }
+.biz-responder-list .biz-score[data-tier='low'] { background: color-mix(in srgb, var(--m-ink, #1d2433) 7%, var(--m-paper, #fff)); color: var(--m-ink, #1d2433); }
+.biz-responder-list button > b { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-size: 13px; color: var(--m-muted, #5b6472); background: color-mix(in srgb, var(--m-ink, #1d2433) 5%, transparent); }
+.biz-responder-list button[aria-pressed='true'] > b { background: var(--m-accent); color: #fff; }
+.biz-responder-list button:hover { border-color: color-mix(in srgb, var(--m-accent) 45%, var(--m-line, #d8dde6)); }
 .biz-responder-detail { display: grid; gap: 10px; padding: 16px; border: 1px solid var(--m-line, #d8dde6); border-radius: 12px; background: var(--m-surface, #fff); }
 @media (max-width: 900px) { .biz-responder-grid { grid-template-columns: 1fr; } }
