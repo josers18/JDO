@@ -1,9 +1,9 @@
 import {
   commercialWhoToCallItems, fetchAmlChanges, fetchBusinessInflows, fetchCallSentiment, fetchChampionDepartures,
   fetchCommercialWhoToCall, fetchEsgMovers, fetchFeeSpikes, fetchFundingSignals, fetchIntentSignals,
-  fetchLeadershipChanges, fetchOutlookWatch, queryDataCloudForBook,
+  executeGraphQL, fetchLeadershipChanges, fetchOutlookWatch, fetchProspectSignals, prospectBadges, queryDataCloudForBook, type ProspectSignals,
 } from '@shared';
-import { recordKey, str, verifyAccounts } from './commercialData';
+import { recordKey, str, validId, verifyAccounts, type RecordNode } from './commercialData';
 
 export interface Signal {
   id: string;
@@ -76,6 +76,48 @@ export async function readSignals(owner: string) {
         recordKey(o.accountId) === recordKey(r.accountId) && o.title === r.title && o.source === r.source)).length : null,
     })),
   };
+}
+
+/**
+ * Identify & Acquire: a prospect company's "why now", from its UserGems champion move, Demandbase intent
+ * and Harmonic funding (all keyed on this Account). `focus` leads the company page; `evidence` lists
+ * each source with its date. Both are empty when the company has no prospect signals.
+ */
+export function prospectFocus(accountId: string, company: string, s: ProspectSignals | undefined, fromName = '') {
+  const c = s?.champion, intent = s?.intent, funding = s?.funding;
+  const row = (source: string, family: string, title: string, detail: string, date?: string): Signal =>
+    ({ id: JSON.stringify([family, source, accountId]), accountId, company, family, source, title, detail, date });
+  const evidence = [
+    c && row('UserGems', 'Champion joined', `${c.contactName} joined as ${c.newTitle || 'a new leader'}`,
+      `Former champion${fromName ? ` at ${fromName}` : ''} · opportunity score ${c.opportunityScore}`, c.detectedDate),
+    intent && row('Demandbase', 'Intent surge', `${intent.topic} intent`,
+      [intent.stage && `${intent.stage} stage`, `${intent.score} intent score`].filter(Boolean).join(' · '), intent.signalDate),
+  ].filter((r): r is Signal => !!r);
+  if (!c && !intent && !funding) return { focus: undefined, evidence };
+  const focus: Signal = {
+    ...row([c && 'UserGems', intent && 'Demandbase', funding && 'Harmonic'].filter(Boolean).join(' · '), 'Prospect signals',
+      c ? `Call ${c.contactName}${c.newTitle ? `, new ${c.newTitle}` : ''}` : intent ? `${intent.topic} intent` : `${funding!.stage} funding`,
+      [c && `Former champion${fromName ? ` at ${fromName}` : ''}`,
+        intent && `${intent.topic} intent ${intent.score}`,
+        funding && prospectBadges({ funding })[0]].filter(Boolean).join(' · '),
+      c?.detectedDate ?? intent?.signalDate),
+  };
+  return { focus, evidence };
+}
+
+/** The champion's former employer is usually a client in another book, so look its name up unscoped. */
+export async function accountName(id: string) {
+  if (!validId(id)) return '';
+  const r = await executeGraphQL<{ uiapi?: { query?: { Account?: { edges?: { node: RecordNode }[] } } } }>(
+    `query ProspectFrom { uiapi { query { Account(first: 1, where: { Id: { eq: ${JSON.stringify(id)} } }) { edges { node { Id Name @optional { value } } } } } } }`);
+  const node = r.uiapi?.query?.Account?.edges?.[0]?.node;
+  return node ? str(node, 'Name') : '';
+}
+
+export async function readProspectFocus(accountId: string, company: string) {
+  const s = (await fetchProspectSignals([accountId]))[accountId];
+  const fromName = s?.champion ? await accountName(s.champion.fromAccountId).catch(() => '') : '';
+  return prospectFocus(accountId, company, s, fromName);
 }
 
 export async function readPriorities(owner: string) {

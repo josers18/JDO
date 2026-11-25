@@ -12,8 +12,9 @@ import type { Full360 } from '../personas/customer/full360Types';
 import { nodes, readCompanyFinance, recordKey, str, type RecordNode } from './commercialData';
 import { Badge, Button, cash, day, Heading, initials, Inspect, Panel, Pending, RouteLink, useLive } from './controls';
 import { OfferCard, type Offer } from './Growth';
-import { readSignals, type Signal } from './signals';
+import { readProspectFocus, readSignals, type Signal } from './signals';
 import { SignalDetail, type Followup } from './TodayIntel';
+import { SourceMark, sourceStyle } from './sources';
 import { ActivityContent } from './Work';
 import { AfterCall, CallRecord } from './AfterCall';
 import type { Draft, DraftEditor } from './drafts';
@@ -229,7 +230,10 @@ function Dossier({ drafts, owner, actorScope, account, tab, product, setTab, onE
     id: accountId + ':' + call.id, accountId, company, family: 'Call sentiment', source: 'Gong',
     title: 'Call sentiment · ' + call.sentiment, detail: call.summary, date: call.date,
   }));
-  const signals = [...bookSignals, ...calls.filter(call => !bookSignals.some(item =>
+  const prospect = useLive(() => readProspectFocus(accountId, company), JSON.stringify([accountId, company]));
+  // A prospect's champion move and intent lead the evidence; funding already comes from the book's Harmonic read.
+  const prospectEvidence = (prospect.value?.evidence ?? []).filter(p => !bookSignals.some(item => item.source === p.source && item.title === p.title));
+  const signals = [...prospectEvidence, ...bookSignals, ...calls.filter(call => !bookSignals.some(item =>
     item.family === call.family && day(item.date) === day(call.date)))];
   const newTask = () => onEdit({ kind: 'task', company, accountId });
   const newMeeting = () => onEdit({ kind: 'meeting', company, accountId });
@@ -282,9 +286,9 @@ function Dossier({ drafts, owner, actorScope, account, tab, product, setTab, onE
       {(editorial ? relationshipTabs : tabs).map(([id, title]) => <button type="button" key={id} id={`ca-tab-${id}`} aria-controls="ca-company-panel" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{title}</button>)}
     </div>
     <section id="ca-company-panel" className="ca-company-content" data-relationship-tab={tab} role="tabpanel" aria-labelledby={`ca-tab-${tab}`}>
-      {tab === 'overview' && <div className="ca-company-overview"><CompanyPriority owner={accountOwner} accountId={accountId} company={company} fallback={signals[0]} followup={followup} />
+      {tab === 'overview' && <div className="ca-company-overview"><CompanyPriority owner={accountOwner} accountId={accountId} company={company} fallback={prospect.value?.focus ?? signals[0]} followup={followup} />
         <Panel title="Relationship footprint"><Pending state={detail}><div className="ca-company-vitals"><div><strong>{finances?.FinancialAccounts?.totalCount ?? '—'}</strong><span>Financial accounts shown</span></div><div><strong>{finances?.Opportunity?.totalCount ?? '—'}</strong><span>Open deals shown</span></div><div><strong>{evidence.value ? signals.length : '—'}</strong><span>Source observations shown</span></div></div><Button onClick={() => setTab('finances')}>Review cash & accounts</Button></Pending></Panel>
-        <Panel title="Company evidence"><Pending state={evidence}>{signals.map(row => <button type="button" className="ca-source-row" key={row.id} onClick={() => setInspected(row)}><Badge>{row.source}</Badge><span>{row.title}</span><time>{day(row.date)}</time></button>)}{signals.length === 0 && <p>No additional observations returned for this company.</p>}</Pending></Panel>
+        <Panel title="Company evidence"><Pending state={evidence}><div className="ca-evidence-list">{signals.map(row => <button type="button" className="ca-evidence-row" data-source={row.source} key={row.id} style={{ ['--src' as string]: sourceStyle(row.source).tone }} onClick={() => setInspected(row)}><SourceMark source={row.source} size={20} /><span><small>{row.source} · {row.family}</small><strong>{row.title}</strong>{row.detail && <em>{row.detail}</em>}</span><time>{day(row.date)}</time></button>)}</div>{signals.length === 0 && <p>No additional observations returned for this company.</p>}</Pending></Panel>
         <Panel title="Deal and treasury next steps"><Pending state={finance}>{nodes(finances?.Opportunity).map(o => <RouteLink style="ca-source-row" key={o.Id} to={`/pipeline?deal=${o.Id}`}><strong>{str(o, 'Name')}</strong><span>{str(o, 'StageName')}</span><em>{cash(str(o, 'Amount'))}</em></RouteLink>)}</Pending><Button onClick={() => setTab('growth')}>Review treasury evidence</Button></Panel>
       </div>}
       {tab === 'profile' && <RelationshipProfile name={company} type={str(account, 'Type')} recordId={accountId}

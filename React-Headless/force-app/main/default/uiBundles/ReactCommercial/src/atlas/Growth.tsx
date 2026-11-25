@@ -2,10 +2,13 @@ import { atlasProbabilityBand } from '@shared/components/atlas/atlasChartColors'
 import { CrossSellWhitespace } from '@shared/components/home/CrossSellWhitespace';
 import { useState, type CSSProperties } from 'react';
 import { useSearchParams } from 'react-router';
-import { fetchModeledUplift, fetchOwnerWealthHandoffs, fetchWarmIntros, fetchWhitespace, LeadModal } from '@shared';
+import { fetchModeledUplift, fetchOwnerWealthHandoffs, fetchProspectSignals, fetchWarmIntros, fetchWhitespace, LeadModal, rankProspectLeads, type ProspectSignalMap } from '@shared';
 import type { WhitespaceCell } from '@shared/data/whitespace';
-import { nodes, readLeads, recordKey, str, verifyAccounts } from './commercialData';
+import { nodes, readLeads, recordKey, str, validId, verifyAccounts } from './commercialData';
 import { Badge, Button, cash, day, Heading, initials, Inspect, Panel, Pending, RouteLink, Tabs, useLive } from './controls';
+import { ChevronRight, Flame } from 'lucide-react';
+import { accountName } from './signals';
+import { SignalChip, signalSource, SourceMark, sourceStyle } from './sources';
 import type { Followup } from './TodayIntel';
 
 const modes = [['lanes', 'Treasury plays'], ['coverage', 'Coverage matrix'], ['offers', 'Offer opportunities'], ['development', 'Leads & owner introductions']] as const;
@@ -25,12 +28,23 @@ export function OfferCard({ offer, onClose, draft, company = true }: { offer: Of
   </div></Inspect>;
 }
 
+type LeadRow = ReturnType<typeof nodes>[number] & { accountId?: string; signals: string[]; signalScore: number };
+/** CRM leads, ranked by their related company's Data 360 prospect signals (champion move, intent, funding). */
+async function readSignalLeads(owner: string): Promise<LeadRow[]> {
+  const leads = nodes((await readLeads(owner)).Lead).map(r => ({ ...r, accountId: validId(str(r, 'FinServ__RelatedAccount__c')) ? str(r, 'FinServ__RelatedAccount__c') : undefined }));
+  const ids = [...new Set(leads.flatMap(l => l.accountId ? [l.accountId] : []))];
+  const signals: ProspectSignalMap = ids.length ? await fetchProspectSignals(ids).catch(() => ({})) : {};
+  const from = [...new Set(Object.values(signals).flatMap(s => s.champion ? [s.champion.fromAccountId] : []))];
+  const names = Object.fromEntries(await Promise.all(from.map(async id => [id, await accountName(id).catch(() => '')] as const)));
+  return rankProspectLeads(leads, signals, names);
+}
+
 function Introductions({ owner, followup, newLead }: { owner: string; followup: Followup; newLead: () => void }) {
-  const [lead, setLead] = useState<ReturnType<typeof nodes>[number]>();
+  const [lead, setLead] = useState<LeadRow>();
   const [edit, setEdit] = useState(false);
   const [revision, setRevision] = useState(0);
   const db = useLive(async () => {
-    const [leads, warm, wealth] = await Promise.allSettled([readLeads(owner), fetchWarmIntros(owner, true), fetchOwnerWealthHandoffs(owner, true)]);
+    const [leads, warm, wealth] = await Promise.allSettled([readSignalLeads(owner), fetchWarmIntros(owner, true), fetchOwnerWealthHandoffs(owner, true)]);
     const intros = warm.status === 'fulfilled' ? warm.value.rows : [];
     const handoffs = wealth.status === 'fulfilled' ? wealth.value.rows : [];
     const accounts = await verifyAccounts(owner, [...intros.map(r => r.referrerId), ...handoffs.map(r => r.businessId)]);
@@ -39,7 +53,8 @@ function Introductions({ owner, followup, newLead }: { owner: string; followup: 
   const result = db.value;
   return <section className="ca-development"><div className="ca-origination-head"><div><h2>Origination desk</h2><p>Existing CRM leads alongside suggested owner introductions.</p></div><Button style="primary" onClick={newLead}>Create lead proposal</Button></div>
     <Pending state={db}><div className="ca-development-grid"><section className="ca-lead-inbox"><h3>CRM leads</h3>
-      {result?.leads.status === 'fulfilled' ? nodes(result.leads.value.Lead).map(r => <button key={r.Id} onClick={() => setLead(r)}><span className="ca-person-symbol">{initials(str(r, 'Name'))}</span><span><strong>{str(r, 'Name')}</strong><small>{str(r, 'Company')}</small><span><Badge>{str(r, 'Status')}</Badge> {str(r, 'LeadSource')}</span></span></button>) : <p>CRM leads unavailable.</p>}
+      {result?.leads.status === 'fulfilled' ? result.leads.value.map(r => <button key={r.Id} data-lead={str(r, 'Name')} onClick={() => setLead(r)}><span className="ca-person-symbol">{initials(str(r, 'Name'))}</span><span className="ca-lead-main"><span className="ca-lead-top"><strong>{str(r, 'Name')}</strong>{r.signals.length > 0 && <span className="ca-lead-hot"><Flame size={13} />{r.signals.length} signals</span>}</span><small>{str(r, 'Company')}</small><span className="ca-lead-meta"><Badge>{str(r, 'Status')}</Badge> {str(r, 'LeadSource')}</span>
+        {r.signals.length > 0 && <span className="ca-lead-signals" aria-label="Prospect signals">{r.signals.map(s => <SignalChip key={s} badge={s} />)}</span>}</span><ChevronRight className="ca-lead-go" size={18} aria-hidden="true" /></button>) : <p>CRM leads unavailable.</p>}
     </section><section className="ca-handoff-inbox"><section className="ca-warm-intros"><h3>Suggested warm introductions</h3>
       {result?.warm.status === 'rejected' && <p>Referral source unavailable.</p>}
       {result?.intros.map(r => { const a = result.accounts.get(recordKey(r.referrerId)); return a && <article key={`${r.referrerId}|${r.accountId}`}><div><span>{str(a, 'Name')}</span><i>→</i><strong>{r.name}</strong></div><p>{r.confidencePct}% graph confidence · discovered {day(r.discovered)}</p><Button onClick={() => followup({ id: r.accountId, accountId: a.Id, company: str(a, 'Name'), title: `Review referral to ${r.name}`, source: 'Data 360 relationship graph', detail: `Referral target Account ${r.accountId}. Verify the referring person and recipient before contact.`, family: 'Warm introductions' })}>Review referral proposal</Button></article>; })}
@@ -47,7 +62,11 @@ function Introductions({ owner, followup, newLead }: { owner: string; followup: 
       {result?.wealth.status === 'rejected' && <p>Owner relationship source unavailable.</p>}
       {result?.handoffs.map(r => { const a = result.accounts.get(recordKey(r.businessId)); return a && <article className="ca-handoff" key={`${r.businessId}|${r.ownerId}`}><div className="ca-directed-graph"><RouteLink to={`/client/${a.Id}`}><span className="ca-company-symbol">{initials(str(a, 'Name'))}</span><strong>{str(a, 'Name')}</strong></RouteLink><span>Owned by<br />→</span><div><span className="ca-person-symbol">{initials(r.ownerName)}</span><strong>{r.ownerName}</strong></div></div><p>{r.netWorthBand} · {r.wealthScore} Wealth propensity</p><small>{r.confidencePct}% graph relationship confidence.</small><Button onClick={() => followup({ id: r.ownerId, accountId: a.Id, company: str(a, 'Name'), title: `Review Wealth introduction for ${r.ownerName}`, source: 'Data 360 relationship graph', detail: `Business Account ${a.Id}. Target person Account ${r.ownerId}. Verify permission to contact the owner.`, family: 'Owner handoffs' })}>Review introduction proposal</Button></article>; })}
     </section></div></Pending>
-    {lead && !edit && <Inspect title={str(lead, 'Name')} onClose={() => setLead(undefined)}><p>{str(lead, 'Company')}</p><p>{str(lead, 'Status')} · {str(lead, 'LeadSource')}</p><p>{lead.Id}</p><Button style="primary" onClick={() => setEdit(true)}>Review lead change</Button></Inspect>}
+    {lead && !edit && <Inspect title={str(lead, 'Name')} subtitle={[str(lead, 'Company'), str(lead, 'Status'), str(lead, 'LeadSource')].filter(Boolean).join(' · ')} icon={<span className="ca-lead-avatar">{initials(str(lead, 'Name'))}</span>} onClose={() => setLead(undefined)}>
+      <div className="ca-lead-pop">{lead.signals.length > 0 ? <><p className="ca-lead-pop-kicker">Why now · {lead.signals.length} Data 360 signals</p>
+        <ul className="ca-lead-pop-signals" aria-label="Prospect signals">{lead.signals.map(s => <li key={s} style={{ ['--src' as string]: sourceStyle(signalSource(s)).tone }}><SourceMark source={signalSource(s)} size={20} /><span><strong>{s}</strong><small>Source: {signalSource(s)}</small></span></li>)}</ul></>
+        : <p>No Data 360 prospect signals for this lead yet.</p>}
+      <div className="ca-actions ca-lead-pop-actions">{lead.accountId && <RouteLink style="primary" to={`/client/${lead.accountId}`}>Open company</RouteLink>}<Button style={lead.accountId ? 'secondary' : 'primary'} onClick={() => setEdit(true)}>Review lead change</Button></div></div></Inspect>}
     {lead && edit && <LeadModal open onClose={() => { setEdit(false); setLead(undefined); }} onSaved={() => setRevision(r => r + 1)} lead={{
       recordId: lead.Id, firstName: str(lead, 'FirstName'), lastName: str(lead, 'LastName'), company: str(lead, 'Company'),
       status: str(lead, 'Status'), leadSource: str(lead, 'LeadSource'), email: str(lead, 'Email'),

@@ -380,3 +380,79 @@
   .ca-root .ca-ac-kyc-top, .ca-root .ca-ac-saved-top { grid-template-columns: auto minmax(0, 1fr); }
   .ca-root .ca-ac-status, .ca-root .ca-ac-saved-top > button { grid-column: 1 / -1; justify-self: start; }
 }
+
+/* Prospect signals on CRM leads (Identify & Acquire): each chip names its provider with an icon. */
+.ca-root .ca-source-mark { display: inline-grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 10px; color: var(--src); background: color-mix(in srgb, var(--src) 12%, var(--m-panel)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--src) 22%, transparent); }
+.ca-root .ca-lead-signals { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.ca-root .ca-signal-chip { display: inline-flex; align-items: center; gap: 8px; font-style: normal; font-size: 13px; font-weight: 600; line-height: 1.25; padding: 4px 6px 4px 4px; border-radius: 10px; color: var(--m-ink); background: color-mix(in srgb, var(--src) 7%, var(--m-panel)); border: 1px solid color-mix(in srgb, var(--src) 26%, var(--m-panel)); }
+.ca-root .ca-signal-chip .ca-source-mark { width: 24px; height: 24px; border-radius: 7px; }
+.ca-root .ca-signal-chip b { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--src); padding: 2px 7px; border-radius: 6px; background: var(--m-panel); }
+
+/* Origination desk: both columns read as one surface (no teal panel tint on the introductions side). */
+.ca-root .ca-development { border-radius: 18px; }
+.ca-root .ca-development-grid { align-items: start; }
+:is(.atlas-app, body[data-style="atlas"]) [data-atlas-page] .ca-root .ca-handoff-inbox { background: transparent; border-color: transparent; box-shadow: none; padding: 0; }
+.ca-root .ca-lead-inbox, .ca-root .ca-handoff-inbox { min-width: 0; }
+.ca-root .ca-lead-inbox > h3, .ca-root .ca-handoff-inbox h3 { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--m-muted); margin: 0 0 12px; }
+.ca-root .ca-lead-inbox > button { display: grid; grid-template-columns: 44px minmax(0, 1fr) 20px; gap: 14px; align-items: start; text-align: left; padding: 16px; margin: 0 0 10px; border: 1px solid var(--m-line); border-radius: 14px; background: var(--m-panel); cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.ca-root .ca-lead-inbox > button:hover { border-color: color-mix(in srgb, var(--m-accent) 45%, var(--m-line)); box-shadow: 0 6px 20px -12px rgba(15, 30, 50, .35); transform: translateY(-1px); }
+.ca-root .ca-lead-inbox > button:has(.ca-lead-hot) { border-color: color-mix(in srgb, var(--m-accent) 35%, var(--m-line)); background: color-mix(in srgb, var(--m-accent) 4%, var(--m-panel)); }
+.ca-root .ca-lead-inbox .ca-person-symbol { width: 44px; height: 44px; }
+.ca-root .ca-lead-main { display: grid; gap: 4px; min-width: 0; }
+.ca-root .ca-lead-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ca-root .ca-lead-top strong { font-size: 17px; }
+.ca-root .ca-lead-main > small { font-size: 14px; color: var(--m-muted); }
+.ca-root .ca-lead-meta { font-size: 12px; color: var(--m-muted); }
+.ca-root .ca-lead-hot { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; color: #b45309; background: #fff4e0; border: 1px solid #f5d39a; border-radius: 999px; padding: 2px 9px; }
+.ca-root .ca-lead-go { color: var(--m-muted); align-self: center; }
+.ca-root .ca-warm-intros { border-bottom: 1px solid var(--m-line); }
+.ca-root .ca-warm-intros article, .ca-root .ca-handoff-inbox .ca-handoff { padding: 16px; margin: 0 0 10px; border: 1px solid var(--m-line); border-radius: 14px; background: var(--m-panel); }
+
+/* Lead pop-up */
+.ca-lead-avatar { font-size: 14px; font-weight: 700; letter-spacing: .02em; }
+.ca-root .ca-lead-pop { display: grid; gap: 14px; }
+.ca-root .ca-lead-pop-kicker { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--m-accent); }
+.ca-root .ca-lead-pop-signals { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.ca-root .ca-lead-pop-signals li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; padding: 14px 16px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--src) 24%, var(--m-panel)); background: color-mix(in srgb, var(--src) 6%, var(--m-panel)); animation: ca-ac-in .35s cubic-bezier(.2, .7, .2, 1) both; }
+.ca-root .ca-lead-pop-signals li:nth-child(2) { animation-delay: 80ms; } .ca-root .ca-lead-pop-signals li:nth-child(3) { animation-delay: 160ms; }
+.ca-root .ca-lead-pop-signals li > span { display: grid; gap: 2px; }
+.ca-root .ca-lead-pop-signals strong { font-size: 16px; }
+.ca-root .ca-lead-pop-signals small { font-size: 12.5px; font-weight: 600; color: var(--src); }
+.ca-root .ca-lead-pop-actions { margin-top: 6px; }
+.ca-root .ca-lead-pop-actions > :first-child { flex: 1; }
+
+/* Company evidence: provider icon, what was observed, detail and date. */
+.ca-root .ca-evidence-list { display: grid; gap: 10px; }
+.ca-root .ca-evidence-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; width: 100%; text-align: left; padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--src) 22%, var(--m-line)); border-radius: 12px; background: color-mix(in srgb, var(--src) 3%, var(--m-panel)); cursor: pointer; color: var(--m-ink); transition: box-shadow .15s, transform .15s; }
+.ca-root .ca-evidence-row:hover { box-shadow: 0 6px 20px -12px rgba(15, 30, 50, .35); transform: translateY(-1px); }
+.ca-root .ca-evidence-row > span { display: grid; gap: 3px; min-width: 0; }
+.ca-root .ca-evidence-row small { font-size: 11.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--src); }
+.ca-root .ca-evidence-row strong { font-size: 16px; font-weight: 650; }
+.ca-root .ca-evidence-row em { font-style: normal; font-size: 13px; color: var(--m-muted); overflow-wrap: anywhere; }
+.ca-root .ca-evidence-row time { font-size: 12.5px; font-weight: 600; color: var(--m-muted); white-space: nowrap; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--m-ink) 5%, var(--m-panel)); }
+
+/* Prepare conversation modal */
+.ca-root .ca-prep { display: grid; gap: 16px; }
+.ca-root .ca-prep-signal { padding: 16px 18px; border-radius: 14px; background: linear-gradient(135deg, color-mix(in srgb, var(--m-accent) 9%, var(--m-panel)), var(--m-panel)); border: 1px solid color-mix(in srgb, var(--m-accent) 22%, var(--m-line)); }
+.ca-root .ca-prep-signal-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 12.5px; color: var(--m-muted); }
+.ca-root .ca-prep-signal h2 { margin: 8px 0 4px; font-size: 22px; line-height: 1.2; }
+.ca-root .ca-prep-signal p { margin: 0; font-size: 14px; color: var(--m-muted); }
+.ca-root .ca-prep-answer { padding: 16px 18px; border-radius: 14px; border: 1px solid #ddd3f5; background: linear-gradient(180deg, #f6f2ff, var(--m-panel) 70%); }
+.ca-root .ca-prep-answer header { display: flex; align-items: center; gap: 8px; color: #6d28d9; font-size: 12.5px; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+.ca-root .ca-prep-answer p { margin: 0; font-size: 15.5px; line-height: 1.6; color: var(--m-ink); }
+.ca-root .ca-prep-loading { display: flex; align-items: center; gap: 8px; color: var(--m-muted); }
+.ca-root .ca-prep-tips { margin: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ca-root .ca-prep-tips > div { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; border: 1px solid var(--m-line); border-left: 1px solid var(--m-line); border-radius: 12px; padding: 12px; background: var(--m-panel); }
+.ca-root .ca-prep-tips svg { color: var(--m-accent); margin-top: 2px; }
+.ca-root .ca-prep-tips strong { font-size: 13.5px; }
+.ca-root .ca-prep-tips p { margin: 3px 0 0; font-size: 12.5px; }
+@media (max-width: 650px) { .ca-root .ca-prep-tips { grid-template-columns: 1fr; } }
+
+/* Proposal actions: Submit is the primary, colored action and confirms in place. */
+.ca-root .ca-proposal-form > .ca-actions, .ca-root .ca-proposal-form > [role="alert"], .ca-root .ca-proposal-form > .ca-note { grid-column: 1 / -1; }
+.ca-root .ca-proposal-actions { align-items: center; padding-top: 16px; border-top: 1px solid var(--m-line); }
+.ca-root .ca-proposal-actions :is(.primary, .secondary) { gap: 8px; }
+.ca-root .ca-proposal-actions .primary[data-confirm] { background: #0f8a5f; box-shadow: 0 0 0 4px color-mix(in srgb, #0f8a5f 22%, transparent); }
+.ca-root .ca-confirm-note { flex-basis: 100%; display: flex; align-items: center; gap: 6px; margin: 2px 0 0; font-size: 13.5px; color: #0f6b4b; }
+.ca-root .ca-spin { animation: ca-spin 1s linear infinite; }
+@keyframes ca-spin { to { rotate: 360deg; } }

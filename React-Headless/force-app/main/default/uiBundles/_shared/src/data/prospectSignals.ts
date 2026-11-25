@@ -20,8 +20,8 @@ import { queryDataCloud } from './dataCloudClient';
 import { decodeEntities } from './decodeEntities';
 
 export interface ProspectSignals {
-  champion?: { contactName: string; fromAccountId: string; opportunityScore: number };
-  intent?: { topic: string; score: number; stage: string; researchers: number };
+  champion?: { contactName: string; fromAccountId: string; opportunityScore: number; newTitle?: string; detectedDate?: string };
+  intent?: { topic: string; score: number; stage: string; researchers: number; signalDate?: string };
   funding?: { stage: string; roundUsd: number };
 }
 
@@ -31,7 +31,7 @@ export type ProspectSignalMap = Record<string, ProspectSignals>;
 const idList = (ids: string[]) => ids.map(id => `'${id.replace(/[^A-Za-z0-9]/g, '')}'`).join(', ');
 
 const championSql = (ids: string) => `
-  SELECT new_account_id__c AS acct, contact_name__c, account_id__c, opportunity_score__c
+  SELECT new_account_id__c AS acct, contact_name__c, account_id__c, opportunity_score__c, new_title__c, detected_date__c
   FROM BT_UserGems_Job_Changes__dlm
   WHERE event_type__c = 'Departed'
     AND (was_champion__c = true OR was_primary_contact__c = true)
@@ -40,7 +40,7 @@ const championSql = (ids: string) => `
   ORDER BY opportunity_score__c DESC NULLS LAST`;
 
 const intentSql = (ids: string) => `
-  SELECT account_id__c AS acct, intent_topic__c, intent_score__c, journey_stage__c, unique_researchers__c
+  SELECT account_id__c AS acct, intent_topic__c, intent_score__c, journey_stage__c, unique_researchers__c, last_signal_date__c
   FROM BT_Demandbase_Intent_Signals__dlm
   WHERE profile_week__c = (SELECT MAX(profile_week__c) FROM BT_Demandbase_Intent_Signals__dlm)
     AND surge_flag__c = true
@@ -68,11 +68,11 @@ export async function fetchProspectSignals(accountIds: string[]): Promise<Prospe
   const at = (r: Record<string, unknown>) => (out[String(r.acct ?? '')] ??= {});
   for (const r of champions) {
     const s = at(r);
-    s.champion ??= { contactName: decodeEntities(String(r.contact_name__c ?? '')), fromAccountId: String(r.account_id__c ?? ''), opportunityScore: Number(r.opportunity_score__c) || 0 };
+    s.champion ??= { contactName: decodeEntities(String(r.contact_name__c ?? '')), fromAccountId: String(r.account_id__c ?? ''), opportunityScore: Number(r.opportunity_score__c) || 0, newTitle: r.new_title__c ? String(r.new_title__c) : undefined, detectedDate: r.detected_date__c ? String(r.detected_date__c).slice(0, 10) : undefined };
   }
   for (const r of intents) {
     const s = at(r);
-    s.intent ??= { topic: decodeEntities(String(r.intent_topic__c ?? '')), score: Number(r.intent_score__c) || 0, stage: String(r.journey_stage__c ?? ''), researchers: Number(r.unique_researchers__c) || 0 };
+    s.intent ??= { topic: decodeEntities(String(r.intent_topic__c ?? '')), score: Number(r.intent_score__c) || 0, stage: String(r.journey_stage__c ?? ''), researchers: Number(r.unique_researchers__c) || 0, signalDate: r.last_signal_date__c ? String(r.last_signal_date__c).slice(0, 10) : undefined };
   }
   for (const r of fundings) {
     const s = at(r);

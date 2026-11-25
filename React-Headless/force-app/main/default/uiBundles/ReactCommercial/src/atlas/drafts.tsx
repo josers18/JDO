@@ -3,7 +3,17 @@ import { lexRecordUrl } from '@shared/data/orgEnv';
 import { crmWrite, type CrmWriteInput } from '@shared';
 import { LEAD_SOURCE_OPTIONS, LEAD_STATUS_OPTIONS } from '@shared/components/home/types';
 import { assertActivity, findCompanies, nodes, recordKey, str, verifyAccounts } from './commercialData';
+import { CircleCheck, ClipboardCheck, Loader2, Save, Send, ShieldCheck } from 'lucide-react';
 import { Button, Inspect, useLive } from './controls';
+
+/** A readable source line: signal ids are JSON arrays of [source, family, account, date, …]; record ids are dropped. */
+export function sourceText(ref: string) {
+  try {
+    const parts = JSON.parse(ref);
+    if (Array.isArray(parts)) return parts.filter(p => typeof p === 'string' && p && !/^[A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?$/.test(p)).join(' · ');
+  } catch { /* a plain record id or key */ }
+  return ref;
+}
 
 export type Draft = {
   id: string;
@@ -62,7 +72,7 @@ export function DraftForm({ seed, owner, close, save, remove, submitted }: { see
       if (form.original && (form.kind === 'task' || form.kind === 'meeting')) {
         await assertActivity(owner, form.accountId, form.original, form.kind === 'task' ? 'Task' : 'Event');
       }
-      const description = [form.detail, form.sourceRef ? `Source reference: ${form.sourceRef}` : '', form.offer ? `Offer model: ${form.offer}` : ''].filter(Boolean).join('\n');
+      const description = [form.detail, form.sourceRef ? `Source: ${sourceText(form.sourceRef)}` : '', form.offer ? `Offer model: ${form.offer}` : ''].filter(Boolean).join('\n');
       const base = { subject: form.title, description, status: form.status, priority: form.priority };
       let request: CrmWriteInput;
       if (form.operation === 'delete' && form.original && (form.kind === 'task' || form.kind === 'meeting')) {
@@ -89,7 +99,7 @@ export function DraftForm({ seed, owner, close, save, remove, submitted }: { see
       setError(e instanceof Error ? e.message : 'Salesforce could not save this record.');
     } finally { sending.current = false; setBusy(false); }
   };
-  return <Inspect title={form.operation === 'delete' ? 'Review activity deletion' : form.original ? 'Review source change proposal' : `Review ${form.kind} proposal`} onClose={busy ? () => undefined : close}>
+  return <Inspect title={form.operation === 'delete' ? 'Review activity deletion' : form.original ? 'Review source change proposal' : `Review ${form.kind} proposal`} subtitle={form.company ? `${form.company} · written to Salesforce only when you confirm` : undefined} icon={<ClipboardCheck size={20} />} size="md" onClose={busy ? () => undefined : close}>
     <form className="ca-proposal-form" onSubmit={saveProposal}>
       {requiresCompany ? seed.accountId ? <p><strong>{form.company}</strong> · {form.accountId}</p> : <>
         <label>Find a company<input value={query} onChange={event => { setQuery(event.target.value); setForm(form => ({ ...form, company: '', accountId: '' })); }} /></label>
@@ -113,12 +123,13 @@ export function DraftForm({ seed, owner, close, save, remove, submitted }: { see
         <label>Status<select value={form.status ?? ''} onChange={e => set('status', e.target.value)}><option value="">Unspecified</option>{[...new Set([form.status, ...(form.kind === 'case' ? ['New', 'Working', 'Escalated'] : ['Not Started', 'In Progress', 'Completed', 'Waiting on someone else', 'Deferred'])])].filter(Boolean).map(option => <option key={option}>{option}</option>)}</select></label>
       </>}
       {form.kind === 'opportunity' && <label>Proposed amount<input type="number" min="0" step="0.01" value={form.amount ?? ''} onChange={e => setForm(current => ({ ...current, amount: e.target.value ? Number(e.target.value) : undefined }))} /></label>}
-      {form.sourceRef && <p className="ca-note">Source {form.sourceRef}{form.offer && ` · Product ${form.offer}`}</p>}
+      {form.sourceRef && <p className="ca-note">Source: {sourceText(form.sourceRef)}{form.offer && ` · Product ${form.offer}`}</p>}
       {error && <p role="alert">{error}</p>}
-      {confirm && <p role="status">Submit this proposal to Salesforce?</p>}
-      <div className="ca-actions"><button type="submit" disabled={!valid || busy} className="primary">Save local proposal</button>
-        {existingOpportunity && form.original ? <a className="secondary" href={lexRecordUrl('Opportunity', form.original)} target="_top">Open Salesforce opportunity</a> : <button type="button" disabled={!valid || !companyValid || busy} className="secondary" onClick={() => confirm ? void send() : setConfirm(true)}>{busy ? 'Saving…' : confirm ? 'Confirm Salesforce submission' : 'Submit to Salesforce'}</button>}
+      <div className="ca-actions ca-proposal-actions">
+        {existingOpportunity && form.original ? <a className="secondary" href={lexRecordUrl('Opportunity', form.original)} target="_top">Open Salesforce opportunity</a> : <button type="button" data-action="submit" data-confirm={confirm || undefined} disabled={!valid || !companyValid || busy} className="primary" onClick={() => confirm ? void send() : setConfirm(true)}>{busy ? <><Loader2 size={16} className="ca-spin" />Saving…</> : confirm ? <><CircleCheck size={16} />Confirm Salesforce submission</> : <><Send size={16} />Submit to Salesforce</>}</button>}
+        <button type="submit" disabled={!valid || busy} className="secondary"><Save size={16} />Save local proposal</button>
         {seed.id && !busy && <Button onClick={() => { remove(seed.id!); close(); }} style="text-button">Discard proposal</Button>}
+        {confirm && !busy && <p role="status" className="ca-confirm-note"><ShieldCheck size={15} />Nothing is written until you confirm. Click again to submit to Salesforce.</p>}
       </div>
     </form>
   </Inspect>;

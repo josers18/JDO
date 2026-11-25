@@ -10,9 +10,15 @@ import { fetchNetFlow, generateText, loadCenterConfig, type NetFlowWeek } from '
 import { fetchPipeline } from '@shared/components/atlas/atlasPipelineData';
 import { nodes, readPipeline, readWork, recordKey, str, verifyAccounts } from './commercialData';
 import { Badge, Button, cash, day, Heading, Inspect, Panel, Pending, RouteLink, Tabs, useLive } from './controls';
+import { Bot, CalendarCheck, FileSearch, Loader2, MessageCircle, Sparkles } from 'lucide-react';
 import { readPriorities, readSignals, type Signal } from './signals';
+import { SourceMark } from './sources';
 
 export type Followup = (item: Signal) => void;
+/** Agentforce preparation text: **bold** spans render as <strong> (no raw asterisks), line breaks kept. */
+export function PrepText({ text }: { text: string }) {
+  return <p style={{ whiteSpace: 'pre-wrap' }}>{text.trim().split(/(\*\*[^*]+\*\*)/).map((part, i) => /^\*\*[^*]+\*\*$/.test(part) ? <strong key={i}>{part.slice(2, -2)}</strong> : part.replace(/\*\*/g, ''))}</p>;
+}
 function DriverBreakdown({ drivers }: { drivers: NonNullable<Signal['drivers']> }) {
   return <div className="ca-drivers">{drivers.map(d => <div key={d.driver} data-driver={d.driver}><span>{d.driver}</span><i><b style={{ width: `${Math.min(100, d.points / .3 * 100)}%` }} /></i><strong>{(d.points * 100).toFixed(1)} pts</strong></div>)}</div>;
 }
@@ -38,13 +44,15 @@ export function SignalDetail({ row, followup, closeCompany, firstMove, ownerId }
       {!closeCompany && <RouteLink to={`/client/${row.accountId}`}>Open company</RouteLink>}<Button style="text-button" onClick={() => setView('evidence')}>Source evidence</Button>
     </div>
     {review}</>}
-    {view && <Inspect title={view === 'prep' ? `Prepare · ${row.company}` : `${row.company} · ${row.source}`} onClose={() => setView('')}>
-      <div className={view === 'prep' ? 'ca-prep' : 'ca-evidence'}><Badge>{row.source}</Badge><h2>{row.title}</h2><p>{row.detail}</p><p>{day(row.date)}</p>
-        {view === 'prep' ? <><div className="ca-conversation">
-          <div><strong>Start with their business</strong><p>Confirm what changed and how it affects day-to-day operations.</p></div>
-          <div><strong>Bring the evidence</strong><p>Review the source date and confirm the observation with the company.</p></div>
-          <div><strong>Agree a useful next step</strong><p>Capture the company’s need and the right owner for the next conversation.</p></div>
-        </div>{busy ? <p role="status">Preparing with Agentforce…</p> : generated && <p style={{ whiteSpace: 'pre-wrap' }}>{generated}</p>}
+    {view && <Inspect title={view === 'prep' ? `Prepare · ${row.company}` : `${row.company} · ${row.source}`} subtitle={view === 'prep' ? 'Agentforce conversation prep, grounded in Data 360 evidence' : row.family} icon={view === 'prep' ? <Sparkles size={20} /> : <SourceMark source={row.source} size={20} />} size="md" onClose={() => setView('')}>
+      <div className={view === 'prep' ? 'ca-prep' : 'ca-evidence'}>{view === 'prep' ? <div className="ca-prep-signal"><span className="ca-prep-signal-head"><Badge>{row.source}</Badge><time>{day(row.date)}</time></span><h2>{row.title}</h2><p>{row.detail}</p></div> : <><Badge>{row.source}</Badge><h2>{row.title}</h2><p>{row.detail}</p><p>{day(row.date)}</p></>}
+        {view === 'prep' ? <>
+        <section className="ca-prep-answer" aria-live="polite"><header><Bot size={18} /><strong>Agentforce suggests</strong></header>{busy ? <p role="status" className="ca-prep-loading"><Loader2 size={16} className="ca-spin" />Preparing with Agentforce…</p> : generated ? <PrepText text={generated} /> : <p>No preparation returned. Use the evidence below.</p>}</section>
+        <div className="ca-conversation ca-prep-tips">
+          <div><MessageCircle size={18} /><span><strong>Start with their business</strong><p>Confirm what changed and how it affects day-to-day operations.</p></span></div>
+          <div><FileSearch size={18} /><span><strong>Bring the evidence</strong><p>Review the source date and confirm the observation with the company.</p></span></div>
+          <div><CalendarCheck size={18} /><span><strong>Agree a useful next step</strong><p>Capture the company’s need and the right owner for the next conversation.</p></span></div>
+        </div>
         <div className="ca-actions">
           <Button onClick={() => { setView(''); followup(row); }} style="primary">Keep preparation as a task proposal</Button>
           <Button onClick={() => setView('evidence')}>Inspect source</Button>

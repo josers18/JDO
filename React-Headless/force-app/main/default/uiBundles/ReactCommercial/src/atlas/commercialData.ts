@@ -6,7 +6,7 @@ export type RecordNode = { Id: string } & Partial<Record<
   'FinServ__Balance__c' | 'FinServ__FinancialAccountType__c' | 'FinServ__Status__c' | 'FinServ__OpenDate__c' | 'FinServ__FinancialAccountNumber__c' | 'OwnerId' | 'Description' | 'Type' |
   'Subject' | 'ActivityDate' | 'ActivityDateTime' | 'CreatedDate' | 'Status' | 'Priority' | 'Location' |
   'CaseNumber' | 'WhatId' | 'WhoId' | 'AccountId' | 'StageName' | 'Amount' | 'CloseDate' |
-  'Company' | 'LeadSource' | 'FirstName' | 'LastName' | 'Email' | 'AnnualRevenue' | 'IsPersonAccount' | 'TargetAmount' | 'ActualAmount' | 'TargetDate' | 'EventType' | 'EventDate', Field
+  'Company' | 'LeadSource' | 'FirstName' | 'LastName' | 'Email' | 'AnnualRevenue' | 'FinServ__RelatedAccount__c' | 'IsPersonAccount' | 'TargetAmount' | 'ActualAmount' | 'TargetDate' | 'EventType' | 'EventDate', Field
 >> & { Account?: { Id?: string; Name?: Field };
   FinancialPlan?: { Id: string; Name?: Field; Account?: { Id: string; Name?: Field } };
   PrimaryPerson?: { Id: string; Account?: { Id: string; Name?: Field } } };
@@ -86,7 +86,7 @@ export function readPipeline(ownerId: string) {
 
 export function readLeads(ownerId: string) {
   return crm(`Lead(first: 48, where: { OwnerId: { eq: "${ownerId}" }, IsConverted: { eq: false } }, orderBy: { CreatedDate: { order: DESC } }) {
-    totalCount edges { node { Id ${fields('Name FirstName LastName Company Status LeadSource Email AnnualRevenue CreatedDate')} } }
+    totalCount edges { node { Id ${fields('Name FirstName LastName Company Status LeadSource Email AnnualRevenue CreatedDate FinServ__RelatedAccount__c')} } }
   }`);
 }
 

@@ -49,6 +49,6 @@ export function Tabs<T extends string>({ choices, value, onChange }: { choices: 
   return <div className="ca-switch" role="group">{choices.map(([id, title]) =>
     <button type="button" key={id} aria-pressed={id === value} onClick={() => onChange(id)}>{title}</button>)}</div>;
 }
-export function Inspect({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  return <Modal open onClose={onClose} title={title}><div className="ca-root ca-inspector">{children}</div></Modal>;
+export function Inspect({ title, onClose, children, subtitle, icon, size }: { title: string; onClose: () => void; children: ReactNode; subtitle?: string; icon?: ReactNode; size?: 'sm' | 'md' | 'xl' }) {
+  return <Modal open onClose={onClose} title={title} subtitle={subtitle} icon={icon} tone="accent" size={size}><div className="ca-root ca-inspector">{children}</div></Modal>;
 }
