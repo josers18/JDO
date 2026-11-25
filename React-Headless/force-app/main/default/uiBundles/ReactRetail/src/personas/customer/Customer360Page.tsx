@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import clsx from 'clsx';
 import { useAsyncData, Panel, Eyebrow, AgentforceChat, SkeletonCard } from '@shared';
 import { fetchCustomer360, fetchCustomer360Detail } from './customerData';
@@ -27,7 +27,8 @@ const CUMULUS_AGENT_ID = '0Xxam000000tfCDCAY';
 export default function Customer360Page() {
   const { id } = useParams();
   const accountId = id ?? '001am00000qvjsAAAQ';
-  const [tab, setTab] = useState<FullTab>('Overview');
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState<FullTab>(() => params.get('tab') === 'tearsheet' ? 'Tearsheet' : 'Overview');
   // The active leaf's owning group drives the primary strip's highlight; its
   // sibling leaves populate the secondary segmented row (shown only when >1).
   const activeGroup = TAB_GROUPS.find(g => g.tabs.includes(tab)) ?? TAB_GROUPS[0];

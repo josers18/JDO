@@ -1,0 +1,16 @@
+[
+  {
+    "name": "packet-invalid-saved-shape",
+    "pageErrors": [
+      "Cannot read properties of undefined (reading 'includes')"
+    ],
+    "rendered": 0
+  },
+  {
+    "name": "finder-invalid-saved-shape",
+    "pageErrors": [
+      "Cannot read properties of undefined (reading 'map')"
+    ],
+    "rendered": 0
+  }
+]

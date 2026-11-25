@@ -1,0 +1,815 @@
+‹
+Light (custom)
+COMMAND CENTER
+SECTIONS
+Daily brief
+Key metrics
+Tasks & schedule
+Priority queue
+8
+Recommended actions
+7
+Cross-sell white-space
+Life events
+52
+Risk alerts
+Pipeline
+Leads & referrals
+16
+Portfolio pulse
+PINNED ACCOUNTS
+W
+Williams Household
+Moody's A3 · High risk
+✕
+F
+Fleming Household
+Moody's Baa2 · High risk
+✕
+J
+Johnson Household
+Moody's A3 · High risk
+✕
+TODAY'S ARC
+Speak with Julie Morris about her daughter's 529 account
+2026-10-19
+Follow up with Julie Morris - Business Loans
+2026-10-05
+Follow up with Julie Morris - Business Loans
+2026-09-30
+Follow up with Julie Morris regarding business loans
+2026-09-29
+Insurance Outreach - Alexis S Smith
+2026-09-24
+J
+Jose Sifontes
+Commercial · Cumulus Financial Services
+Relationship Command
+VIEW AS
+My book
+Justin Chen · 10.9K accts
+Sarah Smith · 10.5K accts
+Allen Carter · 5.6K accts
+Jose Sifontes · 5.1K accts
+Adam Watson · 1.3K accts
+Vince West · 1.3K accts
+Kim Johnson · 1.3K accts
+▾
+CURRENT
+COCKPIT
+⌘K
+MA
+TODAY · AI DAILY BRIEF
+Good morning, Jose — borrowers on the credit watchlist.
+
+333 of 5,087 D&B-scored borrowers in your book are on credit watch (Severe failure risk or PAYDEX under 60) and 436 more sit in the High failure-risk tier — covenant-review candidates. 5,082 clients scored for who to call (credit, Gong, outlook, fees, offers), 73 with two or more risk signals. 231 open opportunities worth $18.9B in pipeline. 15 activities scheduled. 8 clients show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in. 8 clients received $10K+ customer payments this week ($233.8K): an excess-cash moment. Market signals (some org-wide): 1 accounts surging on intent, 3 researching a competitor, 14 just raised a round, and 56 lost a champion or primary contact in the last 30 days.
+
+Data freshness 100% · 16 sources
+▷ Listen to brief
+✦
+Ask why this order
+RIGHT NOW · YOUR FIRST MOVE
+Reach out to Williams Household — credit / covenant review.
+
+PAYDEX 28 (High failure risk), 97 days beyond terms · Moody's Watch (A3) · 28% likely: business checking Open 360
+
+✦ Prep me
+Schedule call
+Snooze
+NET FLOW
+$199K
+Credits − debits, week of 2026-11-02 · 15 accounts · Snowflake
+PIPELINE
+$18.9B
+231 open opportunities
+OPPORTUNITIES
+231
+In progress
+LEADS & REFERRALS
+309
+Open leads
+OPEN CASES
+106
+47 CRM (trend) · 59 ServiceNow · 5,594 open 30d+
+CREDIT WATCH
+333
+71 Severe failure risk · 333 PAYDEX < 60 · 436 High tier
+CALL TONE SLIDING
+10
+Negative & declining on Gong
+MODELED UPLIFT
+$2.1M
+5,081 clients with an eligible offer · top: SBA 7(a) loan
+OUTLOOK NEG / WATCH
+738
+220 Watch · 518 Negative · Moody's
+LEADERSHIP CHANGES
+1,021
+67 with a board event 90d · 30 on weak governance
+ESG MOVERS
+492
+259 up · 233 down · 3,728 with controversies · MSCI
+UPMARKET CLIENTS
+2
+$50M+ revenue of 5,087 profiled · ZoomInfo
+CONSOLIDATE-BRANCH CLIENTS
+163
+of 998 clients in 343 ESRI ZIPs · avg wealth index 115
+ACTIVE GOALS
+1,367
+On track
+CROSS-SELL · WHITE-SPACE ANALYSIS
+Where the next product lives
+OWNED
+LOW
+HIGH
+▲▼
+MOVED 6 MO
+CLIENT
+OPPORTUNITY DETAIL
+All white-space opportunities
+All
+▲ Rising0
+▼ Falling0
+$0
+0 OPPORTUNITIES
+CLIENT	PRODUCT	SIGNAL	SCORE	6-MO
+↕
+	EST. VALUE	NEXT STEP
+Scoring your book…
+GROWTH-TIER MIX
+ZoomInfo firmographics
+<$1M
+5,071
+$1M-$10M
+5
+$10M-$50M
+9
+$50M-$200M
+2
+UPMARKET $50M+
+2
+PROFILED
+5,087
+
+Employees · 1-10: 5,081 · 11-50: 3 · 51-200: 1 · 201-1000: 2
+
+Global Industries
+Workday → payroll-connected disbursements
+$50M-$200M
+SteelWorks Inc
+Workday → payroll-connected disbursements
+$50M-$200M
+BRANCH & MARKET FOOTPRINT
+ESRI geo · by billing ZIP
+
+998 clients sit in 343 ESRI-profiled ZIPs; 163 bank near a branch flagged for consolidation and 456 in affluent markets (wealth index 120+). Average wealth index 115, foot traffic 110, 6.8 mi to the nearest branch.
+
+CONSOLIDATE
+163
+AFFLUENT ZIPS
+456
+90076 · CA
+Rustbelt Traditions · wealth 101 · traffic 21 · 7.4 mi
+Consolidate · 13
+90044 · CA
+Soccer Moms · wealth 121 · traffic 74 · 5.5 mi
+Optimize · 14
+90039 · CA
+Small Town Sincerity · wealth 126 · traffic 39 · 14.8 mi
+Consolidate · 12
+90078 · CA
+Midlife Constants · wealth 139 · traffic 90 · 5.3 mi
+Optimize · 13
+77061 · TX
+Small Town Sincerity · wealth 97 · traffic 30 · 8.1 mi
+Consolidate · 12
+90003 · CA
+Soccer Moms · wealth 157 · traffic 78 · 5.9 mi
+Optimize · 11
+YOUR TASKS & MEETINGS · BOOK-WIDE
+Tasks & schedule
++ Task
++ Meeting
+ALL 15
+OVERDUE 15
+TODAY 0
+UPCOMING 0
+ALL TYPES
+TASKS
+MEETINGS
+Speak with Julie Morris about her daughter's 529 account
+Julie E Morris
+OVERDUE
+2026-10-19
+Follow up with Julie Morris - Business Loans
+Julie E Morris
+OVERDUE
+HIGH
+2026-10-05
+Follow up with Julie Morris - Business Loans
+Morris Roasters, LLC
+OVERDUE
+HIGH
+2026-09-30
+Follow up with Julie Morris regarding business loans
+Julie E Morris
+OVERDUE
+HIGH
+2026-09-29
+Insurance Outreach - Alexis S Smith
+OVERDUE
+HIGH
+2026-09-24
+Insurance Outreach - Alexis E Smith
+OVERDUE
+HIGH
+2026-09-24
+SHOW 6 MORE
+SHOW ALL 15
+6 / 15
+RANKED · CLICK TO OPEN 360
+Who to act on today
+✦
+Draft all follow-ups
+TODAY
+7
+CRITICAL
+95
+1
+Brandt Holdings LLC
+TOP PRIORITY
+COMMERCIAL
+›
+
+$74.3K ACH receipt from Umbrella Co on 2026-11-06
+
+TRANSACTIONS
+91
+2
+Reese Household
+COMMERCIAL
+›
+
+AML rating Low → High · sanctions · AE · case WC-2026-35210
+
+WORLD-CHECK SCREENING
+91
+3
+Perez Household
+COMMERCIAL
+›
+
+AML rating Low → High · sanctions · US · case WC-2026-73670
+
+WORLD-CHECK SCREENING
+91
+4
+Henry Household
+COMMERCIAL
+›
+
+AML rating Low → High · sanctions · US · case WC-2026-62339
+
+WORLD-CHECK SCREENING
+91
+5
+Ramos Household
+COMMERCIAL
+›
+
+AML rating Low → High · sanctions · US · case WC-2026-45048
+
+WORLD-CHECK SCREENING
+91
+6
+House Household
+COMMERCIAL
+›
+
+AML rating Low → High · sanctions · US · case WC-2026-90193
+
+WORLD-CHECK SCREENING
+91
+7
+Steele Household
+COMMERCIAL
+›
+
+AML rating Low → High · sanctions · US · case WC-2026-83847
+
+WORLD-CHECK SCREENING
+THIS WEEK
+1
+IMPORTANT
+Prep all 1
+82
+8
+Sandoval-Jordan Industries
+COMMERCIAL
+›
+
+Champion Elizabeth Smith (CFO) left · now at Northgate Point Group
+
+USERGEMS JOB CHANGE · ORG-WIDE
+AGENTFORCE · PRE-DRAFTED · YOU APPROVE
+Recommended actions
+7 PENDING
+CALL
+Account
+Offer SteelWorks Inc a working-capital line of credit
+
+Next-best action #1 for this client: 22% modeled conversion with outreach vs 2% without. Lead with a call.
+
+✦
+Offer eligibility model · BIZ-LOC · $17.9K expected uplift
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+CALL
+Account
+Offer Chen Family Trust a commercial card
+
+Next-best action #1 for this client: 38% modeled conversion with outreach vs 4% without. Lead with a call.
+
+✦
+Offer eligibility model · BIZ-CARD · $12.5K expected uplift
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+CALL
+Account
+Offer Brandt Holdings LLC a commercial real estate loan
+
+Next-best action #1 for this client: 22% modeled conversion with outreach vs 3% without. Lead with a call.
+
+✦
+Offer eligibility model · BIZ-CRE · $7.8K expected uplift
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+TASK
+Task
+Complete open task: Speak with Julie Morris about her daughter's 529 account
+
+This task (due 2026-10-19) is still open. Close the loop with the borrower and log the next credit or treasury step.
+
+✦
+Open Task with ActivityDate 2026-10-19 — from your overdue relationship queue
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+CALL
+Opportunity
+Advance the United Partners lending deal
+
+Your largest open opportunity (Innovation Pipeline, $5.3B) needs a next step. Schedule a call to confirm structure and lock a funding date.
+
+✦
+Highest-value open opportunity at 20% probability
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+EMAIL
+Account
+Pitch treasury management to United Partners
+
+A top relationship has limited recent activity. Reach out on treasury-management and liquidity-sweep opportunities to capture idle balances.
+
+✦
+High-value relationship with sparse recent engagement history
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+CASE
+Case
+Open a credit-review case for Williams Household
+
+A top-ranked weak business-credit signal in your book warrants a covenant and credit review before it deteriorates further. 3,753 of 5,087 borrowers in your book pay trade creditors beyond terms (D&B, 2026-11-01).
+
+✦
+PAYDEX 28 (High failure risk), 97 days beyond terms · Moody's Watch (A3) · 28% likely: business checking
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+DATA CLOUD SIGNALS → OPPORTUNITIES
+Life events & live signals
+LIFE EVENTS ACROSS YOUR BOOK
++ New
+🏡
+Manuel E Davidson
+Explore mortgage, HELOC & homeowner coverage.
+Nov 16
+HOME
+🎓
+Edward T Peters
+Coordinate 529 final distribution & next steps.
+Nov 16
+GRADUATION
+💼
+Dennis Q Schwartz
+Align income transition & benefits rollover.
+Nov 16
+JOB
+🏡
+Karina D Howell
+Explore mortgage, HELOC & homeowner coverage.
+Nov 16
+HOME
+👶
+Catherine I Vargas
+Review education savings (529) & guardianship coverage.
+Nov 16
+BABY
+👶
+Colleen W Garcia
+Review education savings (529) & guardianship coverage.
+Nov 16
+BABY
+💼
+Patrick T Collins
+Align income transition & benefits rollover.
+Nov 16
+JOB
+🎓
+Paul E Jackson
+Coordinate 529 final distribution & next steps.
+Nov 16
+GRADUATION
+🎓
+Christopher N Hernandez
+Coordinate 529 final distribution & next steps.
+Nov 16
+GRADUATION
+🏡
+Donna Q Davis
+Explore mortgage, HELOC & homeowner coverage.
+Nov 16
+HOME
+🏡
+Brian I Coleman
+Explore mortgage, HELOC & homeowner coverage.
+Nov 16
+HOME
+🎓
+Kristine B Moran
+Coordinate 529 final distribution & next steps.
+Nov 16
+GRADUATION
+🎓
+Allison Q Evans
+Coordinate 529 final distribution & next steps.
+Nov 15
+GRADUATION
+👶
+Olivia M Little
+Review education savings (529) & guardianship coverage.
+Nov 15
+BABY
+💼
+William R Welch
+Align income transition & benefits rollover.
+Nov 15
+JOB
+🎓
+Lisa F Cook
+Coordinate 529 final distribution & next steps.
+Nov 14
+GRADUATION
+👶
+Benjamin R Larsen
+Review education savings (529) & guardianship coverage.
+Nov 14
+BABY
+🏡
+Catherine B Johnson
+Explore mortgage, HELOC & homeowner coverage.
+Nov 14
+HOME
+👶
+Kyle H Todd
+Review education savings (529) & guardianship coverage.
+Nov 14
+BABY
+👶
+Wendy P Carter
+Review education savings (529) & guardianship coverage.
+Nov 13
+BABY
+🌅
+Jonathan B Ramsey
+Build the income-drawdown & rollover plan.
+Nov 13
+RETIREMENT
+💼
+Adam E Sullivan
+Align income transition & benefits rollover.
+Nov 13
+JOB
+👶
+Mary P Martinez
+Review education savings (529) & guardianship coverage.
+Nov 13
+BABY
+🏡
+Peter Y Norris
+Explore mortgage, HELOC & homeowner coverage.
+Nov 13
+HOME
+💼
+Amanda N Brown
+Align income transition & benefits rollover.
+Nov 13
+JOB
+💼
+Dana L Michael
+Align income transition & benefits rollover.
+Nov 12
+JOB
+👶
+Tanya S Black
+Review education savings (529) & guardianship coverage.
+Nov 12
+BABY
+👶
+Amy S Thomas
+Review education savings (529) & guardianship coverage.
+Nov 12
+BABY
+💼
+Kelsey V Scott
+Align income transition & benefits rollover.
+Nov 12
+JOB
+🏡
+Amy O Stevens
+Explore mortgage, HELOC & homeowner coverage.
+Nov 11
+HOME
+🎓
+Amanda I Meyers
+Coordinate 529 final distribution & next steps.
+Nov 11
+GRADUATION
+🎓
+Justin G Gibson
+Coordinate 529 final distribution & next steps.
+Nov 11
+GRADUATION
+💼
+Aaron Z Leon
+Align income transition & benefits rollover.
+Nov 11
+JOB
+🌅
+Julie L Brown
+Build the income-drawdown & rollover plan.
+Nov 11
+RETIREMENT
+🏡
+Joshua U Ho
+Explore mortgage, HELOC & homeowner coverage.
+Nov 11
+HOME
+🏡
+Brandon U Gaines
+Explore mortgage, HELOC & homeowner coverage.
+Nov 11
+HOME
+🎓
+Patricia V Pena
+Coordinate 529 final distribution & next steps.
+Nov 11
+GRADUATION
+🏡
+Christopher U Jordan
+Explore mortgage, HELOC & homeowner coverage.
+Nov 11
+HOME
+🏡
+Leslie Z Cox
+Explore mortgage, HELOC & homeowner coverage.
+Nov 11
+HOME
+💼
+Joe D Hayden
+Align income transition & benefits rollover.
+Nov 11
+JOB
+🏡
+Elizabeth M Baker
+Explore mortgage, HELOC & homeowner coverage.
+Nov 10
+HOME
+💼
+Linda I Mayer
+Align income transition & benefits rollover.
+Nov 10
+JOB
+🏡
+Kelly S Santiago
+Explore mortgage, HELOC & homeowner coverage.
+Nov 10
+HOME
+👶
+Gene A Weeks
+Review education savings (529) & guardianship coverage.
+Nov 10
+BABY
+💼
+Kevin V Donovan
+Align income transition & benefits rollover.
+Nov 10
+JOB
+👶
+Sarah C Cooper
+Review education savings (529) & guardianship coverage.
+Nov 10
+BABY
+👶
+Barbara A Jackson
+Review education savings (529) & guardianship coverage.
+Nov 10
+BABY
+👶
+Marc D Martinez
+Review education savings (529) & guardianship coverage.
+Nov 9
+BABY
+👶
+Sean J Jackson
+Review education savings (529) & guardianship coverage.
+Nov 9
+BABY
+🌅
+Theresa E Black
+Build the income-drawdown & rollover plan.
+Nov 9
+RETIREMENT
+🎓
+Oscar F Curtis
+Coordinate 529 final distribution & next steps.
+Nov 9
+GRADUATION
+🏡
+Andrew Z Miller
+Explore mortgage, HELOC & homeowner coverage.
+Nov 9
+HOME
+ALERTS & SIGNALS
+35 OPEN
+Branch consolidation — ZIP 90076, CA
+13 clients bank near a branch ESRI flags for consolidation · foot traffic 21 · wealth index 101 · Rustbelt Traditions · plan digital / relocation outreach before it closes
+LATEST ESRI MONTH
+Branch consolidation — ZIP 90039, CA
+12 clients bank near a branch ESRI flags for consolidation · foot traffic 39 · wealth index 126 · Small Town Sincerity · plan digital / relocation outreach before it closes
+LATEST ESRI MONTH
+Owner wealth — Brandon D Ward
+Majority owner of Fields Household · $5M+ est. net worth · wealth propensity 100 · Established Families · refer to Wealth
+RELATIONSHIP GRAPH
+Owner wealth — Justin W Turner
+Majority owner of Martinez Household · $5M+ est. net worth · wealth propensity 100 · Established Families · refer to Wealth
+RELATIONSHIP GRAPH
+Outlook Negative — Guzman Household
+Moody's Baa3 · outlook Negative since Nov 11, 2026 · price +1.2% 30d · Credit review before the next renewal
+CURRENT OUTLOOK
+Outlook Negative — Morris Household
+Moody's Baa1 · outlook Negative since Nov 11, 2026 · price -2.4% 30d · Credit review before the next renewal
+CURRENT OUTLOOK
+ESG upgrade — Hurley Household
+MSCI BBB → AA · ESG score 9.3 (+3.0) · Sustainability-linked / green-loan pitch
+THIS MONTH
+ESG upgrade — Lee Household
+MSCI BBB → AA · ESG score 9.0 (+2.9) · Sustainability-linked / green-loan pitch
+THIS MONTH
+ESG downgrade — Adkins Household
+MSCI B → CCC · ESG score 3.7 (-1.3) · 14 controversy flags (Customer) · Credit-committee heads-up
+THIS MONTH
+ESG downgrade — Glover Household
+MSCI A → BB · ESG score 4.5 (-2.1) · 10 controversy flags (Governance) · Credit-committee heads-up
+THIS MONTH
+Leadership change — Huang Household
+Exec turnover · board event Oct 30, 2026 · CEO tenure 0.8y · key director Fatima Smith · Treasury-management intro to the new team
+OCT 30, 2026
+Leadership change — Esparza Household
+Exec turnover · board event Oct 28, 2026 · CEO tenure 0.2y · key director David Kim · Treasury-management intro to the new team
+OCT 28, 2026
+Leadership + weak governance — Guerrero Household
+Exec turnover on Weak governance · board event Oct 12, 2026 · Flag for the credit committee
+OCT 12, 2026
+Campaign interest — Rice Household
+Clicked "Payroll Services — November 2026" 2× (2 opens), last 2026-11-11 · Follow up on Payroll Services interest
+LAST TOUCH
+Campaign interest — Simpson Household
+Clicked "Merchant Services Spotlight — October 2026" 2× (2 opens), last 2026-10-18 · Follow up on Merchant Services interest
+LAST TOUCH
+Screening escalated — Reese Household
+AML rating Low → High · sanctions · AE · case WC-2026-35210 · Compliance review — enhanced due diligence
+TODAY
+Screening escalated — Perez Household
+AML rating Low → High · sanctions · US · case WC-2026-73670 · Compliance review — enhanced due diligence
+TODAY
+Researching a competitor — Bright Horizon Health
+Researching Square · Decision · AP Automation · Defend the relationship
+THIS WEEK
+Researching a competitor — Summit Financial
+Researching Wells Fargo · Consideration · Commercial Lending · Defend the relationship
+THIS WEEK
+Intent surge — Pacific Retail Group
+Surging on International Payments and FX · Decision stage · 2 researchers · Get ahead of the evaluation
+THIS WEEK
+New funding — Missoula & Sons Inc.
+Raised $83.5M Series C · 49 mo runway · led by Insight Partners · Excess-cash / treasury conversation
+THIS MONTH
+New funding — Tech Labs
+Raised $36.3M Series B · 40 mo runway · led by Index Ventures · Excess-cash / treasury conversation
+THIS MONTH
+Champion left — Sandoval-Jordan Industries
+Champion Elizabeth Smith (CFO) left · now at Northgate Point Group · Re-establish the relationship
+LAST 30D
+Champion left — Hopkins Contractors
+Champion Hiroshi Jones (Founder and CEO) left · Re-establish the relationship
+LAST 30D
+Call first — Williams Household
+PAYDEX 28 (High failure risk), 97 days beyond terms · Moody's Watch (A3) · 28% likely: business checking · Credit / covenant review
+RECENT
+Call first — Fleming Household
+PAYDEX 33 (High failure risk), 83 days beyond terms · Moody's Watch (Baa2) · 26% likely: SBA 7(a) loan · Credit / covenant review
+RECENT
+Call first — Johnson Household
+PAYDEX 28 (High failure risk), 94 days beyond terms · Moody's Watch (A3) · 26% likely: business checking · Credit / covenant review
+RECENT
+Call first — Cooper Household
+PAYDEX 46 (High failure risk), 44 days beyond terms · Moody's Watch (Baa1) · 25% likely: SBA 7(a) loan · Credit / covenant review
+RECENT
+Call tone sliding — Garcia Household
+Very Negative & declining on calls · deal risk 75 · Competitor, Pricing · Relationship save call
+THIS WEEK
+Call tone sliding — Graham Household
+Very Negative & declining on calls · deal risk 73 · FeatureRequest, Pricing · Relationship save call
+THIS WEEK
+Fee spike — Webb Household
+5 NSF / overdraft / late fees in 30d ($175) · Household check-in — overdraft protection / budgeting
+LAST 30D
+Fee spike — Hammond Household
+6 NSF / overdraft / late fees in 30d ($210) · Household check-in — overdraft protection / budgeting
+LAST 30D
+Fee spike — Ortiz Household
+4 NSF / overdraft / late fees in 30d ($140) · Household check-in — overdraft protection / budgeting
+LAST 30D
+Receivable landed — Brandt Holdings LLC
+$74.3K ACH receipt from Umbrella Co on 2026-11-06 · Excess-cash conversation — sweep / money market
+THIS WEEK
+Receivable landed — Pacific Retail Group
+$39.8K ACH receipt from Vandelay Imports on 2026-11-08 · Excess-cash conversation — sweep / money market
+THIS WEEK
+OPEN OPPORTUNITIES · SORTED BY VALUE
+Pipeline
+✦
+Summarize stalled deals
+CLIENT	OPPORTUNITY	STAGE	PROPENSITY	AMOUNT
+United Partners	Innovation Pipeline	Qualification	
+20%	$5.3B
+B2B Commerce Lightning Experience Guest Buyer Account	Innovation Pipeline	Qualification	
+20%	$4.5B
+Jim Morris Estate	Innovation Pipeline	Qualification	
+20%	$3.4B
+IDO House Account	Innovation Pipeline	Qualification	
+20%	$2B
+Frank Household	Innovation Pipeline	Qualification	
+20%	$1.7B
+General Utilities	Innovation Pipeline	Qualification	
+20%	$1.1B
+SHOW 2 DEALS
+SHOW ALL 8
+6 / 8
+INBOUND · ROUTED TO YOU
+Leads & referrals
+NAME	SOURCE	STATUS	VALUE
+James Barker	Sales Bot	NEW	$0
+Brandon D Ward	Owner of Fields Household · refer to Wealth	$5M+ · WEALTH 100	$0
+Assa Barak	Sales Bot	NEW	$0
+Anthony R Garcia	Warm intro via Martinez Household	REFERRAL · 95%	$0
+Daragh Dennehy	—	NEW	$0
+Justin W Turner	Owner of Martinez Household · refer to Wealth	$5M+ · WEALTH 100	$0
+SHOW 6 LEADS
+SHOW ALL 16
+6 / 16
+PORTFOLIO PULSE
+▷ LISTEN
+
+Your book holds $18.9B open pipeline across 231 opportunities. Recent client touchpoints are running light — schedule outreach to keep relationships warm and move stalled deals this quarter.
+
+WINS · 30D
+$0
+No closes logged in the last 30 days.
+ACTIVITY · 7D
+15
+Low volume — schedule touchpoints.

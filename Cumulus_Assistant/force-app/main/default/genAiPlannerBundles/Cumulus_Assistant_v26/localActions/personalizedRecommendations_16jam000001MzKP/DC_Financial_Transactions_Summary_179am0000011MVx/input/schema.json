@@ -1,0 +1,25 @@
+{
+  "required" : [ "Input:Account" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "Input:Account" : {
+      "title" : "RelatedEntity",
+      "description" : "Input AccountID. This is bound automatically to the current record context and must not be requested from the user.",
+      "lightning:type" : "lightning__recordInfoType",
+      "lightning:sObjectInfo" : {
+        "apiName" : "Account"
+      },
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "citationMode" : {
+      "title" : "Citation Mode",
+      "description" : "Select Citation Mode",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

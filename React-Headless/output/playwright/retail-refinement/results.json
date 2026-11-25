@@ -1,0 +1,102 @@
+{
+  "layouts": [
+    {
+      "page": "today",
+      "width": 1512
+    },
+    {
+      "page": "today",
+      "width": 1024
+    },
+    {
+      "page": "today",
+      "width": 768
+    },
+    {
+      "page": "today",
+      "width": 390
+    },
+    {
+      "page": "relationships",
+      "width": 1512
+    },
+    {
+      "page": "relationships",
+      "width": 1024
+    },
+    {
+      "page": "relationships",
+      "width": 768
+    },
+    {
+      "page": "relationships",
+      "width": 390
+    },
+    {
+      "page": "pipeline",
+      "width": 1512
+    },
+    {
+      "page": "pipeline",
+      "width": 1024
+    },
+    {
+      "page": "pipeline",
+      "width": 768
+    },
+    {
+      "page": "pipeline",
+      "width": 390
+    },
+    {
+      "page": "journey",
+      "width": 1512
+    },
+    {
+      "page": "journey",
+      "width": 1024
+    },
+    {
+      "page": "journey",
+      "width": 768
+    },
+    {
+      "page": "journey",
+      "width": 390
+    },
+    {
+      "page": "growth",
+      "width": 1512
+    },
+    {
+      "page": "growth",
+      "width": 1024
+    },
+    {
+      "page": "growth",
+      "width": 768
+    },
+    {
+      "page": "growth",
+      "width": 390
+    },
+    {
+      "page": "health",
+      "width": 1512
+    },
+    {
+      "page": "health",
+      "width": 1024
+    },
+    {
+      "page": "health",
+      "width": 768
+    },
+    {
+      "page": "health",
+      "width": 390
+    }
+  ],
+  "errors": [],
+  "journeys": "first-fold pipeline; stage filtering; paged relationship selection; milestone month/record/goal; probability cells to exact-ID opportunity; life stages; browsing follow-up; leads; mobile product pages; health source selection"
+}

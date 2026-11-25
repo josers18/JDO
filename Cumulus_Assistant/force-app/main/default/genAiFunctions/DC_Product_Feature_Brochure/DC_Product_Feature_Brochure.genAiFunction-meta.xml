@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>The goal of this action is to answer questions related to products and processes including product features, requirements, processes, fees, recommendations</description>
+    <developerName>DC_Product_Feature_Brochure</developerName>
+    <invocationTarget>Product_Feature_Brochure</invocationTarget>
+    <invocationTargetType>generatePromptResponse</invocationTargetType>
+    <isConfirmationRequired>false</isConfirmationRequired>
+    <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+    <masterLabel>DC_Product_Feature_Brochure</masterLabel>
+</GenAiFunction>

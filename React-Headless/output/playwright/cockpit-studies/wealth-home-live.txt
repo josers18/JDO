@@ -1,0 +1,790 @@
+‹
+Light (custom)
+COMMAND CENTER
+SECTIONS
+Daily brief
+Key metrics
+Tasks & schedule
+Priority queue
+8
+Recommended actions
+6
+Cross-sell white-space
+Life events
+52
+Risk alerts
+Pipeline
+Leads & referrals
+12
+Portfolio pulse
+PINNED ACCOUNTS
+G
+Graham Household
+Private Wealth · High risk
+✕
+G
+Garcia Household
+Private Wealth · High risk
+✕
+G
+Gill Household
+Private Wealth · High risk
+✕
+TODAY'S ARC
+Speak with Julie Morris about her daughter's 529 account
+19 Mon
+Follow up with Julie Morris - Business Loans
+5 Mon
+Follow up with Julie Morris - Business Loans
+30 Wed
+Follow up with Julie Morris regarding business loans
+29 Tue
+Insurance Outreach - Alexis S Smith
+24 Thu
+J
+Jose Sifontes
+Wealth · Cumulus Financial Services
+Advisory Desk
+VIEW AS
+My book
+Justin Chen · 10.9K accts
+Sarah Smith · 10.5K accts
+Allen Carter · 5.6K accts
+Jose Sifontes · 5.1K accts
+Adam Watson · 1.3K accts
+Vince West · 1.3K accts
+Kim Johnson · 1.3K accts
+▾
+CURRENT
+COCKPIT
+⌘K
+MA
+TODAY · AI DAILY BRIEF
+Good morning, Jose — held-away assets within reach.
+
+5 clients in your book hold external investment assets totalling $2.2M; 0 are $5M+ consolidation opportunities. 3,023 clients scored for who to call (held away, plans, Gong, concentration), 6 with two or more risk signals; 8 of the top 8 high-risk. 231 open opportunities worth $18.9B in pipeline. 15 activities scheduled. 1 clients received a bonus or tax refund this week ($4.4K) that could be invested. 32 clients left an employer with a liquidity event in the last 180 days: a rollover / equity-proceeds conversation.
+
+Data freshness 100% · 12 sources
+▷ Listen to brief
+✦
+Ask why this order
+RIGHT NOW · YOUR FIRST MOVE
+Reach out to Graham Household — relationship save call.
+
+Very Negative & declining calls (risk 73) · plan 59% likely to succeed Open 360
+
+✦ Prep me
+Schedule call
+Snooze
+NET FLOW
+$204.8K
+Credits − debits, week of 2026-11-02 · 27 accounts · Snowflake
+HELD-AWAY OPPORTUNITY
+$2.2M
+5 clients · brokerage + robo
+PIPELINE
+$18.9B
+231 open opportunities
+OPPORTUNITIES
+231
+In progress
+LEADS & REFERRALS
+309
+Open leads
+OPEN CASES
+106
+47 CRM (trend) · 59 ServiceNow · 5,594 open 30d+
+$5M+ TARGETS
+0
+Consolidation
+CALL TONE SLIDING
+10
+Negative & declining on Gong
+MODELED UPLIFT
+$2.8K
+6 clients with an eligible offer · top: managed account
+PLANS AT RISK
+3,014
+< 70% success · 141 below 50% · 108 reviews due 30d · 537 stale
+BUSINESS OWNERS
+611
+608 businesses · 13 at $50M+ · relationship graph · org-wide
+UPGRADE PROSPECTS
+467
+$1M+ est. net worth, not in Wealth · 23 at $5M+ · Claritas
+CONCENTRATED POSITIONS
+1
+of 13 clients with holdings · one stock ≥ 20% · 76% of $4.9M in single stocks
+ACTIVE GOALS
+1,367
+On track
+CROSS-SELL · WHITE-SPACE ANALYSIS
+Where the next product lives
+OWNED
+LOW
+HIGH
+▲▼
+MOVED 6 MO
+CLIENT
+OPPORTUNITY DETAIL
+All white-space opportunities
+All
+▲ Rising0
+▼ Falling0
+$0
+0 OPPORTUNITIES
+CLIENT	PRODUCT	SIGNAL	SCORE	6-MO
+↕
+	EST. VALUE	NEXT STEP
+Scoring your book…
+CRYPTO & ROBO LEAKAGE
+Plaid held-away
+
+$36.7K sits with crypto exchanges and robo-advisors, with $2.4K/mo still flowing in. Open with a digital-asset offering for crypto holders and a managed-account comparison for robo clients.
+
+CRYPTO · 1
+$1.9K
+ROBO · 1
+$34.8K
+Marcus G Rodriguez
+Crypto · Coinbase
+$1.9K
+Anika A Patel
+Robo · Wealthfront · +$2.4K/mo
+$34.8K
+TRADING ACTIVITY PULSE
+Confirmed USD trades
+AS OF NOV 11, 2026
+
+Buys (green) vs sells (red) over 9 trade weeks. The latest week was a net buy of $1.5M; net sellers below raised cash to reinvest.
+
+BUYS · LATEST WK
+$329.5M
+SELLS · LATEST WK
+$328M
+Burton Household
+4 trades · The J.M. Smucker Company
+net sold $478.7K
+Hill Household
+4 trades · Ryerson Holding Corporation
+net sold $434.1K
+Flores Household
+4 trades · SES AI Corporation Class A
+net sold $424.4K
+Duncan Household
+3 trades · Service Corporation International
+net sold $380.9K
+BUSINESS-OWNER CLIENTS
+Relationship graph · ZoomInfo · org-wide
+
+611 clients are majority owners of 608 businesses, 13 of them at $50M+ revenue. Lead with liquidity-event planning for the larger companies, a 401(k) for those with staff, and succession planning for the rest — and loop in the commercial RM.
+
+OWNERS
+611
+$50M+ BUSINESSES
+13
+James V Wolf
+Davenport-White Enterprises · $50M-$200M
+Liquidity-event planning
+Lisa P Foster
+Blair-Gutierrez Group · $50M-$200M
+Liquidity-event planning
+Scott U Huynh
+Spencer and Sons Enterprises · $50M-$200M
+Liquidity-event planning
+Lisa P Smith
+Parsons Enterprises · $50M-$200M
+Liquidity-event planning
+Juan D Michael
+Martinez Holdings · $50M-$200M
+Liquidity-event planning
+WEALTH UPGRADE PROSPECTS
+Claritas propensity
+
+467 clients carry an estimated $1M+ net worth or a high wealth propensity but aren't in the Wealth Management category yet. Prospect from inside the book: a planning review is the natural opener.
+
+PROSPECTS
+467
+$5M+
+23
+Lawson Household
+Empty Nesters · Pools & Patios · wealth 100 · invest 100
+$5M+
+Fry Household
+Empty Nesters · Pools & Patios · wealth 91 · invest 100
+$5M+
+Parks Household
+Empty Nesters · Upper Crust · wealth 81 · invest 100
+$5M+
+Turner Household
+Young Families · Pools & Patios · wealth 74 · invest 88
+$5M+
+Burns Household
+Established Families · Young Achievers · wealth 74 · invest 100
+$5M+
+CONCENTRATION RISK
+CRM holdings · funds excluded
+
+1 of 13 clients hold a single stock worth 20% or more of their holdings. Single stocks are 76% of $4.9M held; the largest exposure is Microsoft Corporation at 14%.
+
+CONCENTRATED
+1
+IN SINGLE STOCKS
+76%
+MSFT 14% · 11 clients
+GOOGL 12% · 12 clients
+HD 11% · 11 clients
+AMZN 9% · 12 clients
+Julie E Morris
+MSFT · $586.8K of $1.9M · 20 positions
+31%
+YOUR TASKS & MEETINGS · BOOK-WIDE
+Tasks & schedule
++ Task
++ Meeting
+ALL 15
+OVERDUE 15
+TODAY 0
+UPCOMING 0
+ALL TYPES
+TASKS
+MEETINGS
+Speak with Julie Morris about her daughter's 529 account
+Julie E Morris
+OVERDUE
+2026-10-19
+Follow up with Julie Morris - Business Loans
+Julie E Morris
+OVERDUE
+HIGH
+2026-10-05
+Follow up with Julie Morris - Business Loans
+Morris Roasters, LLC
+OVERDUE
+HIGH
+2026-09-30
+Follow up with Julie Morris regarding business loans
+Julie E Morris
+OVERDUE
+HIGH
+2026-09-29
+Insurance Outreach - Alexis S Smith
+OVERDUE
+HIGH
+2026-09-24
+Insurance Outreach - Alexis E Smith
+OVERDUE
+HIGH
+2026-09-24
+SHOW 6 MORE
+SHOW ALL 15
+6 / 15
+RANKED · CLICK TO OPEN 360
+Who to act on today
+✦
+Draft all follow-ups
+TODAY
+8
+CRITICAL
+95
+1
+Reyes Household
+TOP PRIORITY
+WEALTH
+›
+
+Plan success 42% · $2.9M across 6 goals
+
+MONEYGUIDEPRO PLAN
+95
+2
+Barnes Household
+WEALTH
+›
+
+Plan success 43% · $4.3M across 6 goals
+
+MONEYGUIDEPRO PLAN
+95
+3
+Caldwell Household
+WEALTH
+›
+
+Plan success 43% · $5.1M across 6 goals
+
+MONEYGUIDEPRO PLAN
+95
+4
+Williams Household
+WEALTH
+›
+
+Plan success 43% · $3.4M across 6 goals
+
+MONEYGUIDEPRO PLAN
+95
+5
+Peterson Household
+WEALTH
+›
+
+Plan success 43% · $3.1M across 6 goals
+
+MONEYGUIDEPRO PLAN
+95
+6
+Benjamin Household
+WEALTH
+›
+
+Plan success 43% · $2.8M across 6 goals
+
+MONEYGUIDEPRO PLAN
+91
+7
+Perez Household
+WEALTH
+›
+
+AML rating Low → High · sanctions · US · case WC-2026-73670
+
+WORLD-CHECK SCREENING
+83
+8
+Charlotte Y Moyer
+WEALTH
+›
+
+Charlotte Y Moyer left Howard-Lee Practice for Ironbridge Ridge Foods Inc · liquidity event
+
+USERGEMS LIQUIDITY · ORG-WIDE
+AGENTFORCE · PRE-DRAFTED · YOU APPROVE
+Recommended actions
+6 PENDING
+EMAIL
+Account
+Offer David H Chen a managed account
+
+Next-best action #2 for this client: 23% modeled conversion with outreach vs 5% without. Lead with email.
+
+✦
+Offer eligibility model · WM-MAS · $1.3K expected uplift
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+EMAIL
+Account
+Offer Priya S Venkatesh a 401(k) rollover IRA
+
+Next-best action #1 for this client: 36% modeled conversion with outreach vs 5% without. Lead with email.
+
+✦
+Offer eligibility model · IRA-ROL · $768.6 expected uplift
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+EMAIL
+Account
+Offer Marcus G Rodriguez a Roth IRA
+
+Next-best action #1 for this client: 23% modeled conversion with outreach vs 2% without. Lead with email.
+
+✦
+Offer eligibility model · IRA-RTH · $665.4 expected uplift
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+TASK
+Task
+Complete open task: Speak with Julie Morris about her daughter's 529 account
+
+This planning task (due 2026-10-19) is still open. Close the loop with the client and confirm the next review step.
+
+✦
+Open Task with ActivityDate 2026-10-19 — from your overdue advisory queue
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+CALL
+Opportunity
+Advance United Partners toward close
+
+Your largest open opportunity (Innovation Pipeline, $5.3B) needs a next step. Schedule a planning call to confirm scope and lock a date.
+
+✦
+Highest-value open opportunity at 20% probability
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+EMAIL
+Account
+Re-engage United Partners on their plan
+
+A top relationship has limited recent activity. Reach out to schedule a portfolio review and explore held-away consolidation.
+
+✦
+High-value household with sparse recent engagement history
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+DATA CLOUD SIGNALS → OPPORTUNITIES
+Life events & live signals
+LIFE EVENTS ACROSS YOUR BOOK
++ New
+🏡
+Manuel E Davidson
+Explore mortgage, HELOC & homeowner coverage.
+Nov 16
+HOME
+🎓
+Edward T Peters
+Coordinate 529 final distribution & next steps.
+Nov 16
+GRADUATION
+💼
+Dennis Q Schwartz
+Align income transition & benefits rollover.
+Nov 16
+JOB
+🏡
+Karina D Howell
+Explore mortgage, HELOC & homeowner coverage.
+Nov 16
+HOME
+👶
+Catherine I Vargas
+Review education savings (529) & guardianship coverage.
+Nov 16
+BABY
+👶
+Colleen W Garcia
+Review education savings (529) & guardianship coverage.
+Nov 16
+BABY
+💼
+Patrick T Collins
+Align income transition & benefits rollover.
+Nov 16
+JOB
+🎓
+Paul E Jackson
+Coordinate 529 final distribution & next steps.
+Nov 16
+GRADUATION
+🎓
+Christopher N Hernandez
+Coordinate 529 final distribution & next steps.
+Nov 16
+GRADUATION
+🏡
+Donna Q Davis
+Explore mortgage, HELOC & homeowner coverage.
+Nov 16
+HOME
+🏡
+Brian I Coleman
+Explore mortgage, HELOC & homeowner coverage.
+Nov 16
+HOME
+🎓
+Kristine B Moran
+Coordinate 529 final distribution & next steps.
+Nov 16
+GRADUATION
+🎓
+Allison Q Evans
+Coordinate 529 final distribution & next steps.
+Nov 15
+GRADUATION
+👶
+Olivia M Little
+Review education savings (529) & guardianship coverage.
+Nov 15
+BABY
+💼
+William R Welch
+Align income transition & benefits rollover.
+Nov 15
+JOB
+🎓
+Lisa F Cook
+Coordinate 529 final distribution & next steps.
+Nov 14
+GRADUATION
+👶
+Benjamin R Larsen
+Review education savings (529) & guardianship coverage.
+Nov 14
+BABY
+🏡
+Catherine B Johnson
+Explore mortgage, HELOC & homeowner coverage.
+Nov 14
+HOME
+👶
+Kyle H Todd
+Review education savings (529) & guardianship coverage.
+Nov 14
+BABY
+👶
+Wendy P Carter
+Review education savings (529) & guardianship coverage.
+Nov 13
+BABY
+🌅
+Jonathan B Ramsey
+Build the income-drawdown & rollover plan.
+Nov 13
+RETIREMENT
+💼
+Adam E Sullivan
+Align income transition & benefits rollover.
+Nov 13
+JOB
+👶
+Mary P Martinez
+Review education savings (529) & guardianship coverage.
+Nov 13
+BABY
+🏡
+Peter Y Norris
+Explore mortgage, HELOC & homeowner coverage.
+Nov 13
+HOME
+💼
+Amanda N Brown
+Align income transition & benefits rollover.
+Nov 13
+JOB
+💼
+Dana L Michael
+Align income transition & benefits rollover.
+Nov 12
+JOB
+👶
+Tanya S Black
+Review education savings (529) & guardianship coverage.
+Nov 12
+BABY
+👶
+Amy S Thomas
+Review education savings (529) & guardianship coverage.
+Nov 12
+BABY
+💼
+Kelsey V Scott
+Align income transition & benefits rollover.
+Nov 12
+JOB
+🏡
+Amy O Stevens
+Explore mortgage, HELOC & homeowner coverage.
+Nov 11
+HOME
+🎓
+Amanda I Meyers
+Coordinate 529 final distribution & next steps.
+Nov 11
+GRADUATION
+🎓
+Justin G Gibson
+Coordinate 529 final distribution & next steps.
+Nov 11
+GRADUATION
+💼
+Aaron Z Leon
+Align income transition & benefits rollover.
+Nov 11
+JOB
+🌅
+Julie L Brown
+Build the income-drawdown & rollover plan.
+Nov 11
+RETIREMENT
+🏡
+Joshua U Ho
+Explore mortgage, HELOC & homeowner coverage.
+Nov 11
+HOME
+🏡
+Brandon U Gaines
+Explore mortgage, HELOC & homeowner coverage.
+Nov 11
+HOME
+🎓
+Patricia V Pena
+Coordinate 529 final distribution & next steps.
+Nov 11
+GRADUATION
+🏡
+Christopher U Jordan
+Explore mortgage, HELOC & homeowner coverage.
+Nov 11
+HOME
+🏡
+Leslie Z Cox
+Explore mortgage, HELOC & homeowner coverage.
+Nov 11
+HOME
+💼
+Joe D Hayden
+Align income transition & benefits rollover.
+Nov 11
+JOB
+🏡
+Elizabeth M Baker
+Explore mortgage, HELOC & homeowner coverage.
+Nov 10
+HOME
+💼
+Linda I Mayer
+Align income transition & benefits rollover.
+Nov 10
+JOB
+🏡
+Kelly S Santiago
+Explore mortgage, HELOC & homeowner coverage.
+Nov 10
+HOME
+👶
+Gene A Weeks
+Review education savings (529) & guardianship coverage.
+Nov 10
+BABY
+💼
+Kevin V Donovan
+Align income transition & benefits rollover.
+Nov 10
+JOB
+👶
+Sarah C Cooper
+Review education savings (529) & guardianship coverage.
+Nov 10
+BABY
+👶
+Barbara A Jackson
+Review education savings (529) & guardianship coverage.
+Nov 10
+BABY
+👶
+Marc D Martinez
+Review education savings (529) & guardianship coverage.
+Nov 9
+BABY
+👶
+Sean J Jackson
+Review education savings (529) & guardianship coverage.
+Nov 9
+BABY
+🌅
+Theresa E Black
+Build the income-drawdown & rollover plan.
+Nov 9
+RETIREMENT
+🎓
+Oscar F Curtis
+Coordinate 529 final distribution & next steps.
+Nov 9
+GRADUATION
+🏡
+Andrew Z Miller
+Explore mortgage, HELOC & homeowner coverage.
+Nov 9
+HOME
+ALERTS & SIGNALS
+15 OPEN
+Plan at risk — Reyes Household
+Plan success 42% · $2.9M across 6 goals · Rework the plan — success below 50%
+LATEST PLAN RUN
+Plan at risk — Barnes Household
+Plan success 43% · $4.3M across 6 goals · Rework the plan — success below 50%
+LATEST PLAN RUN
+Campaign interest — Keith S Munoz
+Clicked "Rewards Credit Card Offer — November 2026" 2× (2 opens), last 2026-11-11 · Follow up on Credit Card interest
+LAST TOUCH
+Campaign interest — James S Hernandez
+Clicked "Retirement Readiness — October 2026" 2× (2 opens), last 2026-10-23 · Follow up on Retirement Account interest
+LAST TOUCH
+Liquidity event — Charlotte Y Moyer
+Charlotte Y Moyer left Howard-Lee Practice for Ironbridge Ridge Foods Inc · liquidity event · Liquidity conversation — rollover / equity proceeds
+LAST 180D
+Liquidity event — Felicia E Brown
+Felicia E Brown left Williams Industries for Crescent Bay Holdings · liquidity event · Liquidity conversation — rollover / equity proceeds
+LAST 180D
+Screening escalated — Perez Household
+AML rating Low → High · sanctions · US · case WC-2026-73670 · Compliance review — enhanced due diligence
+TODAY
+Screening escalated — Henry Household
+AML rating Low → High · sanctions · US · case WC-2026-62339 · Compliance review — enhanced due diligence
+TODAY
+Call first — Graham Household
+Very Negative & declining calls (risk 73) · plan 59% likely to succeed · Relationship save call
+RECENT
+Call first — Garcia Household
+Very Negative & declining calls (risk 75) · plan 60% likely to succeed · Relationship save call
+RECENT
+Call first — Gill Household
+Very Negative & declining calls (risk 60) · plan 59% likely to succeed · Relationship save call
+RECENT
+Call first — Robles Household
+plan 42% likely to succeed · Plan review — goals, savings rate, allocation
+RECENT
+Call tone sliding — Ramirez Household
+Negative & declining on calls · deal risk 56 · Competitor, FeatureRequest, Renewal · Relationship save call
+THIS WEEK
+Call tone sliding — Conner Household
+Negative & declining on calls · deal risk 55 · FeatureRequest, Pricing · call in 8d, notes stale · Prep for upcoming call — log notes
+THIS WEEK
+New cash — Marcus G Rodriguez
+Tax refund deposit $4.4K on 2026-11-07 · Invest new cash — portfolio top-up
+THIS WEEK
+OPEN OPPORTUNITIES · SORTED BY VALUE
+Pipeline
+✦
+Summarize stalled deals
+CLIENT	OPPORTUNITY	STAGE	PROPENSITY	AMOUNT
+United Partners	Innovation Pipeline	Qualification	
+20%	$5.3B
+B2B Commerce Lightning Experience Guest Buyer Account	Innovation Pipeline	Qualification	
+20%	$4.5B
+Jim Morris Estate	Innovation Pipeline	Qualification	
+20%	$3.4B
+IDO House Account	Innovation Pipeline	Qualification	
+20%	$2B
+Frank Household	Innovation Pipeline	Qualification	
+20%	$1.7B
+General Utilities	Innovation Pipeline	Qualification	
+20%	$1.1B
+SHOW 2 DEALS
+SHOW ALL 8
+6 / 8
+INBOUND · ROUTED TO YOU
+Leads & referrals
+NAME	SOURCE	STATUS	VALUE
+James Barker	Sales Bot	NEW	$0
+Anthony R Garcia	Warm intro via Martinez Household	REFERRAL · 95%	$0
+Assa Barak	Sales Bot	NEW	$0
+Matthew P Stein	Warm intro via Rodriguez Household	REFERRAL · 94%	$0
+Daragh Dennehy	—	NEW	$0
+Anna C Wood	Warm intro via Hernandez Household	REFERRAL · 94%	$0
+SHOW 6 LEADS
+SHOW ALL 12
+6 / 12
+PORTFOLIO PULSE
+▷ LISTEN
+
+Your book holds $18.9B open pipeline across 231 opportunities. Recent client touchpoints are running light — schedule outreach to keep relationships warm and move stalled deals this quarter.
+
+WINS · 30D
+$0
+No closes logged in the last 30 days.
+ACTIVITY · 7D
+15
+Low volume — schedule touchpoints.

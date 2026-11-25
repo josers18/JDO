@@ -159,8 +159,8 @@ const n = (v: unknown) => (v == null || v === '' ? null : Number(v));
 const decode = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 
 /** W9 — the book's blended Who-to-Call list. */
-export async function fetchWealthWhoToCall(ownerId: string | null | undefined): Promise<WealthWhoToCallResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 9);
+export async function fetchWealthWhoToCall(ownerId: string | null | undefined, strictBook = false): Promise<WealthWhoToCallResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 9, strictBook);
   // Reserve the last slot for the most concentrated client when the score alone leaves them out.
   const raw = res.rows.length > 8 ? [...res.rows.slice(0, 7), res.rows[8]] : res.rows;
   const total = await queryDataCloud<Record<string, unknown>>(summarySql(res.accountFilter), 1)

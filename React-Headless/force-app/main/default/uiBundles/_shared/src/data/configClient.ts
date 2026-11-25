@@ -54,6 +54,8 @@ export interface ModelCatalog {
   /** True when a background discovery probe is currently running — the list
    *  shown is last-known and a fresher one will be available on next load. */
   refreshing: boolean;
+  discoveredAt?: number;
+  lastAttemptFailed?: boolean;
 }
 
 /** The AI actions, in dropdown order, with their human labels. */
@@ -174,6 +176,8 @@ export async function fetchModelCatalog(opts?: { refresh?: boolean }): Promise<M
     models?: ModelOption[];
     source?: ModelCatalog['source'];
     refreshing?: boolean;
+    discoveredAt?: number;
+    lastAttemptFailed?: boolean;
     error?: string;
   };
   if (!res.ok) {
@@ -183,5 +187,7 @@ export async function fetchModelCatalog(opts?: { refresh?: boolean }): Promise<M
     models: json.models ?? [],
     source: json.source ?? 'fallback',
     refreshing: json.refreshing ?? false,
+    discoveredAt: json.discoveredAt,
+    lastAttemptFailed: json.lastAttemptFailed,
   };
 }

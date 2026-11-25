@@ -1,0 +1,209 @@
+.atlas-pipeline-heading { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
+.atlas-pipeline-pagination { display: flex; gap: 10px; margin-top: 14px; }
+.atlas-pipeline .ws-stage-stream button { min-width: 1px; }
+.atlas-pipeline .ws-deal-plot g[role="button"] { cursor: pointer; }
+@media(max-width:680px) { .atlas-pipeline-heading { flex-wrap: wrap; } }
+
+.atlas-retail-stage {
+  display: grid;
+  grid-template-columns: minmax(240px, .8fr) minmax(0, 1.2fr);
+  gap: 30px;
+  background: white;
+  border: 1px solid var(--m-line);
+  border-radius: 18px;
+  align-items: center;
+  padding: 26px;
+  margin-bottom: 24px;
+}
+.atlas-retail-stage p { color: var(--m-muted); }
+@media(max-width: 900px) { .atlas-retail-stage { grid-template-columns: 1fr; } }
+
+.atlas-pipeline .atlas-pipeline-scope { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
+.atlas-pipeline-scope::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--m-accent); }
+.atlas-layout .atlas-pipeline-heading h1 { font-weight: 500; }
+.atlas-layout .atlas-pipeline-heading h1 + p { font-size: 18px; line-height: 1.6; }
+.atlas-layout .atlas-pipeline.ca-root .atlas-pipeline-heading h1 + p { color: var(--m-muted); }
+.atlas-layout .atlas-pipeline .ws-deal-focus h2 { font-weight: 500; }
+.atlas-layout .atlas-pipeline:not(.atlas-retail-pipeline,.ca-root) .atlas-pipeline-heading h1 {
+  font-size: 44px;
+  line-height: 1.1;
+  letter-spacing: -.045em;
+}
+.atlas-layout .atlas-retail-pipeline .atlas-pipeline-heading h1 {
+  font-size: clamp(38px, 4.2vw, 62px);
+  line-height: 1.07;
+  letter-spacing: -.05em;
+  max-width: 800px;
+}
+.atlas-layout .atlas-pipeline.ca-root .atlas-pipeline-heading h1 {
+  font-size: 43px;
+  line-height: 1.16;
+  letter-spacing: -.025em;
+}
+.atlas-layout .atlas-retail-pipeline .atlas-pipeline-heading > .primary,
+.atlas-layout .atlas-pipeline.ca-root .ca-deal-detail .primary {
+  font-size: 17px;
+  font-weight: 400;
+}
+.atlas-layout .atlas-retail-pipeline .atlas-pipeline-heading > .primary { line-height: 1.3; }
+.atlas-layout .atlas-pipeline.ca-root .ca-deal-detail .primary { line-height: 1.5; }
+.atlas-layout .atlas-pipeline.ca-root .cs-pipeline-total p { color: #b8d0c9; }
+.atlas-layout .atlas-pipeline.ca-root .cs-pipeline-total h2 {
+  font-size: 22px;
+  line-height: 1.16;
+  letter-spacing: -.6px;
+  font-weight: 500;
+}
+.atlas-pipeline.ca-root .cs-pipeline-total > div:first-child > strong { font-size: 35px; font-weight: 650; }
+.atlas-retail-pipeline-total {
+  color: var(--tone-heading, #2c2c52);
+  font-size: 76px;
+  font-weight: 400;
+  letter-spacing: -5px;
+  line-height: 1.1;
+  margin: 14px 0;
+}
+@media(max-width:1200px) {
+  .atlas-retail-pipeline-total { font-size: 60px; }
+  .atlas-layout .atlas-retail-pipeline .atlas-pipeline-heading h1 { font-size: 48px; }
+}
+@media(max-width:950px) {
+  .atlas-retail-pipeline-total { font-size: 63px; }
+  .atlas-layout .atlas-retail-pipeline .atlas-pipeline-heading h1 { font-size: 43px; }
+}
+@media(max-width:700px) {
+  .atlas-retail-pipeline-total { font-size: 62px; }
+  .atlas-layout .atlas-retail-pipeline .atlas-pipeline-heading h1 { font-size: 44px; }
+  .atlas-layout .atlas-pipeline.ca-root .atlas-pipeline-heading h1 { font-size: 30px; }
+  .atlas-layout .atlas-pipeline:not(.atlas-retail-pipeline,.ca-root) .atlas-pipeline-heading h1 { font-size: 31px; }
+}
+.atlas-retail-pipeline .atlas-pipeline-heading { align-items: end; margin-bottom: 24px; }
+.atlas-retail-pipeline .atlas-retail-stage { background: transparent; border: 0; padding: 0; grid-template-columns: .8fr 1.5fr; }
+.atlas-retail-stage > div:first-child > p:last-child { max-width: 31ch; margin-top: 14px; }
+.atlas-retail-stage > div:first-child > strong { font-size: 25px; font-weight: 500; letter-spacing: -.8px; }
+.atlas-retail-pipeline-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 24px 0;
+}
+.atlas-retail-pipeline-controls label { display: flex; align-items: center; gap: 12px; }
+.atlas-retail-pipeline-controls .atlas-pipeline-stage { order: -1; }
+.atlas-retail-pipeline-controls :is(input, select) {
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--m-line);
+  border-radius: 8px;
+  background: var(--m-paper);
+  color: var(--m-ink);
+  padding: 11px 14px;
+}
+@media(max-width:900px) {
+  .atlas-retail-pipeline .atlas-retail-stage { grid-template-columns: minmax(0,1fr); }
+}
+
+.atlas-layout .atlas-retail-pipeline .viz-deal-inspector h2 { font-weight: 500; }
+.atlas-layout .atlas-pipeline.ca-root .ca-company-banner h2 { font-size: 27px; font-weight: 500; line-height: 1.16; }
+@media (max-width: 650px) {
+  .atlas-layout .atlas-pipeline.ca-root .ca-company-banner h2 { font-size: 23px; }
+}
+.atlas-layout .atlas-pipeline:is(.atlas-retail-pipeline,.ca-root) .atlas-pipeline-scope { font-size: 15px; line-height: 1.6; }
+.atlas-layout .atlas-retail-pipeline .pr-pipeline-entry strong { line-height: normal; }
+.atlas-layout .atlas-retail-pipeline .pr-pipeline-entry .secondary { font-size: 16px; line-height: 1.3; }
+.atlas-layout .atlas-retail-pipeline :is(.atlas-retail-stage > div:first-child > p:first-child,.viz-section-heading p) { font-size: 18px; line-height: 1.6; }
+.atlas-layout .atlas-retail-pipeline :is(.rv-stage-key button,.viz-switch button) { line-height: normal; }
+.atlas-layout .atlas-pipeline.ca-root .cs-pipeline-total > div:first-child > p { font-size: 18px; line-height: 1.4; }
+.atlas-layout .atlas-pipeline.ca-root .cs-pipeline-total > .secondary { font-size: 16px; line-height: 1.5; }
+.atlas-layout .atlas-pipeline.ca-root .ca-deal-list button { font-size: 14px; line-height: 1.5; }
+.atlas-layout .atlas-retail-pipeline .viz-deal-dot { font-size: 18px; }
+.atlas-layout .atlas-retail-pipeline .viz-deal-inspector .secondary { font-size: 16px; line-height: 1.3; }
+.atlas-layout .atlas-pipeline.ca-root .ca-deal-list button strong { font-size: 14px; }
+.atlas-layout .atlas-pipeline.ca-root .ca-deal-list button small { font-size: 12px; }
+.atlas-layout .atlas-pipeline.ca-root .ca-deal-vitals small { font-size: 11px; }
+.atlas-layout .atlas-pipeline.ca-root .ca-deal-detail h3 { font-weight: 700; line-height: 1.16; }
+.atlas-layout .atlas-pipeline.ca-root :is(.cs-deal-context i, .ca-deal-detail summary) { font-size: 16px; line-height: 1.5; }
+.atlas-layout .atlas-pipeline.ca-root .ca-deal-detail :is(.ca-company-banner p,p:not(.ca-note)) {
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.atlas-retail-pipeline {
+  min-width: 0;
+  width: 100%;
+  font-size: 18px;
+  line-height: normal;
+}
+.atlas-retail-pipeline .atlas-pipeline-heading {
+  margin-bottom: 30px;
+  gap: 28px;
+}
+.atlas-retail-pipeline .atlas-pipeline-heading h1 + p {
+  margin-top: 16px;
+  color: var(--m-muted);
+}
+.atlas-retail-pipeline .atlas-retail-stage {
+  gap: 45px;
+  margin-bottom: 30px;
+}
+.atlas-retail-pipeline .atlas-retail-stage > div:first-child > p:last-child {
+  max-width: 38ch;
+}
+.atlas-retail-pipeline :is(.atlas-pipeline-search, .atlas-pipeline-stage) {
+  max-width: 100%;
+}
+.atlas-retail-pipeline .atlas-pipeline-search input {
+  width: min(100%, 310px);
+  min-height: 46px;
+}
+.atlas-retail-pipeline .viz-plot-key {
+  padding: 0;
+  list-style: none;
+}
+.atlas-retail-pipeline .viz-board-scroll {
+  align-self: start;
+  min-width: 0;
+  max-width: 100%;
+}
+.atlas-retail-pipeline .viz-deal-inspector .secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (max-width: 1200px) {
+  .atlas-retail-pipeline .atlas-retail-stage { gap: 30px; }
+}
+@media (max-width: 700px) {
+  .atlas-retail-pipeline .atlas-retail-stage { gap: 22px; }
+  .atlas-retail-pipeline .atlas-pipeline-search,
+  .atlas-retail-pipeline .atlas-pipeline-search input { width: 100%; }
+}
+
+.atlas-retail-pipeline :is(.primary, .secondary) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 13px 18px;
+  border: 1px solid var(--m-line);
+  border-radius: 8px;
+  background: var(--m-paper);
+  color: var(--m-ink);
+  font-size: 16px;
+  line-height: 1.3;
+}
+.atlas-retail-pipeline .primary {
+  border-color: var(--m-accent);
+  background: var(--m-accent);
+  color: white;
+  font-size: 17px;
+}
+.atlas-retail-pipeline .text-button { color: var(--m-accent); }
+
+.atlas-pipeline .ws-deal-facts .wa-metric > span { font-size: 14px; }
+.atlas-pipeline .ws-focus-head p { font-size: 18px; line-height: 1.6; }
+
+.atlas-layout .atlas-pipeline.ca-root .ca-deal-detail .ca-actions .secondary { font-size: 16px; line-height: 1.5; }
+
+.atlas-layout .atlas-pipeline.ca-root { --wa-muted: var(--m-muted); --ws-muted: var(--m-muted); }

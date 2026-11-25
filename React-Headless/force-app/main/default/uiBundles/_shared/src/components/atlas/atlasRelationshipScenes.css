@@ -1,0 +1,23 @@
+.atlas-layout .atlas-relationship-scene h2 {
+  font-size: 29px;
+  font-weight: 550;
+  line-height: 1.2;
+  letter-spacing: -.035em;
+}
+.atlas-layout .atlas-relationship-scene .ax-screening-seal h2 { font-size: 25px; }
+.atlas-layout .atlas-relationship-scene .ax-facts dt { color: var(--m-muted); font-size: 15px; }
+.atlas-layout .atlas-relationship-scene .ax-facts dd { font-size: 18px; font-weight: 550; overflow-wrap: anywhere; }
+.atlas-layout .atlas-relationship-scene :is(.ax-profile-cover,.ax-profile-fields,.ax-packet-outline) > p {
+  font-size: 17px;
+  line-height: 1.6;
+}
+.atlas-layout .atlas-relationship-scene :is(.ax-profile-fields, .ax-packet-outline) h3 { font-weight: 700; }
+.atlas-layout .atlas-relationship-scene input[type="checkbox"] { padding: 0; }
+.atlas-layout .atlas-relationship-scene .primary:disabled { opacity: .5; }
+.atlas-packet-preview section { padding: 12px 0; border-bottom: 1px solid var(--m-line, var(--tone-wash, #dcdceb)); }
+.atlas-packet-preview h3 { margin-bottom: 8px; font-weight: 500; }
+.atlas-packet-preview[data-writing-style="Detailed"] section { padding-block: 18px; }
+@media (max-width: 700px) {
+  .atlas-layout .atlas-relationship-scene h2 { font-size: 25px; }
+  .atlas-layout .atlas-relationship-scene .ax-facts dd { font-size: 17px; }
+}

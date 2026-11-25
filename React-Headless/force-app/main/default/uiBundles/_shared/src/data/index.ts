@@ -43,6 +43,8 @@ export { queryDataCloud, queryDataCloudForBook, bookAccountFilter, type DataClou
 export { runPromptFlow, stripHtml, type PromptFlow } from './promptClient';
 export { crmWrite, fetchCurrentUser, type CrmAction, type CrmWriteInput, type CrmWriteResult, type CurrentUser } from './crmWriteClient';
 export { fetchAccountEmail } from './accountLookup';
+export { fetchNotes, decodeNoteBody, type AccountNote } from './notes';
+export { fetchComplianceEvents, type ComplianceEvent } from './complianceEvents';
 export { searchUsers, searchAccounts, searchFinancialPlans, searchContacts, type LookupHit } from './lookupSearch';
 export { generateText, type AiGenerateTask, type AiGenerateInput, type AiGenerateResult } from './aiGenerateClient';
 export {
@@ -100,3 +102,4 @@ export { fetchWhoToCall, whoToCallItems, WHO_TO_CALL_WEIGHTS, type WhoToCallRow,
 export { fetchWealthWhoToCall, wealthWhoToCallItems, WEALTH_WHO_TO_CALL_WEIGHTS, type WealthWhoToCallRow, type WealthWhoToCallResult, type WealthWhoToCallDriver } from './wealthWhoToCall';
 export { fetchCommercialWhoToCall, commercialWhoToCallItems, COMMERCIAL_WHO_TO_CALL_WEIGHTS, type CommercialWhoToCallRow, type CommercialWhoToCallResult, type CommercialWhoToCallDriver } from './commercialWhoToCall';
 export { fetchChampionDepartures, fetchLiquidityEvents, championQueueItems, liquidityQueueItems, CHAMPION_ROWS, LIQUIDITY_ROWS, type JobChangeResult, type JobChangeRow } from './jobChangeSignals';
+export { fetchProspectSignals, prospectBadges, prospectScore, rankProspectLeads, type ProspectSignals, type ProspectSignalMap } from './prospectSignals';

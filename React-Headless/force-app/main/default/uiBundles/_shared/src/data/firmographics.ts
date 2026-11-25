@@ -103,9 +103,9 @@ const ordered = (counts: Map<string, number>, order: readonly string[]): BandCou
     .map(band => ({ band, count: counts.get(band) ?? 0 }));
 
 /** C5 — the book's revenue / employee band mix plus the top upmarket clients. */
-export async function fetchFirmographicMix(ownerId: string | null | undefined): Promise<FirmographicMixResult> {
+export async function fetchFirmographicMix(ownerId: string | null | undefined, strictBook = false): Promise<FirmographicMixResult> {
   // The mix query decides the scope: an empty book (no ZoomInfo profiles) falls back org-wide.
-  const mix = await queryDataCloudForBook<Record<string, unknown>>(mixSql, ownerId, 30);
+  const mix = await queryDataCloudForBook<Record<string, unknown>>(mixSql, ownerId, 30, strictBook);
   const [rows, history] = await Promise.all([
     queryDataCloud<Record<string, unknown>>(upmarketSql(mix.accountFilter), 5)
       .then(r => r.rows)

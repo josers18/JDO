@@ -157,6 +157,8 @@ export function inheritDue<T extends QueueSignalItem>(
 export function buildPriorityQueue(input: {
   primary: QueueSignalItem[];
   opportunities?: QueueOppInput[];
+  /** Include the leading row from each available requested source. */
+  includeSources?: string[];
   tasks?: QueueTaskInput[];
   /** Injected so callers can pin "today" (tests / SSR); defaults to now. */
   now?: Date;
@@ -238,11 +240,14 @@ export function buildPriorityQueue(input: {
   deduped.sort(byPriority);
 
   // Reserve one slot for the strongest flagged item if the cut would drop them all.
-  const top = deduped.slice(0, limit);
-  if (!top.some(it => it.reserveSlot)) {
-    const best = deduped.find(it => it.reserveSlot); // deduped is already sorted
-    if (best && top.length === limit) top[limit - 1] = best;
+  const reserved = new Set<QueueSignalItem>();
+  const signal = deduped.find(it => it.reserveSlot);
+  if (signal) reserved.add(signal);
+  for (const source of input.includeSources ?? []) {
+    const best = deduped.find(it => it.source === source);
+    if (best) reserved.add(best);
   }
+  const top = [...reserved, ...deduped.filter(it => !reserved.has(it))].slice(0, limit);
   top.sort(byPriority);
 
   return top.map((it, i) => ({ ...it, id: it.id || `q${i}` }));

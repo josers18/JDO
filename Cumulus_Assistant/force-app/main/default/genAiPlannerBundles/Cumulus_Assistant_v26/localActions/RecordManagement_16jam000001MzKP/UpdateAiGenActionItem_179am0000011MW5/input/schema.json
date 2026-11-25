@@ -1,0 +1,22 @@
+{
+  "required" : [ "aiGenActionItemId", "aiGenActionItemStatus" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "aiGenActionItemId" : {
+      "title" : "AI-Generated Action Item ID",
+      "description" : "The unique identifier of the AI-Generated Action Item record to update.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : true,
+      "copilotAction:isUserInput" : true
+    },
+    "aiGenActionItemStatus" : {
+      "title" : "AI-Generated Action Item Status",
+      "description" : "The status to assign the AI-Generated Action Item record.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : true,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

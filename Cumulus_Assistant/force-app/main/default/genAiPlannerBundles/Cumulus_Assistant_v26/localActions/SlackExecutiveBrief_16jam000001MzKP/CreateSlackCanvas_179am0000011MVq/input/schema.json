@@ -1,0 +1,24 @@
+{
+  "required" : [ "title", "content" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "title" : {
+      "title" : "Title",
+      "description" : "Concise but descriptive name for the canvas",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "Concise but descriptive name for the canvas",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "content" : {
+      "title" : "Content",
+      "description" : "Markdown representation of canvas content.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "Markdown representation of canvas content. You can add sections, include links, references, and any other information you deem relevant. You can format markdown lists as ordered or unordered, but DO NOT mix the 2 formats in this input parameter.   Always convert content from Slack markdown to Standard markdown and apply these conversion for both user entered content and agent generated content:\n    - Bold: convert *bold* to **bold**\n    - Italic: convert _italic_ to *italic*\n    - Strikethrough: convert ~strike~ to ~~strike~~\n    - Headers: Never exceed Header depth of 3 (e.g. ###). Truncate any Headers that exceed a depth of 3 to 3 (e.g. '####' convert to '###')\n    - Lists: You can format markdown lists as ordered or unordered, but DO NOT mix the 2 formats in your content input parameter. Always maintain ordered and unordered lists.\n    - Whitespace: Always maintain spaces and newlines when possible.\n    - User: If a Slack User is detected in the content being provided, convert that ID into Standard markdown for a Slack User at-mention. For example if there is a reference to a user in a string like '@U123456789' or '<@U123456789>', extract the ID and wrap it into a string surrounded with  '![](@' and  ')', for instance:\n      - User Id: U123456789 should always be converted to '![](@U123456789)'\n      - User at-mention: '<@U123456789>' should always be converted to '![](@U123456789)'\n    - Channel: If a Slack Channel is detected in the content being provided, convert that ID into Standard markdown for a Slack Channel mention. For example if there is a reference to a channel in a string like '#C123456789', '<#C123456789>' or '<#C123456789|>', extract the ID and wrap it into a string surrounded with  '![](#' and  ')', for instance:\n      - Channel Id: 'C123456789' should always be converted to '![](#C123456789)'\n      - Channel mention: '<#C123456789|>' OR '<#C123456789>' should always be converted to '![](#C123456789)'\n",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

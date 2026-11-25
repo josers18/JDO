@@ -1,0 +1,961 @@
+{
+  "scenes": [
+    {
+      "key": "wealth-pipeline-1512",
+      "pageWidth": 1512,
+      "headings": [
+        "Move the next commitment forward."
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1740
+    },
+    {
+      "key": "wealth-journey-1512",
+      "pageWidth": 1512,
+      "headings": [
+        "Life, plans & goals"
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [
+        {
+          "text": "Review plan",
+          "font": "10px"
+        },
+        {
+          "text": "Review goal",
+          "font": "10px"
+        }
+      ],
+      "height": 2920
+    },
+    {
+      "key": "wealth-growth-1512",
+      "pageWidth": 1512,
+      "headings": [
+        "Bring the whole financial picture closer."
+      ],
+      "graphicCount": 2,
+      "scrolls": [],
+      "tiny": [],
+      "height": 2495
+    },
+    {
+      "key": "wealth-intelligence-1512",
+      "pageWidth": 1512,
+      "headings": [
+        "An observatory for the household."
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1431
+    },
+    {
+      "key": "wealth-health-1512",
+      "pageWidth": 1512,
+      "headings": [
+        "Give the next review a clear purpose."
+      ],
+      "graphicCount": 2,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1663
+    },
+    {
+      "key": "wealth-work-1512",
+      "pageWidth": 1512,
+      "headings": [
+        "Turn preparation into a commitment."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1817
+    },
+    {
+      "key": "commercial-pipeline-1512",
+      "pageWidth": 1512,
+      "headings": [
+        "Move the deal. Keep the company in view."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1547
+    },
+    {
+      "key": "commercial-journey-1512",
+      "pageWidth": 1512,
+      "headings": [
+        "Plan the company conversation."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 8364
+    },
+    {
+      "key": "commercial-growth-1512",
+      "pageWidth": 1512,
+      "headings": [
+        "Build around how the business works."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1836
+    },
+    {
+      "key": "commercial-intelligence-1512",
+      "pageWidth": 1512,
+      "headings": [
+        "Read the change. Choose the response."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1506
+    },
+    {
+      "key": "commercial-health-1512",
+      "pageWidth": 1512,
+      "headings": [
+        "Credit & coverage. See what is underneath."
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [],
+      "height": 2650
+    },
+    {
+      "key": "commercial-work-1512",
+      "pageWidth": 1512,
+      "headings": [
+        "Your Commercial execution desk."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1251
+    },
+    {
+      "key": "wealth-pipeline-1024",
+      "pageWidth": 1024,
+      "headings": [
+        "Move the next commitment forward."
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1666
+    },
+    {
+      "key": "wealth-journey-1024",
+      "pageWidth": 1024,
+      "headings": [
+        "Life, plans & goals"
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [
+        {
+          "text": "Review plan",
+          "font": "10px"
+        },
+        {
+          "text": "Review goal",
+          "font": "10px"
+        }
+      ],
+      "height": 3842
+    },
+    {
+      "key": "wealth-growth-1024",
+      "pageWidth": 1024,
+      "headings": [
+        "Bring the whole financial picture closer."
+      ],
+      "graphicCount": 2,
+      "scrolls": [],
+      "tiny": [],
+      "height": 2752
+    },
+    {
+      "key": "wealth-intelligence-1024",
+      "pageWidth": 1024,
+      "headings": [
+        "An observatory for the household."
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1393
+    },
+    {
+      "key": "wealth-health-1024",
+      "pageWidth": 1024,
+      "headings": [
+        "Give the next review a clear purpose."
+      ],
+      "graphicCount": 2,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1891
+    },
+    {
+      "key": "wealth-work-1024",
+      "pageWidth": 1024,
+      "headings": [
+        "Turn preparation into a commitment."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1838
+    },
+    {
+      "key": "commercial-pipeline-1024",
+      "pageWidth": 1024,
+      "headings": [
+        "Move the deal. Keep the company in view."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1651
+    },
+    {
+      "key": "commercial-journey-1024",
+      "pageWidth": 1024,
+      "headings": [
+        "Plan the company conversation."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 8969
+    },
+    {
+      "key": "commercial-growth-1024",
+      "pageWidth": 1024,
+      "headings": [
+        "Build around how the business works."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1897
+    },
+    {
+      "key": "commercial-intelligence-1024",
+      "pageWidth": 1024,
+      "headings": [
+        "Read the change. Choose the response."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1626
+    },
+    {
+      "key": "commercial-health-1024",
+      "pageWidth": 1024,
+      "headings": [
+        "Credit & coverage. See what is underneath."
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [],
+      "height": 3132
+    },
+    {
+      "key": "commercial-work-1024",
+      "pageWidth": 1024,
+      "headings": [
+        "Your Commercial execution desk."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1339
+    },
+    {
+      "key": "wealth-pipeline-768",
+      "pageWidth": 768,
+      "headings": [
+        "Move the next commitment forward."
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [],
+      "height": 2339
+    },
+    {
+      "key": "wealth-journey-768",
+      "pageWidth": 768,
+      "headings": [
+        "Life, plans & goals"
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [
+        {
+          "text": "Review plan",
+          "font": "10px"
+        },
+        {
+          "text": "Review goal",
+          "font": "10px"
+        }
+      ],
+      "height": 3905
+    },
+    {
+      "key": "wealth-growth-768",
+      "pageWidth": 768,
+      "headings": [
+        "Bring the whole financial picture closer."
+      ],
+      "graphicCount": 2,
+      "scrolls": [],
+      "tiny": [],
+      "height": 3077
+    },
+    {
+      "key": "wealth-intelligence-768",
+      "pageWidth": 768,
+      "headings": [
+        "An observatory for the household."
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1697
+    },
+    {
+      "key": "wealth-health-768",
+      "pageWidth": 768,
+      "headings": [
+        "Give the next review a clear purpose."
+      ],
+      "graphicCount": 2,
+      "scrolls": [],
+      "tiny": [],
+      "height": 2626
+    },
+    {
+      "key": "wealth-work-768",
+      "pageWidth": 768,
+      "headings": [
+        "Turn preparation into a commitment."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 2486
+    },
+    {
+      "key": "commercial-pipeline-768",
+      "pageWidth": 768,
+      "headings": [
+        "Move the deal. Keep the company in view."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 2060
+    },
+    {
+      "key": "commercial-journey-768",
+      "pageWidth": 768,
+      "headings": [
+        "Plan the company conversation."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 12295
+    },
+    {
+      "key": "commercial-growth-768",
+      "pageWidth": 768,
+      "headings": [
+        "Build around how the business works."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 2098
+    },
+    {
+      "key": "commercial-intelligence-768",
+      "pageWidth": 768,
+      "headings": [
+        "Read the change. Choose the response."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1741
+    },
+    {
+      "key": "commercial-health-768",
+      "pageWidth": 768,
+      "headings": [
+        "Credit & coverage. See what is underneath."
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [],
+      "height": 4103
+    },
+    {
+      "key": "commercial-work-768",
+      "pageWidth": 768,
+      "headings": [
+        "Your Commercial execution desk."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 1723
+    },
+    {
+      "key": "wealth-pipeline-390",
+      "pageWidth": 390,
+      "headings": [
+        "Move the next commitment forward."
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [],
+      "height": 2947
+    },
+    {
+      "key": "wealth-journey-390",
+      "pageWidth": 390,
+      "headings": [
+        "Life, plans & goals"
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [
+        {
+          "text": "Overview",
+          "font": "10px"
+        },
+        {
+          "text": "Life moments",
+          "font": "10px"
+        },
+        {
+          "text": "Financial plans",
+          "font": "10px"
+        },
+        {
+          "text": "Goal funding",
+          "font": "10px"
+        },
+        {
+          "text": "Review plan",
+          "font": "10px"
+        },
+        {
+          "text": "Review goal",
+          "font": "10px"
+        },
+        {
+          "text": "All moments",
+          "font": "10px"
+        },
+        {
+          "text": "Family & legacy",
+          "font": "10px"
+        },
+        {
+          "text": "Work & retirement",
+          "font": "10px"
+        },
+        {
+          "text": "Home & new chapters",
+          "font": "10px"
+        },
+        {
+          "text": "Other moments",
+          "font": "10px"
+        }
+      ],
+      "height": 5851
+    },
+    {
+      "key": "wealth-growth-390",
+      "pageWidth": 390,
+      "headings": [
+        "Bring the whole financial picture closer."
+      ],
+      "graphicCount": 2,
+      "scrolls": [],
+      "tiny": [],
+      "height": 4202
+    },
+    {
+      "key": "wealth-intelligence-390",
+      "pageWidth": 390,
+      "headings": [
+        "An observatory for the household."
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [],
+      "height": 2301
+    },
+    {
+      "key": "wealth-health-390",
+      "pageWidth": 390,
+      "headings": [
+        "Give the next review a clear purpose."
+      ],
+      "graphicCount": 2,
+      "scrolls": [],
+      "tiny": [],
+      "height": 3009
+    },
+    {
+      "key": "wealth-work-390",
+      "pageWidth": 390,
+      "headings": [
+        "Turn preparation into a commitment."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 3064
+    },
+    {
+      "key": "commercial-pipeline-390",
+      "pageWidth": 390,
+      "headings": [
+        "Move the deal. Keep the company in view."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 2716
+    },
+    {
+      "key": "commercial-journey-390",
+      "pageWidth": 390,
+      "headings": [
+        "Plan the company conversation."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 14833
+    },
+    {
+      "key": "commercial-growth-390",
+      "pageWidth": 390,
+      "headings": [
+        "Build around how the business works."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 3767
+    },
+    {
+      "key": "commercial-intelligence-390",
+      "pageWidth": 390,
+      "headings": [
+        "Read the change. Choose the response."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 2396
+    },
+    {
+      "key": "commercial-health-390",
+      "pageWidth": 390,
+      "headings": [
+        "Credit & coverage. See what is underneath."
+      ],
+      "graphicCount": 1,
+      "scrolls": [],
+      "tiny": [],
+      "height": 5894
+    },
+    {
+      "key": "commercial-work-390",
+      "pageWidth": 390,
+      "headings": [
+        "Your Commercial execution desk."
+      ],
+      "graphicCount": 0,
+      "scrolls": [],
+      "tiny": [],
+      "height": 2205
+    }
+  ],
+  "interactions": [
+    {
+      "key": "wealth-pipeline-1512",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-journey-1512",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-growth-1512",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-intelligence-1512",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-health-1512",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-work-1512",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-pipeline-1512",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-journey-1512",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-growth-1512",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-intelligence-1512",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-health-1512",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-work-1512",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-pipeline-1024",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-journey-1024",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-growth-1024",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-intelligence-1024",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-health-1024",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-work-1024",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-pipeline-1024",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-journey-1024",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-growth-1024",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-intelligence-1024",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-health-1024",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-work-1024",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-pipeline-768",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-journey-768",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-growth-768",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-intelligence-768",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-health-768",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-work-768",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-pipeline-768",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-journey-768",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-growth-768",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-intelligence-768",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-health-768",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-work-768",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-pipeline-390",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-journey-390",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-growth-390",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-intelligence-390",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-health-390",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-work-390",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-pipeline-390",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-journey-390",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-growth-390",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-intelligence-390",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-health-390",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-work-390",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-whitespace-variant-1512",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-outside-variant-1512",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-acquisition-variant-1512",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-plans-variant-1512",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-concentration-variant-1512",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-liquidity-variant-1512",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-trading-variant-1512",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-coverage-variant-1512",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-whitespace-variant-1024",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-outside-variant-1024",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-acquisition-variant-1024",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-plans-variant-1024",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-concentration-variant-1024",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-liquidity-variant-1024",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-trading-variant-1024",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-coverage-variant-1024",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-whitespace-variant-768",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-outside-variant-768",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-acquisition-variant-768",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-plans-variant-768",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-concentration-variant-768",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-liquidity-variant-768",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-trading-variant-768",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-coverage-variant-768",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-whitespace-variant-390",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-outside-variant-390",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-acquisition-variant-390",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-plans-variant-390",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-concentration-variant-390",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-liquidity-variant-390",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-trading-variant-390",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-coverage-variant-390",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-probability-context",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-lens-evidence",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-pipeline-exact-deal",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-calendar-selection",
+      "result": "pass"
+    },
+    {
+      "key": "wealth-review-graph-selection",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-probability-context",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-credit-selection",
+      "result": "pass"
+    },
+    {
+      "key": "commercial-work-mode-identity",
+      "result": "pass"
+    }
+  ],
+  "failures": [],
+  "errors": [],
+  "writes": []
+}

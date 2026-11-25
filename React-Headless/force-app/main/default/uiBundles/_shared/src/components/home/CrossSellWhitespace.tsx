@@ -108,9 +108,11 @@ export function CrossSellWhitespace({
   loading = false,
   /** the banker acts on an opportunity row; resolve true once it's in the pipeline */
   onAct,
+  onPropose,
 }: {
   data: WhitespaceData | null;
   loading?: boolean;
+  onPropose?: (row: WhitespaceAct) => void;
   onAct?: (row: WhitespaceAct) => Promise<boolean> | boolean | void;
 }) {
   const [sel, setSel] = useState<Selection>({ kind: 'all' });
@@ -163,7 +165,9 @@ export function CrossSellWhitespace({
   );
 
   const act = async (r: OpportunityRow) => {
-    if (!onAct || r.inPipeline || busy) return;
+    if (r.inPipeline || busy) return;
+    if (onPropose) { onPropose(r); return; }
+    if (!onAct) return;
     const key = `${r.clientId}|${r.productKey}`;
     setBusy(key);
     try {
@@ -528,9 +532,9 @@ export function CrossSellWhitespace({
                     ) : (
                       <button
                         type="button"
-                        disabled={!onAct || busy != null}
+                        disabled={(!onAct && !onPropose) || busy != null}
                         onClick={() => act(r)}
-                        title="Create the opportunity in Salesforce"
+                        title={onPropose ? 'Review a local opportunity proposal' : 'Create the opportunity in Salesforce'}
                         className="inline-flex items-center gap-1.5 rounded-full border border-line-strong px-3 py-1.5 text-[11.5px] font-medium text-muted transition hover:border-accent-border hover:text-fg disabled:opacity-60"
                       >
                         {busy === `${r.clientId}|${r.productKey}` ? 'Creating…' : r.action}

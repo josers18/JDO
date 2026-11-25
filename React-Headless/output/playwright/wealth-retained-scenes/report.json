@@ -1,0 +1,30 @@
+{
+  "layouts": 16,
+  "restored": [
+    "capital flow",
+    "monthly history scrubber",
+    "plan orbits",
+    "concentration sculpture",
+    "liquidity transition"
+  ],
+  "retained": [
+    "product opportunities",
+    "white-space heatmap",
+    "held-away",
+    "acquisition",
+    "relationship signals",
+    "plan analytics",
+    "concentration analytics",
+    "net flows",
+    "trading"
+  ],
+  "checks": [
+    "Growth nav restored",
+    "exact selected product proposal",
+    "household/history reload",
+    "exact plan review routing",
+    "exact position/transaction context"
+  ],
+  "pageErrors": [],
+  "networkWrites": []
+}

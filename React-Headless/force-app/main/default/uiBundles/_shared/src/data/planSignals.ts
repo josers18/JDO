@@ -14,7 +14,7 @@
  * Verified live 2026-11-09: Sarah Smith 9,232 plans, 5,221 below 70% (134 below
  * 50%) carrying $8.9B of goals; 156 reviews due in 30d; 1,043 stale.
  */
-import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
+import { bookAccountFilter, queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import { summaryTrend, type KpiTrend } from './kpiTrend';
 import type { QueueSignalItem } from './priorityQueue';
 import { localIsoDate } from './localDate';
@@ -103,9 +103,28 @@ const toRow = (r: Record<string, unknown>): PlanRow => ({
   stale: Number(r.stale) === 1,
 });
 
+/** Upcoming review rows for a verified book. An empty book stays empty. */
+export async function fetchAtlasPlanReviews(ownerId: string, lens: 'due' | 'critical' | 'stale' = 'due') {
+  const { accountFilter, scope } = bookAccountFilter(ownerId);
+  if (scope !== 'book') throw new Error('A verified plan book is required.');
+  const sql = lens === 'due' ? reviewRowsSql(accountFilter) : `
+    SELECT ${COLS} FROM BT_MoneyGuidePro_Financial_Plans__dlm
+    WHERE ${LATEST} AND ${lens === 'critical' ? CRITICAL : STALE}
+      AND account_id__c ${accountFilter}
+    ORDER BY ${lens === 'critical' ? 'monte_carlo_success_pct__c' : 'plan_last_updated_date__c'} ASC, account_id__c
+    LIMIT 6
+  `;
+  const { rows } = await queryDataCloud<Record<string, unknown>>(sql, 6);
+  return rows.map(row => ({
+    ...toRow(row),
+    successPct: row.success == null ? null : Number(row.success),
+    goalUsd: row.goal_usd == null ? null : Number(row.goal_usd),
+  }));
+}
+
 /** W2 + W3 — the book's plan health: at-risk plans, upcoming reviews, totals. */
-export async function fetchPlanHealth(ownerId: string | null | undefined): Promise<PlanHealthResult> {
-  const atRisk = await queryDataCloudForBook<Record<string, unknown>>(atRiskRowsSql, ownerId, PLAN_RISK_ROWS + PLAN_RISK_SPARE);
+export async function fetchPlanHealth(ownerId: string | null | undefined, strictBook = false): Promise<PlanHealthResult> {
+  const atRisk = await queryDataCloudForBook<Record<string, unknown>>(atRiskRowsSql, ownerId, PLAN_RISK_ROWS + PLAN_RISK_SPARE, strictBook);
   // Reviews + totals reuse the filter the at-risk rows resolved to (book, or org fallback).
   const [reviews, total, history] = await Promise.all([
     queryDataCloud<Record<string, unknown>>(reviewRowsSql(atRisk.accountFilter), 6)

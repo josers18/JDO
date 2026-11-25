@@ -308,12 +308,12 @@ export function ApiForm({ kind, values, onChange, onSend, objects, search }: Pro
 
 // Finds records of the graph's root DMO (or the profile DMO) by name or key, to use as the record ID or, for a graph,
 // as a lookup key.
-function RootPicker({ root, query, placeholder, search, onPick, onLookup }: {
+export function RootPicker({ root, query, placeholder, search, onPick, onLookup }: {
   root: QueryGraphRoot;
   query?: (text: string) => { sql: string; sqlParameters: QuerySqlParameter[] }; // in place of a root search
   placeholder?: string;
   search: RootSearch;
-  onPick: (id: string) => void;
+  onPick?: (id: string) => void;
   onLookup?: (id: string) => void;
 }) {
   const [text, setText] = useState("");
@@ -377,9 +377,9 @@ function RootPicker({ root, query, placeholder, search, onPick, onLookup }: {
                   {name && <span className="mr-2 text-ink">{name}</span>}
                   <span className="font-mono text-ink-3">{id}</span>
                 </span>
-                <button onClick={() => onPick(id)} title={`Look up ${id} by ${root.key}`} className={pick}>
+                {onPick && <button onClick={() => onPick(id)} title={`Look up ${id} by ${root.key}`} className={pick}>
                   Record ID
-                </button>
+                </button>}
                 {onLookup && (
                   <button onClick={() => onLookup(id)} title={`${root.object}.${root.key}=${id}`} className={pick}>
                     Lookup key

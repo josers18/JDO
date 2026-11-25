@@ -1,0 +1,36 @@
+{
+  "required" : [ "recordId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "recordId" : {
+      "title" : "Record ID",
+      "description" : "The Salesforce record ID of the person who is the recipient of the generated message.",
+      "lightning:type" : "lightning__recordIdType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "userInput" : {
+      "title" : "User Input",
+      "description" : "User instructions for drafting a message to schedule a sales meeting.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "meetingDate" : {
+      "title" : "Meeting Date",
+      "description" : "Extracts the meeting date from the user's input and converts it into YYYY-MM-DD format. If the user explicitly mentions the date of the meeting, extract it from the input. But if the user requests the next available date or doesn't mention the date at all, don't prompt the user for the date again. If the user doesn't specify the date, the default value is null.",
+      "lightning:type" : "lightning__dateType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "startTime" : {
+      "title" : "Start Time",
+      "description" : "Extracts the meeting start time from the user's input and converts it into HH:MM format. If the user explicitly mentions the meeting start time, extract it from the input. But if the user requests the next available meeting time or doesn't mention the meeting start time at all, don't prompt the user for the start time again. If the user doesn't specify the time of day, the default value is null.",
+      "lightning:type" : "lightning__timeType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

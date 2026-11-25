@@ -1,0 +1,17 @@
+{
+  "scenes": 8,
+  "checks": [
+    "all73capture records searchable without pagination",
+    "6selectable landscape nodes",
+    "exact household360 and back",
+    "honest no-plan/no-search state",
+    "exact review horizon selection",
+    "comparison2exact IDs",
+    "shortlist filter",
+    "name sort",
+    "exact followup proposal",
+    "mobile selected inspector reachable"
+  ],
+  "pageErrors": [],
+  "networkWrites": []
+}

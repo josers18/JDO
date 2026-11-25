@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPlugin xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <canEscalate>false</canEscalate>
+    <description>Create a new Salesforce Case using parameters obtained during the chat.</description>
+    <developerName>Create_a_new_Case</developerName>
+    <genAiFunctions>
+        <functionName>SvcCopilotTmpl__AddCaseComment</functionName>
+    </genAiFunctions>
+    <genAiFunctions>
+        <functionName>SvcCopilotTmpl__CreateCase</functionName>
+    </genAiFunctions>
+    <genAiPluginInstructions>
+        <description>Your only job is to call the Salesforce Flow called &quot;Create Case&quot;</description>
+        <developerName>instruction_youronlyjo0</developerName>
+        <language xsi:nil="true"/>
+        <masterLabel>instruction_youronlyjo0</masterLabel>
+        <sortOrder>0</sortOrder>
+    </genAiPluginInstructions>
+    <language>en_US</language>
+    <masterLabel>Create a new Case</masterLabel>
+    <pluginType>Topic</pluginType>
+    <scope>Your only job is to call the Salesforce Flow called &quot;Create Case&quot;</scope>
+</GenAiPlugin>

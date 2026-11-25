@@ -1,0 +1,15 @@
+{
+  "required" : [ "Input:MeetingNotes" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "Input:MeetingNotes" : {
+      "title" : "Meeting Notes",
+      "description" : "The meeting notes to structure and organize.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

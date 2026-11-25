@@ -114,8 +114,9 @@ const netFlowSql = (accountType?: 'Personal' | 'Business') => (accountFilter: st
 export async function fetchNetFlow(
   ownerId: string | null | undefined,
   accountType?: 'Personal' | 'Business',
+  strictBook = false,
 ): Promise<NetFlowResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(netFlowSql(accountType), ownerId, 20);
+  const res = await queryDataCloudForBook<Record<string, unknown>>(netFlowSql(accountType), ownerId, 20, strictBook);
   const weeks = res.rows.map(r => {
     const credits = Number(r.credits) || 0;
     const debits = Number(r.debits) || 0;

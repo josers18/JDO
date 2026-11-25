@@ -1,0 +1,44 @@
+{
+  "required" : [ "actionPlanId", "actionPlanItemName", "actionPlanItemPriority", "days", "recordId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "actionPlanId" : {
+      "title" : "Action Plan ID",
+      "description" : "The ID of the parent action plan associated with the action plan item record.",
+      "lightning:type" : "lightning__recordIdType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "actionPlanItemName" : {
+      "title" : "Action Plan Item Name",
+      "description" : "The name of the action plan item.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "actionPlanItemPriority" : {
+      "title" : "Action Plan Item Priority",
+      "description" : "The priority of the action plan item.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "days" : {
+      "title" : "Days",
+      "description" : "The number of days required to complete the task.",
+      "multipleOf" : 1.0E-34,
+      "lightning:type" : "lightning__numberType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "recordId" : {
+      "title" : "Record ID",
+      "description" : "The ID of the parent record associated with the action plan item.",
+      "lightning:type" : "lightning__recordIdType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

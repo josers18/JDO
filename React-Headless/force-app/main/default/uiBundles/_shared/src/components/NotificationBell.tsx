@@ -43,7 +43,7 @@ function buildQuery(closeBefore: string): string {
         Case(first: 6, where: { IsClosed: { eq: false }, Priority: { eq: "High" } }, orderBy: { CreatedDate: { order: DESC } }) {
           edges { node { Id CaseNumber @optional { value } Subject @optional { value } Status @optional { value } } }
         }
-        Opportunity(first: 6, where: { IsClosed: { eq: false }, CloseDate: { lte: "${closeBefore}" } }, orderBy: { CloseDate: { order: ASC } }) {
+        Opportunity(first: 6, where: { IsClosed: { eq: false }, CloseDate: { lte: { value: "${closeBefore}" } } }, orderBy: { CloseDate: { order: ASC } }) {
           edges { node { Id Name @optional { value } StageName @optional { value } Amount @optional { value } } }
         }
       }
@@ -82,10 +82,12 @@ const TONE_COLOR: Record<Alert['tone'], string> = {
   neutral: 'var(--wp-text-muted)',
 };
 
-export function NotificationBell() {
+export function NotificationBell({ onOpenTasks }: { onOpenTasks?: () => void } = {}) {
   const [open, setOpen] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // Load once on mount so the badge is populated before the first open.
@@ -93,12 +95,14 @@ export function NotificationBell() {
     let cancelled = false;
     fetchAlerts()
       .then(a => !cancelled && setAlerts(a))
-      .catch(() => !cancelled && setAlerts([]))
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      })
       .finally(() => !cancelled && setLoaded(true));
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
 
   useEffect(() => {
     if (!open) return;
@@ -141,7 +145,8 @@ export function NotificationBell() {
         {count > 0 && (
           <span
             aria-hidden="true"
-            style={{
+            className={onOpenTasks ? 'as-badge' : undefined}
+            style={onOpenTasks ? undefined : {
               position: 'absolute',
               top: -3,
               right: -3,
@@ -169,7 +174,7 @@ export function NotificationBell() {
             position: 'absolute',
             top: 'calc(100% + 8px)',
             right: 0,
-            width: 340,
+            width: 'min(340px, calc(100vw - 90px))',
             zIndex: 60,
             background: 'var(--wp-surface-glass-strong)',
             border: '1px solid var(--wp-border)',
@@ -198,7 +203,16 @@ export function NotificationBell() {
           {!loaded && (
             <div style={{ padding: '0.7rem 0.65rem', fontSize: '0.84rem', color: 'var(--wp-text-muted)' }}>Loading…</div>
           )}
-          {loaded && count === 0 && (
+          {loaded && failed && (
+            <p role="alert" style={{ padding: '0.7rem 0.65rem', fontSize: '0.84rem', color: 'var(--wp-text-muted)' }}>
+              Notifications are unavailable. <button type="button" onClick={() => {
+                setLoaded(false);
+                setFailed(false);
+                setAttempt(value => value + 1);
+              }}>Retry</button>
+            </p>
+          )}
+          {loaded && !failed && count === 0 && (
             <div style={{ padding: '0.7rem 0.65rem', fontSize: '0.84rem', color: 'var(--wp-text-muted)' }}>
               You’re all caught up.
             </div>
@@ -233,6 +247,9 @@ export function NotificationBell() {
               </span>
             </a>
           ))}
+          {onOpenTasks && <button className="atlas-text-link" type="button" onClick={() => { setOpen(false); onOpenTasks(); }}>
+            Open tasks
+          </button>}
         </div>
       )}
     </div>

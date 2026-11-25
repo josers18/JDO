@@ -1,0 +1,57 @@
+{
+  "report": [
+    {
+      "direction": "panorama",
+      "desktop": {
+        "overflow": false,
+        "body": "18px",
+        "main": "18px"
+      },
+      "passed": [
+        "render",
+        "relationship selection",
+        "preparation notes",
+        "Escape dismiss",
+        "pipeline",
+        "768px layout",
+        "390px layout"
+      ]
+    },
+    {
+      "direction": "atlas",
+      "desktop": {
+        "overflow": false,
+        "body": "18px",
+        "main": "18px"
+      },
+      "passed": [
+        "render",
+        "relationship selection",
+        "preparation notes",
+        "Escape dismiss",
+        "pipeline",
+        "768px layout",
+        "390px layout"
+      ]
+    },
+    {
+      "direction": "focus",
+      "desktop": {
+        "overflow": false,
+        "body": "18px",
+        "main": "18px"
+      },
+      "passed": [
+        "render",
+        "relationship selection",
+        "preparation notes",
+        "Escape dismiss",
+        "pipeline",
+        "768px layout",
+        "390px layout"
+      ]
+    }
+  ],
+  "errors": [],
+  "responses": []
+}

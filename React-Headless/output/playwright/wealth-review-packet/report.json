@@ -1,0 +1,16 @@
+{
+  "scenes": 8,
+  "checks": [
+    "8configurable sections",
+    "tone and prompt preview",
+    "account-scoped questions/sections reload",
+    "escaped authored text",
+    "source-only packet fields",
+    "real local HTML download",
+    "separate printable view",
+    "native Source notes retained",
+    "native folio modal preserved"
+  ],
+  "pageErrors": [],
+  "networkWrites": []
+}

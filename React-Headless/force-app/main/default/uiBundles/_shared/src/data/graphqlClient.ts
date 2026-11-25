@@ -1,3 +1,4 @@
+import { atlasRead } from './atlasReadCache';
 /**
  * Core/FSC data path. Reads records that ORIGINATE in Salesforce
  * (Connector Type = SalesforceDotCom in the DC inventory): Account, Contact,
@@ -14,17 +15,22 @@ export async function executeGraphQL<TData, TVariables = Record<string, unknown>
   query: string,
   variables?: TVariables
 ): Promise<TData> {
-  const sdk = await createDataSDK();
-  const result = await sdk.graphql?.query<TData, TVariables>({ query, variables });
+  const read = async () => {
+    const sdk = await createDataSDK();
+    const result = await sdk.graphql?.query<TData, TVariables>({ query, variables });
 
-  if (!result) {
-    throw new Error('GraphQL is not available on this surface');
-  }
-  if (result.errors?.length) {
-    throw new Error(`GraphQL Error: ${result.errors.map((e: { message: string }) => e.message).join('; ')}`);
-  }
-  if (result.data == null) {
-    throw new Error('GraphQL response data is null');
-  }
-  return result.data;
+    if (!result) {
+      throw new Error('GraphQL is not available on this surface');
+    }
+    if (result.errors?.length) {
+      throw new Error(`GraphQL Error: ${result.errors.map((e: { message: string }) => e.message).join('; ')}`);
+    }
+    if (result.data == null) {
+      throw new Error('GraphQL response data is null');
+    }
+    return result.data;
+  };
+  return /^\s*(?:query\b|\{)/.test(query)
+    ? atlasRead('Salesforce CRM', JSON.stringify([query, variables]), read)
+    : read();
 }

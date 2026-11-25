@@ -1,0 +1,273 @@
+/* Atlas shell: shared chrome only; persona page compositions remain independent. */
+.as-header{gap:16px!important;padding:20px 26px!important;position:relative;align-items:center!important;min-width:0}.as-header *{box-sizing:border-box}.as-header button,.as-dialog button,.as-dialog input,.as-dialog select{font:inherit}.as-header .as-brand{font-size:20px;white-space:nowrap;letter-spacing:-.035em;min-width:0}.as-icon-button{position:relative;display:grid;place-items:center;width:42px;height:42px;border:1px solid var(--m-line);border-radius:12px;background:var(--m-surface,#fff);color:var(--m-ink,#222438);flex-shrink:0;cursor:pointer}.as-icon-button svg{width:21px;height:21px}.as-waffle{grid-template-columns:repeat(3,4px);grid-template-rows:repeat(3,4px);align-content:center;justify-content:center;gap:3px}.as-waffle i{width:4px;height:4px;background:currentColor;border-radius:1px}.as-global-search{display:flex;align-items:center;min-width:160px;flex:1;max-width:none;border:1px solid var(--m-line);border-radius:12px;background:#fff;overflow:hidden}.as-global-search input{font:inherit;font-size:15px;min-width:0;width:100%;border:0;background:transparent;padding:12px 14px;outline:0}.as-global-search button{display:flex;align-items:center;gap:8px;background:transparent;border:0;color:var(--m-muted);padding:10px;cursor:pointer}.as-global-search svg{width:19px;height:19px}.as-global-search kbd{font:12px ui-monospace,monospace;white-space:nowrap;background:#f3f3f7;padding:3px 5px;border-radius:4px}.as-view-as{display:flex;flex-direction:column;gap:2px;flex:0 1 205px;min-width:130px;max-width:240px;padding:6px 10px;border:1px solid var(--m-line);border-radius:12px;background:#ffffff90}.as-view-as>span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--m-muted)}.as-view-as select{width:100%;border:0;background:transparent;font:inherit;font-size:13px;color:var(--m-ink);padding:1px;min-width:0}.as-view-as.uncaptured{background:#fff4df;border-color:#d9b978}.as-header-actions{margin-left:auto;display:flex;align-items:center;gap:10px}.as-avatar{display:grid;place-items:center;width:42px;height:42px;flex-shrink:0;background:var(--m-ink,#222438);color:#fff;border:2px solid #fff;border-radius:50%;font-weight:700;cursor:pointer;box-shadow:0 0 0 1px var(--m-line);font-size:13px}.as-avatar.large{width:60px;height:60px;font-size:19px}.as-drafts{display:flex;align-items:center;gap:7px;border:0;background:transparent;color:var(--m-ink);padding:9px 4px;font-size:13px;cursor:pointer;white-space:nowrap}.as-drafts svg{width:19px;height:19px}.as-badge{position:absolute;top:-5px;right:-5px;background:#a04e47;color:#fff;border:2px solid var(--m-bg,#f3f2fa);border-radius:12px;font-size:10px;line-height:17px;min-width:21px;text-align:center;padding:0 3px}.as-header button:focus-visible,.as-header select:focus-visible,.as-dialog button:focus-visible,.as-dialog a:focus-visible,.as-dialog input:focus-visible{outline:3px solid var(--m-accent,#6655ce);outline-offset:3px}.as-global-search:focus-within{outline:3px solid var(--m-accent,#6655ce);outline-offset:2px}
+#record-dialog:has(.as-dialog){width:min(850px,calc(100vw - 28px));max-width:850px}.as-dialog{font-size:16px;line-height:1.5;min-width:0}.as-dialog *{box-sizing:border-box}.as-dialog h3{font-size:18px;line-height:1.3;margin:20px 0 12px}.as-dialog p{margin:8px 0 14px}.as-caption{font-size:13px!important;color:var(--m-muted);line-height:1.5;overflow-wrap:anywhere}.as-search-field{display:block;font-size:14px;color:var(--m-muted);font-weight:600}.as-search-field input{display:block;width:100%;margin-top:8px;border:1px solid var(--m-line);border-radius:12px;padding:14px 16px;font-size:18px;color:var(--m-ink);background:#fff}.as-search-empty{padding:30px 8px 24px;color:var(--m-muted)}.as-search-empty strong{font-size:21px;color:var(--m-ink)}.as-result-groups{display:grid;gap:12px;margin-top:15px}.as-result-groups h3{display:flex;justify-content:space-between;gap:12px;align-items:center}.as-result-groups h3 span{font-size:12px;font-weight:400;color:var(--m-muted)}.as-result{display:flex;gap:12px;align-items:center;width:100%;text-align:left;text-decoration:none;background:#fff;color:var(--m-ink);border:0;border-bottom:1px solid var(--m-line);padding:13px 8px;border-radius:7px;min-width:0;cursor:pointer}.as-result:hover,.as-menu-link:hover{background:var(--m-soft,#f2effa)}.as-result>span:nth-child(2){flex:1;min-width:0}.as-result strong,.as-result small{display:block;overflow-wrap:anywhere}.as-result strong{font-size:16px}.as-result small{font-size:13px;color:var(--m-muted);margin-top:3px}.as-record-icon{display:grid;place-items:center;width:34px;height:38px;border-radius:9px;background:var(--m-soft,#f2effa);color:var(--m-accent);font-size:13px;font-weight:700;flex-shrink:0}.as-search-footer{margin-top:18px;padding-top:12px;border-top:1px solid var(--m-line)}.as-menu-link{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;width:100%;border:0;background:transparent;text-decoration:none;color:var(--m-ink);padding:13px 10px;border-radius:9px;cursor:pointer;font-size:16px}.as-menu-link>span{color:var(--m-muted)}.as-unavailable{display:block;padding:12px;color:var(--m-muted);font-size:14px}.as-app-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.as-app-tile{display:flex;align-items:center;flex-direction:column;text-align:center;gap:7px;padding:17px 10px;background:#fff;border:1px solid var(--m-line);border-radius:13px;color:var(--m-ink);text-decoration:none;min-width:0;cursor:pointer}.as-app-tile:hover,.as-app-tile[aria-current=true]{border-color:var(--m-accent);background:var(--m-soft,#f2effa)}.as-app-tile strong{font-size:14px;line-height:1.35}.as-app-tile small{font-size:12px;color:var(--m-muted)}.as-app-icon{display:grid;place-items:center;width:45px;height:45px;border-radius:12px}.as-app-icon svg{width:24px;height:24px}.as-app-icon.banking{background:#e5efff;color:#356fc5}.as-app-icon.ai{background:#ffe5f4;color:#b42a7f}.as-app-icon.data{background:#eee6fc;color:#7346a9}.as-app-icon.core{background:#dff1ed;color:#28796b}.as-alert-intro{display:flex;gap:16px;align-items:center}.as-alert-intro strong{font-size:21px}.as-alert-intro p{font-size:15px;color:var(--m-muted)}.as-notification-emblem{display:grid;place-items:center;width:60px;height:65px;flex-shrink:0;border-radius:15px;background:var(--m-soft);color:var(--m-accent)}.as-notification-emblem svg{width:29px;height:29px}.as-alert-list{margin:18px 0;border:1px solid var(--m-line);border-radius:14px;overflow:hidden}.as-alert{display:block;padding:15px 17px;color:var(--m-ink);text-decoration:none;border-bottom:1px solid var(--m-line);border-left:4px solid #6b79ab;overflow-wrap:anywhere;font-size:15px;background:#fff}.as-alert:last-child{border-bottom:0}.as-alert.risk{border-left-color:#ba7366}.as-alert:hover{background:var(--m-soft)}.as-task-lane{margin-top:24px;background:var(--m-soft,#f2effa);padding:18px;border-radius:14px}.as-task-lane header{display:flex;align-items:center;justify-content:space-between;gap:12px}.as-task-lane h3{margin:0}.as-task-lane article{display:flex;align-items:center;gap:12px;border-top:1px solid var(--m-line);padding:15px 0}.as-task-lane article>div{flex:1;min-width:0}.as-task-lane strong{font-size:15px;overflow-wrap:anywhere}.as-task-lane article p{font-size:13px;color:var(--m-muted);margin:4px 0}.as-task-dot{width:9px;height:9px;border:2px solid var(--m-accent);border-radius:50%;flex-shrink:0}.as-user-card{display:flex;align-items:center;gap:17px;border-bottom:1px solid var(--m-line);padding:0 0 18px}.as-user-card h3,.as-user-card p{margin:0 0 3px}.as-user-card small{font-size:13px;color:var(--m-muted)}.as-user-links{margin:12px 0}.as-display{border:1px solid var(--m-line);border-radius:12px;margin:15px 0;padding:15px}.as-display legend{padding:0 7px;font-size:14px;font-weight:600}.as-display>div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.as-display button{border:1px solid var(--m-line);border-radius:9px;padding:10px 6px;background:#fff;font-size:13px;cursor:pointer;min-height:50px}.as-display button[aria-pressed=true]{background:var(--m-ink);color:#fff}.as-display small{display:block;margin-top:3px;opacity:.7}.as-logout{color:#a44747}.as-scope-state{margin:30px auto;max-width:800px;border:1px solid var(--m-line);border-radius:24px;background:#fff;padding:40px}.as-scope-icon{display:grid;place-items:center;width:70px;height:70px;border-radius:20px;background:var(--m-soft);color:var(--m-accent);margin-bottom:24px}.as-scope-icon svg{width:33px;height:33px}.as-scope-state h1{font-size:40px;margin:10px 0}.as-scope-state h2{font-size:23px;line-height:1.4}.as-scope-state p{line-height:1.65;color:var(--m-muted)}.as-eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:12px}.as-scope-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:25px 0}
+@media(max-width:1250px){.as-header{flex-wrap:wrap!important}.as-header .as-brand{flex:1}.as-global-search{order:5;max-width:none;flex-basis:55%}.as-view-as{order:6;max-width:none;flex:1}.as-header-actions{margin-left:auto}.as-global-search kbd{display:none}}
+@media(max-width:600px){.as-header{padding:15px 16px!important;gap:10px!important}.as-header .as-brand{font-size:17px;flex:1;white-space:normal;line-height:1.2}.as-header-actions{gap:7px;margin-left:0}.as-drafts{display:none}.as-header .as-icon-button,.as-header .as-avatar{width:38px;height:38px}.as-global-search{flex-basis:100%;order:5;min-width:0}.as-view-as{flex-basis:100%;order:6;flex-direction:row;align-items:center;max-width:none;gap:14px;padding:10px 12px}.as-view-as>span{flex-shrink:0}.as-view-as select{font-size:14px}.as-app-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.as-app-tile{padding:14px 8px}.as-dialog{font-size:15px}.as-display>div{grid-template-columns:repeat(2,minmax(0,1fr))}.as-task-lane header{flex-wrap:wrap}.as-task-lane article{flex-wrap:wrap}.as-task-lane article>.text-button{margin-left:auto}.as-scope-state{padding:24px;margin:10px 0}.as-scope-state h1{font-size:31px}.as-scope-state h2{font-size:20px}.as-result-groups h3{flex-wrap:wrap}.as-global-search input{font-size:16px}}
+
+.as-alert strong,.as-alert small{display:block}.as-alert strong{font-size:15px;line-height:1.4}.as-alert small{font-size:13px;color:var(--m-muted);margin-top:5px;line-height:1.4}
+/* The existing local accent control also reaches Wealth's scoped action color. */
+body[data-style="atlas"] .wa{--wa-iris:var(--m-accent,#5548ad)}
+
+/* Persona paper, ink and chrome share the same palette in the study and live shell. */
+body[data-style="atlas"][data-persona="retail"], .atlas-app[data-persona="retail"] {--m-accent:#366887;--m-bg:#f5f6f9;--m-shell:#eef1f6;--m-ink:#303442;--m-muted:#626876;--m-line:#dfe2e9;--m-shell-ink:#3c4150}
+body[data-style="atlas"][data-persona="wealth"], .atlas-app[data-persona="wealth"] {--m-accent:#816d48;--m-bg:#f8f7f4;--m-shell:#f3f1ec;--m-ink:#39363a;--m-muted:#69666b;--m-line:#e4e1dc;--m-shell-ink:#464044}
+body[data-style="atlas"][data-persona="commercial"], .atlas-app[data-persona="commercial"] {--m-accent:#4c7062;--m-bg:#f5f7f6;--m-shell:#eff3f1;--m-ink:#303834;--m-muted:#626b66;--m-line:#dfe5e1;--m-shell-ink:#3b4541}
+:is(body[data-style="atlas"],.atlas-app)[data-persona] {--m-soft:color-mix(in srgb,var(--m-accent) 7%,var(--m-paper));--atlas-nav-active:color-mix(in srgb,var(--m-accent) 11%,var(--m-paper));--atlas-nav-ink:var(--m-ink)}
+:is(body[data-style="atlas"],.atlas-app)[data-persona] :is(.wa,.ws) {--wa-iris:var(--m-accent);--wa-lavender:var(--m-soft);--wa-muted:var(--m-muted);--wa-ink:var(--m-ink);--ws-iris:var(--m-accent);--ws-muted:var(--m-muted);--ws-ink:var(--m-ink);--ws-line:var(--m-line)}
+:is(body[data-style="atlas"],.atlas-app)[data-persona] .wa-hero {background:var(--m-bg);border-color:var(--m-line)}
+:is(body[data-style="atlas"],.atlas-app)[data-persona] .wa-hero aside {background:var(--m-soft);border-color:var(--m-line)}
+:is(body[data-style="atlas"],.atlas-app)[data-persona] .ca-root {--ca-teal:var(--m-accent);--ca-navy:color-mix(in srgb,var(--m-accent) 14%,#223340);--ca-line:var(--m-line);--ca-soft:var(--m-soft)}
+
+/* Header and rail use the same tinted base in the study and the Salesforce shell. */
+:is(body[data-style="atlas"],.atlas-app)[data-persona] > :is(.atlas-shell-header,.mock-header),
+body[data-style="atlas"][data-persona] #mock-app .mock-header {
+  background:var(--m-shell);
+  color:var(--m-shell-ink);
+  border-bottom:1px solid var(--m-line);
+}
+body[data-style="atlas"][data-persona] .mock-nav,
+.atlas-app[data-persona] .atlas-layout .atlas-rail {
+  color:var(--m-shell-ink);
+  background:color-mix(in srgb,var(--m-accent) 19%,var(--m-shell));
+  border-color:color-mix(in srgb,var(--m-accent) 26%,var(--m-shell));
+}
+body[data-style="atlas"][data-persona="commercial"]:has(.ca-brief-band),
+.atlas-app[data-persona="commercial"]:has(.ca-brief-band) .atlas-layout {
+  background:var(--brand-page, color-mix(in srgb,#89ad98 10%,var(--m-paper)));
+}
+
+.as-cumulus-mark {
+  width: 32px;
+  height: 32px;
+  margin-right: 8px;
+  display: inline-grid;
+  place-items: center;
+  vertical-align: middle;
+  border-radius: 8px;
+  background: var(--m-soft);
+  color: var(--m-accent);
+}
+.as-cumulus-mark::before {
+  content: "";
+  width: 23px;
+  height: 23px;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M18 18.5H6.5a4.5 4.5 0 0 1-.45-8.98 6.1 6.1 0 0 1 11.7-1.55A5.3 5.3 0 1 1 18 18.5Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* Shared by the study and deployed workspaces, including SVG presentation attributes. */
+:is(body[data-style="atlas"], .atlas-app):is([data-persona="wealth"], [data-persona="retail"]) {
+  --tone-accent: var(--m-accent);
+  --tone-deep: color-mix(in srgb, var(--m-accent) 42%, #13181c);
+  --tone-heading: color-mix(in srgb, var(--m-accent) 60%, #20252a);
+  --tone-mid: color-mix(in srgb, var(--m-accent) 85%, var(--m-paper));
+  --tone-plot: color-mix(in srgb, var(--m-accent) 60%, var(--m-paper));
+  --tone-border: color-mix(in srgb, var(--m-accent) 30%, var(--m-paper));
+  --tone-wash: color-mix(in srgb, var(--m-accent) 16%, var(--m-paper));
+  --tone-pale: color-mix(in srgb, var(--m-accent) 8%, var(--m-paper));
+  --tone-paper: color-mix(in srgb, var(--m-accent) 3%, var(--m-paper));
+  accent-color: var(--m-accent);
+}
+
+/* Workspace accents for actions and chart series. */
+[data-persona="retail"] { --next-move:#84566f; --series-third:#72804d; }
+[data-persona="wealth"] { --next-move:#3f6774; --series-third:#927189; }
+[data-persona="commercial"] { --next-move:#914c38; --series-third:#65799a; }
+:is(.atlas-app,body[data-style="atlas"])[data-persona] :is(.wa-hero aside,.day-first-move,.ca-hero aside) { box-shadow:inset 3px 0 var(--next-move); }
+/* Primary actions share a single treatment across pages, detail panels and dialogs. */
+:is(.atlas-app,body[data-style="atlas"])[data-persona] :is(button.primary,a.primary,.ca-ticket-footer > button:first-child) {
+  background:var(--next-move) !important; color:#fff !important; border-color:var(--next-move) !important;
+}
+:is(.atlas-app,body[data-style="atlas"])[data-persona] :is(.wa-hero aside .wa-pill,.ca-hero aside .ca-badge) {
+  background:color-mix(in srgb,var(--next-move) 10%,white); color:var(--next-move);
+}
+:is(.atlas-app,body[data-style="atlas"])[data-persona] :is([data-priority="medium" i],[data-priority="normal" i],.wc-priority-badge.wc-medium) {
+  background:#faedce; color:#77500d;
+}
+:is(.atlas-app,body[data-style="atlas"])[data-persona] :is([data-priority="high" i],[data-priority="urgent" i],[data-priority="critical" i],.wc-priority-badge.wc-high,.wc-priority-badge.wc-critical) {
+  background:#f9e2de; color:#8b3933;
+}
+
+/* Keep each source recognizable when a score is missing, filtered or reordered. */
+[data-driver] { --driver-color:var(--m-accent); }
+:is([data-driver="credit"],[data-driver="D&B credit"],[data-driver="Financial stress"],[data-driver="Stress"],[data-driver="Attrition model score"]) { --driver-color:#98634a; }
+:is([data-driver="outlook"],[data-driver="Moody’s outlook"],[data-driver="Customer satisfaction"],[data-driver="CSAT"],[data-driver="Predicted satisfaction"]) { --driver-color:#516e96; }
+:is([data-driver="gong" i],[data-driver="Gong call risk"],[data-driver="Call sentiment"]) { --driver-color:#846689; }
+:is([data-driver="offer" i],[data-driver="Eligible offer"],[data-driver="Cross-sell source score"]) { --driver-color:#427e74; }
+:is([data-driver="fees"],[data-driver="Fee pressure"]) { --driver-color:#987727; }
+:is(.atlas-app,body[data-style="atlas"])[data-persona] :is(.ca-drivers,.pr-driver-list) [data-driver] > i > b,
+:is(.atlas-app,body[data-style="atlas"])[data-persona] .wcare-modelscore[data-driver] > div > i {
+  background:var(--driver-color);
+}
+:is(.atlas-app,body[data-style="atlas"])[data-persona] :is(.ca-esg-bars,.r2-product-evidence,.wc-local-plan) > div:nth-of-type(3n+1) { --comparison-color:var(--m-accent); }
+:is(.atlas-app,body[data-style="atlas"])[data-persona] :is(.ca-esg-bars,.r2-product-evidence,.wc-local-plan) > div:nth-of-type(3n+2) { --comparison-color:var(--next-move); }
+:is(.atlas-app,body[data-style="atlas"])[data-persona] :is(.ca-esg-bars,.r2-product-evidence,.wc-local-plan) > div:nth-of-type(3n) { --comparison-color:var(--series-third); }
+:is(.atlas-app,body[data-style="atlas"])[data-persona] :is(.ca-esg-bars > div > i > b,.r2-product-evidence > div > div > i,.wc-local-plan .wc-bar > i) { background:var(--comparison-color); }
+
+/* The shell retains the active brand. Workspace colors describe the work inside it. */
+:where(.atlas-app, body[data-style="atlas"]) [data-atlas-page] {
+  --atlas-blue: #436d92;
+  --atlas-teal: #28786e;
+  --atlas-plum: #865576;
+  --atlas-clay: #975939;
+  --atlas-indigo: #625f9b;
+  --view-accent: var(--m-accent);
+}
+[data-atlas-page]:is([data-atlas-page="relationships"], [data-atlas-page="client"], [data-atlas-page="config"]) { --view-accent: var(--atlas-blue); }
+[data-atlas-page]:is([data-atlas-page="pipeline"], [data-atlas-page="growth"]) { --view-accent: var(--atlas-teal); }
+[data-atlas-page]:is([data-atlas-page="journey"], [data-atlas-page="prospecting"]) { --view-accent: var(--atlas-plum); }
+[data-atlas-page]:is([data-atlas-page="work"], [data-atlas-page="intelligence"]) { --view-accent: var(--atlas-indigo); }
+[data-atlas-page][data-atlas-page="health"] { --view-accent: var(--atlas-clay); }
+
+/* Neutral reading text and a colored selection stroke keep secondary navigation legible. */
+:is(.atlas-app, body[data-style="atlas"]) [data-atlas-page] :is(.wcx-panel,.wl-heading,.wl-chapter,.wrel-heading,.wcx-heading) > p {
+  color: var(--m-muted);
+}
+:is(.atlas-app, body[data-style="atlas"]) [data-atlas-page] :is(nav,.wa-tabs,.wcx-tabs,.ws-modebar,.rw-switches,.rv-tabs,.ca-switch,.cr-switch,.cx-modes,.ps-switches,.biz-modes,.r2-switches,.wcare-tabs,.wms-tabs) :is(button[aria-pressed="true"],[aria-selected="true"]) {
+  box-shadow: inset 0 -3px color-mix(in srgb, var(--view-accent) 65%, var(--m-paper));
+}
+
+/* Evidence, relationship identity, planning and follow-through are recognizable across personas. */
+:is(.atlas-app, body[data-style="atlas"]) [data-atlas-page] {
+  & :is(.cx-account-stack,.rw-property-total,.wms-account-opening,.wcx-acquisitionpulse,.ca-directory-facets,.ca-company-vitals,.ca-book-distribution,.ca-provider-heading,.ws-pipeline-ledger,.rv-pipeline-card,.ax-profile-cover,.wcare-household-hero) {
+    --panel-accent: var(--atlas-blue);
+  }
+  & :is(.ws-deal-focus,.ca-deal-detail,.viz-deal-inspector,.ca-offer-detail,.wcx-detail,.rc-offer-focus,.ps-need-conversation,.r3-opportunity-context,.biz-intro-detail,.ps-capital-destination,.wcx-positioncontext,.ca-movers,.ca-handoff-inbox) {
+    --panel-accent: var(--atlas-teal);
+  }
+  & :is(.viz-inspector:not(.viz-deal-inspector),.wrel-inspector,.wrel-brief,.r3-prospect-inspector,.ca-personal-context,.wl-plan-focus,.ws-plan-focus,.ca-conversation-dossier,.cx-conversation-focus,.wcare-gong-lead,.wcx-intro,.wcx-upgrades,.wrp-preview-bar) {
+    --panel-accent: var(--atlas-plum);
+  }
+  & :is(.rv-watch-inspector,.cs-credit-focus,.rw-service-systems,.ws-service-summary,.cx-satisfaction,.wcare-screening,.ax-screening-seal,.ws-review-summaries) {
+    --panel-accent: var(--atlas-clay);
+  }
+  & :is(.ca-intel-detail,.rw-inspector,.wa-signalstage,.wc-document,.wc-case-focus,.wa-commitmentfocus,.ca-activity-inspector,.cs-triage-detail,.pr-selection,.ca-detail,.ps-interaction-desk,.r2-visitor-focus,.ax-packet-outline,.rw-engagement-stats) {
+    --panel-accent: var(--atlas-indigo);
+  }
+  & :is(.cx-account-stack,.rw-property-total,.wms-account-opening,.wcx-acquisitionpulse,.ca-directory-facets,.ca-company-vitals,.ca-book-distribution,.ca-provider-heading,.ws-pipeline-ledger,.rv-pipeline-card,.ax-profile-cover,.wcare-household-hero,
+        .ws-deal-focus,.ca-deal-detail,.viz-inspector,.ca-offer-detail,.wcx-detail,.rc-offer-focus,.ps-need-conversation,.r3-opportunity-context,.biz-intro-detail,.ps-capital-destination,.wcx-positioncontext,.ca-movers,.ca-handoff-inbox,
+        .wrel-inspector,.wrel-brief,.r3-prospect-inspector,.ca-personal-context,.wl-plan-focus,.ws-plan-focus,.ca-conversation-dossier,.cx-conversation-focus,.wcare-gong-lead,.wcx-intro,.wcx-upgrades,.wrp-preview-bar,
+        .rv-watch-inspector,.cs-credit-focus,.rw-service-systems,.ws-service-summary,.cx-satisfaction,.wcare-screening,.ax-screening-seal,.ws-review-summaries,
+        .ca-intel-detail,.rw-inspector,.wa-signalstage,.wc-document,.wc-case-focus,.wa-commitmentfocus,.ca-activity-inspector,.cs-triage-detail,.pr-selection,.ca-detail,.ps-interaction-desk,.r2-visitor-focus,.ax-packet-outline,.rw-engagement-stats) {
+    background-color: color-mix(in srgb, var(--panel-accent) 8%, var(--m-paper));
+    border-color: color-mix(in srgb, var(--panel-accent) 30%, var(--m-paper));
+    box-shadow: inset 0 3px var(--panel-accent);
+    color: var(--m-ink);
+  }
+  & :is(.wa-signalstage,.rw-inspector)[data-signal-source]:is([data-signal-source="aml"],[data-signal-source="screening"]) { --panel-accent: var(--atlas-clay); }
+  & :is(.wa-signalstage,.rw-inspector):is([data-signal-source="care"],[data-signal-source="gong"],[data-signal-source="liquidity"]) { --panel-accent: var(--atlas-plum); }
+  & :is(.wa-signalstage,.rw-inspector):is([data-signal-source="inflow"],[data-signal-source="inflows"]) { --panel-accent: var(--atlas-teal); }
+
+  & :is(.ca-timeline-date,.wc-date-marker,.wa-dateblock,.cx-agenda-label,.cr-date,.wms-transaction-date,.rw-external-date,.ca-account-mark,.cx-account-mark,.ax-monogram,.ca-company-symbol,.wrel-seal,.viz-person-avatar,.r2-lead-avatar,.wms-monogram,.cs-triage-marker,.ws-household-seal,.rc-probability-track,.biz-avatar) {
+    background-color: color-mix(in srgb, var(--view-accent) 14%, var(--m-paper));
+    color: color-mix(in srgb, var(--view-accent) 65%, var(--m-ink));
+  }
+  & :is(.ax-source,.wcare-source,.wa-source,.ca-source-date,.pr-evidence-stamp,.rw-watch-source,.wrp-source-note) {
+    color: color-mix(in srgb, var(--atlas-blue) 62%, var(--m-ink));
+  }
+  & .cx-transaction[data-direction="Debit"] .cx-account-mark { --view-accent: var(--atlas-clay); }
+  & .cx-transaction[data-direction="Credit"] .cx-account-mark { --view-accent: var(--atlas-teal); }
+  & .atlas-settings > div:not([hidden]) > section {
+    border-top: 3px solid var(--view-accent);
+  }
+  & .atlas-settings:has(nav button:nth-child(2)[aria-pressed="true"]) { --view-accent: var(--atlas-indigo); }
+  & .atlas-settings:has(nav button:nth-child(3)[aria-pressed="true"]) { --view-accent: var(--atlas-teal); }
+}
+
+/* Shared probability scale. Ownership and absent scores have separate labeled states. */
+:is(.atlas-app,body[data-style="atlas"]) [data-atlas-page] :is(.biz-score,.cs-score,.wcx-cell.scored) {
+  &[data-score-band="0"] { background: #eef3fa; color: #3c526c; }
+  &[data-score-band="1"] { background: #d2e3f1; color: #2f506b; }
+  &[data-score-band="2"] { background: #b9c4e4; color: #364268; }
+  &[data-score-band="3"] { background: #685a85; color: white; }
+  & :is(small,span,em,b) { color: inherit; }
+}
+:is(.atlas-app,body[data-style="atlas"]) [data-atlas-page] :is(.cs-legend,.wcx-legend) > i {
+  background: linear-gradient(to right,#eef3fa 0 15%,#d2e3f1 15% 30%,#b9c4e4 30% 50%,#685a85 50%);
+}
+
+:is(.atlas-app,body[data-style="atlas"]) [data-atlas-page] {
+  & :is(.r2-milestone-story,.r2-goal-card,.ca-treasury-lane) { --category-ink: var(--atlas-indigo); }
+  & :is(.r2-family,[data-goal-type*="family" i],[data-goal-type*="education" i]) { --category-ink: var(--atlas-plum); }
+  & :is(.r2-home,[data-goal-type*="home" i],[data-goal-type*="property" i],[data-lane="Operate"]) { --category-ink: var(--atlas-blue); }
+  & :is(.r2-work,[data-goal-type*="retire" i],[data-lane="Optimize cash"]) { --category-ink: var(--atlas-teal); }
+  & :is([data-goal-type*="travel" i],[data-lane="Fund growth"]) { --category-ink: var(--atlas-clay); }
+  & :is(.r2-story-top,.r2-goal-scene,.ca-lane-graphic) {
+    color: var(--category-ink);
+    background: color-mix(in srgb, var(--category-ink) 13%, var(--m-paper));
+  }
+  & .r2-illustration path { stroke: var(--category-ink, currentColor); }
+  & .r2-funding circle[pathLength] { stroke: var(--category-ink); }
+  & .ca-treasury-lane { border-top: 3px solid var(--category-ink); }
+  & .ca-treasury-lane header > span { color: color-mix(in srgb,var(--category-ink) 75%,var(--m-ink)); }
+}
+
+/* Detail tabs keep their meaning when entered directly from a record link. */
+[data-atlas-page] :is([data-relationship-tab="finances"],[data-relationship-tab="growth"]) { --view-accent: var(--atlas-teal); }
+[data-atlas-page] :is([data-relationship-tab="journey"],[data-relationship-tab="engagement"]) { --view-accent: var(--atlas-plum); }
+[data-atlas-page] :is([data-relationship-tab="tools"],[data-relationship-tab="intel"],[data-relationship-tab="notebook"]) { --view-accent: var(--atlas-indigo); }
+[data-atlas-page] [data-relationship-tab="screening"] { --view-accent: var(--atlas-clay); }
+:is(.atlas-app,body[data-style="atlas"]) [data-atlas-page] {
+  & [data-relationship-tab] :is(.cx-note,.ca-company-note-form,.atlas-relationship-notes,.wrp-native-notes,.wcare-screening-flags,.ca-source-row,.wcare-heading,.ca-dossier-actions,.ax-profile-fields,.ax-packet-outline,.cx-ledger,.cx-goal-tracks,.wa-goals,.ca-company-offers,.cx-campaigns) {
+    border-inline-start: 3px solid var(--view-accent);
+    padding-inline-start: clamp(12px,1.1vw,20px);
+    background-color: color-mix(in srgb, var(--view-accent) 6%,var(--m-paper));
+  }
+  & :is(.rw-source,.ps-need-branch) { --item-accent: var(--atlas-blue); }
+  & :is([data-need="save"],[data-signal-source="inflows"],[data-movement="gain"]) { --item-accent: var(--atlas-teal); }
+  & :is([data-need="borrow"],[data-signal-source="aml"],[data-movement="loss"]) { --item-accent: var(--atlas-clay); }
+  & :is([data-need="invest"],[data-signal-source="gong"],[data-signal-source="liquidity"],[data-movement="eligible"]) { --item-accent: var(--atlas-plum); }
+  & :is(.rw-source[data-signal-source],.ps-need-branch[data-need]) {
+    border-inline-start: 4px solid var(--item-accent);
+  }
+  & .ca-movers section[data-movement] h3 {
+    color: color-mix(in srgb,var(--item-accent) 75%,var(--m-ink));
+    border-bottom: 2px solid color-mix(in srgb,var(--item-accent) 50%,var(--m-paper));
+  }
+}
+
+/* Three book readings retain their mock layout, with separate marks for growth, branches and service. */
+:is(.atlas-app,body[data-style="atlas"]) [data-atlas-page] {
+  & .cr-pulse-body > button:first-child .cr-meter i { background: var(--atlas-teal); }
+  & .cr-pulse-body > button:nth-child(2) .cr-meter i { background: var(--atlas-blue); }
+  & .cr-pulse-body .cr-bars i { background: color-mix(in srgb,var(--atlas-plum) 60%,var(--m-paper)); }
+  & .cr-pulse-body .cr-bars i:last-child { background: var(--atlas-plum); }
+  & .rv-stress-history :is(polyline,circle) { stroke: var(--atlas-clay); }
+  & .rv-stress-history circle { fill: var(--atlas-clay); }
+  & .rv-stress-area { fill: color-mix(in srgb,var(--atlas-clay) 20%,var(--m-paper)); }
+  & .rv-deposit-total { color: color-mix(in srgb,var(--atlas-teal) 74%,var(--m-ink)); }
+  & .rv-deposit-route { background: color-mix(in srgb,var(--atlas-teal) 10%,var(--m-paper)); }
+  & :is(.wc-paper-fold,.wc-document-icon,.wrp-paper-seal) {
+    background: color-mix(in srgb,var(--atlas-plum) 12%,var(--m-paper));
+    color: color-mix(in srgb,var(--atlas-plum) 76%,var(--m-ink));
+  }
+  & .ws-spine-step { --step-ink: var(--atlas-blue); }
+  & .ws-spine-step:has(svg.lucide-users) { --step-ink: var(--atlas-plum); }
+  & .ws-spine-step:has(svg.lucide-check) { --step-ink: var(--atlas-teal); }
+  & .ws-spine-step > span {
+    color: color-mix(in srgb,var(--step-ink) 75%,var(--m-ink));
+    border-color: color-mix(in srgb,var(--step-ink) 42%,var(--m-paper));
+    background: color-mix(in srgb,var(--step-ink) 12%,var(--m-paper));
+  }
+}
+
+/* Case lanes keep their color when a status disappears or the order changes. */
+[data-atlas-page] .ws-case-lane[data-case-status] { --ws-lane: var(--atlas-blue); }
+[data-atlas-page] .ws-case-lane:is([data-case-status*="progress" i],[data-case-status*="working" i]) { --ws-lane: var(--atlas-indigo); }
+[data-atlas-page] .ws-case-lane:is([data-case-status*="wait" i],[data-case-status*="escalat" i]) { --ws-lane: var(--atlas-clay); }
+[data-atlas-page] .ws-case-lane:is([data-case-status*="closed" i],[data-case-status*="resolved" i]) { --ws-lane: var(--atlas-teal); }
+
+body[data-style="atlas"] #assistant-dialog { position:fixed; inset:0 0 0 auto; margin:0; width:min(500px,100%); height:100dvh; max-height:100dvh; max-width:100%; border-radius:0; }
+@media (prefers-reduced-motion:no-preference) {
+  body[data-style="atlas"] #assistant-dialog[open] { animation:mock-agent-slide .22s ease-out; }
+  @keyframes mock-agent-slide { from {transform:translateX(100%)} to {transform:translateX(0)} }
+}
+
+.as-agent-glyph { display: block; width: 23px; height: 23px; background: currentColor; mask: url("./agentforce.svg") center / contain no-repeat; }
+
+body[data-style="atlas"]:has(#assistant-dialog[open]) .mock-shell { margin-inline-end:clamp(320px,29vw,480px); }
+body[data-style="atlas"] #assistant-dialog { width:clamp(320px,29vw,480px); z-index:15; }
+@media(max-width:800px) {
+  body[data-style="atlas"]:has(#assistant-dialog[open]) .mock-shell { margin-inline-end:0; padding-bottom:50dvh; }
+  body[data-style="atlas"] #assistant-dialog { inset:auto 0 0; width:100%; height:50dvh; }
+}

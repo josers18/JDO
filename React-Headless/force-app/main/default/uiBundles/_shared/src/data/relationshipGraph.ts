@@ -49,8 +49,8 @@ export interface WarmIntro {
 export interface WarmIntroResult { rows: WarmIntro[]; scope: BookScope; }
 
 /** S4 — up to six referrals from my clients into accounts outside my book. */
-export async function fetchWarmIntros(ownerId: string | null | undefined): Promise<WarmIntroResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(warmIntroSql, ownerId, 6);
+export async function fetchWarmIntros(ownerId: string | null | undefined, strictBook = false): Promise<WarmIntroResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(warmIntroSql, ownerId, 6, strictBook);
   return {
     scope: res.scope,
     rows: res.rows.map(r => ({

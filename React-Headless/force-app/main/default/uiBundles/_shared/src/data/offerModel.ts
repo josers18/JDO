@@ -113,8 +113,9 @@ function bestChannel(channels: string, emP: number, ccP: number): NextBestOffer[
 export async function fetchNextBestOffers(
   ownerId: string | null | undefined,
   family: OfferFamily,
+  strictBook = false,
 ): Promise<NextBestOfferResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(bestOfferSql(family), ownerId, 3);
+  const res = await queryDataCloudForBook<Record<string, unknown>>(bestOfferSql(family), ownerId, 3, strictBook);
   return {
     scope: res.scope,
     rows: res.rows.map(r => {
@@ -157,8 +158,8 @@ export interface ModeledUplift {
 }
 
 /** S3 Growth KPI — "Modeled uplift in book" for this app's product family. */
-export async function fetchModeledUplift(ownerId: string | null | undefined, family: OfferFamily): Promise<ModeledUplift> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(upliftSql(family), ownerId, 20);
+export async function fetchModeledUplift(ownerId: string | null | undefined, family: OfferFamily, strictBook = false): Promise<ModeledUplift> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(upliftSql(family), ownerId, 20, strictBook);
   const byOffer = res.rows.map(r => {
     const code = String(r.code ?? '');
     return { code, offer: OFFER_LABEL[code] ?? code, clients: Number(r.clients) || 0, uplift: Number(r.uplift) || 0 };

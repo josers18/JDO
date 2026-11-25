@@ -1,0 +1,71 @@
+-- crm_financialAccounts; captured 2026-11-13; returned 79; available
+SELECT Id,Name,FinServ__PrimaryOwner__c,FinServ__Balance__c,FinServ__FinancialAccountType__c,FinServ__Status__c FROM FinServ__FinancialAccount__c WHERE FinServ__PrimaryOwner__r.OwnerId='005am000003PbCLAA0' ORDER BY FinServ__Balance__c DESC LIMIT 201;
+
+-- crm_goals; captured 2026-11-13; returned 4; available
+SELECT Id,Name,Type,Status,Priority,Description,TargetDate,TargetAmount,ActualAmount,FinancialPlanId,FinancialPlan.AccountId FROM FinancialGoal WHERE FinancialPlan.AccountId IN ('001am00000qvjsAAAQ','001am000026ZtgKAAS') LIMIT 50;
+
+-- crm_leads; captured 2026-11-13; returned 30; available
+SELECT Id,FirstName,LastName,Name,Company,Status,LeadSource,Email,AnnualRevenue,OwnerId FROM Lead WHERE OwnerId='005am000003PbCLAA0' AND IsConverted=false LIMIT 30;
+
+-- crm_opportunities; captured 2026-11-13; returned 201; available
+SELECT Id,Name,AccountId,Amount,StageName,IsClosed,IsWon,CloseDate,LeadSource,OwnerId FROM Opportunity WHERE OwnerId='005am000003PbCLAA0' ORDER BY Amount DESC LIMIT 201;
+
+-- crm_tasks; captured 2026-11-13; returned 30; available
+SELECT Id,Subject,Status,Priority,ActivityDate,WhoId,WhatId,OwnerId,Description FROM Task WHERE OwnerId='005am000003PbCLAA0' ORDER BY ActivityDate DESC NULLS LAST LIMIT 30;
+
+-- crm_events; captured 2026-11-13; returned 20; available
+SELECT Id,Subject,StartDateTime,EndDateTime,DurationInMinutes,WhoId,WhatId,OwnerId,Description,Location,ShowAs FROM Event WHERE OwnerId='005am000003PbCLAA0' ORDER BY StartDateTime DESC LIMIT 20;
+
+-- crm_deepAccounts; captured 2026-11-13; returned 2; available
+SELECT Id,Name,OwnerId,PersonEmail,PersonContactId FROM Account WHERE Id IN ('001am00000qvjsAAAQ','001am000026ZtgKAAS');
+
+-- crm_pipelineStages; captured 2026-11-13; returned 25; available
+SELECT StageName,COUNT(Id) n,SUM(Amount) amount FROM Opportunity WHERE OwnerId='005am000003PbCLAA0' AND IsClosed=false GROUP BY StageName;
+
+-- crm_gridOpen; captured 2026-11-13; returned 1; available
+SELECT COUNT(Id) n,SUM(Amount) amount FROM Opportunity WHERE OwnerId='005am000003PbCLAA0' AND LeadSource='Cross-sell grid' AND IsClosed=false;
+
+-- crm_gridWon; captured 2026-11-13; returned 1; available
+SELECT COUNT(Id) n FROM Opportunity WHERE OwnerId='005am000003PbCLAA0' AND LeadSource='Cross-sell grid' AND IsWon=true AND CloseDate=LAST_N_DAYS:30;
+
+-- crm_deepCases; captured 2026-11-13; returned 25; available
+SELECT Id,CaseNumber,Subject,Status,Priority,AccountId,OwnerId,CreatedDate FROM Case WHERE AccountId IN ('001am00000qvjsAAAQ','001am000026ZtgKAAS') ORDER BY CreatedDate DESC LIMIT 25;
+
+-- crm_financialPlans; captured 2026-11-13; returned 2; available
+SELECT Id,Name,AccountId,Account.Name FROM FinancialPlan WHERE Account.OwnerId='005am000003PbCLAA0' AND AccountId IN ('001am00000qvjsAAAQ','001am000026ZtgKAAS') LIMIT 20;
+
+-- crm_gridOpportunities; captured 2026-11-13; returned 0; available
+SELECT Id,Name,AccountId,OwnerId,LeadSource,StageName,Amount,CloseDate,IsClosed,IsWon FROM Opportunity WHERE OwnerId='005am000003PbCLAA0' AND LeadSource='Cross-sell grid' AND IsClosed=false LIMIT 201;
+
+-- crm_queueOpportunities; captured 2026-11-13; returned 200; available
+SELECT Id,Name,AccountId,Account.Name,Amount,StageName,Probability,CloseDate,IsClosed,OwnerId FROM Opportunity WHERE OwnerId='005am000003PbCLAA0' AND IsClosed=false ORDER BY Amount DESC LIMIT 200;
+
+-- crm_queueTasksOverdue; captured 2026-11-13; returned 15; available
+SELECT Id,Subject,Status,Priority,ActivityDate,WhatId,WhoId,OwnerId FROM Task WHERE OwnerId='005am000003PbCLAA0' AND IsClosed=false AND ActivityDate<TODAY ORDER BY ActivityDate DESC LIMIT 15;
+
+-- crm_queueTasksUpcoming; captured 2026-11-13; returned 0; available
+SELECT Id,Subject,Status,Priority,ActivityDate,WhatId,WhoId,OwnerId FROM Task WHERE OwnerId='005am000003PbCLAA0' AND IsClosed=false AND ActivityDate>=TODAY ORDER BY ActivityDate ASC LIMIT 25;
+
+-- crm_julie_cases; captured 2026-11-13; returned 12; available
+SELECT Id,CaseNumber,Subject,Status,Priority,AccountId,OwnerId,CreatedDate FROM Case WHERE AccountId='001am00000qvjsAAAQ' ORDER BY CreatedDate DESC LIMIT 12;
+
+-- crm_julie_tasks; captured 2026-11-13; returned 15; available
+SELECT Id,Subject,Type,Status,Priority,ActivityDate,WhoId,WhatId,OwnerId,Description FROM Task WHERE WhatId='001am00000qvjsAAAQ' OR WhoId='003am000008yOmCAAU' ORDER BY ActivityDate DESC NULLS LAST LIMIT 15;
+
+-- crm_julie_events; captured 2026-11-13; returned 12; available
+SELECT Id,Subject,Type,StartDateTime,EndDateTime,DurationInMinutes,WhoId,WhatId,OwnerId,Description,Location,ShowAs FROM Event WHERE WhatId='001am00000qvjsAAAQ' OR WhoId='003am000008yOmCAAU' ORDER BY StartDateTime DESC LIMIT 12;
+
+-- crm_anika_cases; captured 2026-11-13; returned 0; available
+SELECT Id,CaseNumber,Subject,Status,Priority,AccountId,OwnerId,CreatedDate FROM Case WHERE AccountId='001am000026ZtgKAAS' ORDER BY CreatedDate DESC LIMIT 12;
+
+-- crm_anika_tasks; captured 2026-11-13; returned 11; available
+SELECT Id,Subject,Type,Status,Priority,ActivityDate,WhoId,WhatId,OwnerId,Description FROM Task WHERE WhatId='001am000026ZtgKAAS' OR WhoId='003am00000c9fUJAAY' ORDER BY ActivityDate DESC NULLS LAST LIMIT 15;
+
+-- crm_anika_events; captured 2026-11-13; returned 9; available
+SELECT Id,Subject,Type,StartDateTime,EndDateTime,DurationInMinutes,WhoId,WhatId,OwnerId,Description,Location,ShowAs FROM Event WHERE WhatId='001am000026ZtgKAAS' OR WhoId='003am00000c9fUJAAY' ORDER BY StartDateTime DESC LIMIT 12;
+
+-- crm_tasks_types; captured 2026-11-13; returned 30; available
+SELECT Id,Type FROM Task WHERE Id IN ('00Tam00000VD9zhEAD','00Tam00000UdfoPEAR','00Tam00000UPCuLEAX','00Tam00000UNl3OEAT','00Tam00000TzFr3EAF','00Tam00000TzFpREAV','00Tam00000TzFsfEAF','00Tam00000TzFmDEAV','00Tam00000Tz3DHEAZ','00Tam00000TyPXVEA3','00Tam00000TyLwvEAF','00Tam00000Txj8TEAR','00Tam00000TxhBWEAZ','00Tam00000TxaMxEAJ','00Tam00000TjbqjEAB','00Tam00000TybaHEAR','00Tam000004jIVXEA2','00Tam00000TiZarEAF','00Tam00000TiXu1EAF','00Tam00000TRc6vEAD','00Tam00000TCGmfEAH','00Tam00000TDOjlEAH','00Tam000004jIWGEA2','00Tam000004jIVUEA2','00Tam000004jIVTEA2','00Tam00000Sr7hZEAR','00Tam00000Sr6dREAR','00Tam000004jIVYEA2','00Tam00000SqzNSEAZ','00Tam00000STbNREA1') LIMIT 30;
+
+-- crm_events_types; captured 2026-11-13; returned 20; available
+SELECT Id,Type FROM Event WHERE Id IN ('00Uam00000LdwG9EAJ','00Uam000002nGT3EAM','00Uam000002nGW3EAM','00Uam000002nGVxEAM','00Uam000002nGUqEAM','00Uam000002nGUdEAM','00Uam000002nGT1EAM','00Uam000002nGTKEA2','00Uam000002nGT5EAM','00Uam000002nGWOEA2','00Uam000002nGRLEA2','00Uam000002nGTWEA2','00Uam000002nGWeEAM','00Uam000002nGUaEAM','00Uam000002nGSuEAM','00Uam000002nGSaEAM','00Uam000002nGUiEAM','00Uam000002nGRqEAM','00Uam000002nGS3EAM','00Uam000002nGVLEA2') LIMIT 20;

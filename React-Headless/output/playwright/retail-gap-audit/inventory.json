@@ -1,0 +1,244 @@
+{
+  "checkedAt": "2026-11-13T04:48:45.827Z",
+  "rows": [
+    {
+      "route": "today",
+      "headings": [
+        "Your book at a glance.",
+        "Your daily brief",
+        " Portfolio pulse",
+        "Duncan L Macintosh",
+        "Your pipeline",
+        "Your lead & referral desk",
+        "Your next conversations",
+        "Keep an eye on your book",
+        "Customer moments",
+        "Agentforce"
+      ]
+    },
+    {
+      "route": "relationships",
+      "headings": [
+        "Your book. With context.",
+        "The relationship landscape",
+        "Amanda A Phillips",
+        "Find the right customer",
+        "Agentforce"
+      ]
+    },
+    {
+      "route": "pipeline",
+      "headings": [
+        "Move the right conversations forward.",
+        "750 open opportunities",
+        "The deal landscape",
+        "Justin X Banks",
+        "Agentforce"
+      ]
+    },
+    {
+      "route": "journey",
+      "headings": [
+        "Be there when life changes.",
+        "The relationship calendar",
+        "People behind the milestones",
+        "Goals behind the next chapter",
+        "Agentforce"
+      ]
+    },
+    {
+      "route": "prospecting",
+      "headings": [
+        "Your prospecting desk.",
+        "Work your sources",
+        "Your working list 7",
+        "Noah Okafor",
+        "Agentforce"
+      ]
+    },
+    {
+      "route": "growth",
+      "headings": [
+        "Grow your relationships.",
+        "Where could you grow?",
+        "Opportunities across your book",
+        "Where could you help?",
+        "Stacy L McNeil",
+        "Agentforce"
+      ]
+    },
+    {
+      "route": "intelligence",
+      "headings": [
+        "Read the customer’s moment.",
+        "Who’s exploring a product?",
+        "Dustin P Fox",
+        "Agentforce"
+      ]
+    },
+    {
+      "route": "health",
+      "headings": [
+        "Your relationship health.",
+        "Portfolio pulse",
+        "Stress across the last six months",
+        "Deposit retention",
+        "Risk & service alerts",
+        "Your watchlists",
+        "Bryan P Wolf",
+        "Agentforce"
+      ]
+    },
+    {
+      "route": "work",
+      "headings": [
+        "A service desk with room to act.",
+        "Your captured queue",
+        "Unauthorized Transaction on Checking",
+        "Agentforce"
+      ]
+    },
+    {
+      "route": "config",
+      "headings": [
+        "Make the workspace yours.",
+        "Brand & display",
+        "Models & AI actions",
+        "Agentforce"
+      ]
+    },
+    {
+      "relationship": "Kyle H Todd",
+      "tab": "overview",
+      "headings": [
+        "The relationship at a glance",
+        "A useful next conversation",
+        "Start with the recorded context.",
+        "Milestones & goals",
+        "Kyle H Todd",
+        "Follow-through"
+      ],
+      "unavailable": [
+        "Not captured",
+        "Not captured"
+      ]
+    },
+    {
+      "relationship": "Kyle H Todd",
+      "tab": "profile",
+      "headings": [
+        "Kyle H Todd",
+        "The recorded profile",
+        "Work attached to this relationship"
+      ],
+      "unavailable": [
+        "Not captured",
+        "Not captured",
+        "Not captured",
+        "Not captured",
+        "Not captured"
+      ]
+    },
+    {
+      "relationship": "Kyle H Todd",
+      "tab": "finances",
+      "headings": [
+        "Financial accounts",
+        "Financial accounts not included for this relationship.",
+        "Property & home equity",
+        "The trade ledger",
+        "No trade records in this account capture."
+      ],
+      "unavailable": [
+        "Financial accounts not included for this relationship.",
+        "No trade records in this account capture.",
+        "Select Julie E Morris to inspect the captured trade ledger. This is not evidence of zero trading activity."
+      ]
+    },
+    {
+      "relationship": "Kyle H Todd",
+      "tab": "journey",
+      "headings": [
+        "Life events",
+        "Kyle H Todd",
+        "Financial plan",
+        "Financial goals",
+        "No goal records captured for this account."
+      ],
+      "unavailable": [
+        "No goal records captured for this account."
+      ]
+    },
+    {
+      "relationship": "Kyle H Todd",
+      "tab": "engagement",
+      "headings": [
+        "The conversation thread",
+        "Interaction history not captured.",
+        "Listen across time.",
+        "Service follow-through",
+        "No cases in this bounded capture.",
+        "Captured commitments"
+      ],
+      "unavailable": [
+        "Interaction history not captured.",
+        "No cases in this bounded capture.",
+        "No tasks in this account capture."
+      ]
+    },
+    {
+      "relationship": "Kyle H Todd",
+      "tab": "growth",
+      "headings": [
+        "Open opportunities",
+        "No opportunities in this account capture.",
+        "Next-best conversation",
+        "No scored offer captured for this account."
+      ],
+      "unavailable": [
+        "No opportunities in this account capture.",
+        "No scored offer captured for this account."
+      ]
+    },
+    {
+      "relationship": "Kyle H Todd",
+      "tab": "tools",
+      "headings": [
+        "Notes that stay with the relationship",
+        "Action drafts for this relationship",
+        "Choose what the conversation needs.",
+        "Kyle H Todd"
+      ],
+      "unavailable": []
+    },
+    {
+      "relationship": "Kyle H Todd",
+      "tab": "notebook",
+      "headings": [
+        "Relationship notebook",
+        "A notebook for the next conversation."
+      ],
+      "unavailable": [
+        "No source notes captured.",
+        "Saved meeting-note content is available for Julie. Keep your own preparation in Notes & tools."
+      ]
+    },
+    {
+      "relationship": "Kyle H Todd",
+      "tab": "screening",
+      "headings": [
+        "Screening on file",
+        "The recorded screening result"
+      ],
+      "unavailable": []
+    }
+  ],
+  "leadFields": [
+    "firstName",
+    "lastName",
+    "company",
+    "status",
+    "email"
+  ],
+  "errors": []
+}

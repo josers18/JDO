@@ -24,16 +24,18 @@ export function CustomerGoalModal({
   onClose,
   goal,
   onSaved,
+  ownerId,
 }: {
   open: boolean;
   onClose: () => void;
   goal: CustomerGoalItem | null;
   onSaved?: () => void;
+  ownerId?: string;
 }) {
   // Defer to an inner component once `goal` is non-null so the hooks that need
   // Salesforce context (useCrmAction → useToast) never run for the empty state.
   if (!goal) return null;
-  return <CustomerGoalModalContent open={open} onClose={onClose} goal={goal} onSaved={onSaved} />;
+  return <CustomerGoalModalContent open={open} onClose={onClose} goal={goal} onSaved={onSaved} ownerId={ownerId} />;
 }
 
 function CustomerGoalModalContent({
@@ -41,11 +43,13 @@ function CustomerGoalModalContent({
   onClose,
   goal,
   onSaved,
+  ownerId,
 }: {
   open: boolean;
   onClose: () => void;
   goal: CustomerGoalItem;
   onSaved?: () => void;
+  ownerId?: string;
 }) {
   const creating = !!goal.create;
   // Both create and edit write; only the demo read-only state is locked.
@@ -181,7 +185,7 @@ function CustomerGoalModalContent({
             <LookupField
               value={plan}
               onChange={setPlan}
-              search={searchFinancialPlans}
+              search={ownerId === undefined ? searchFinancialPlans : (term: string, limit?: number) => searchFinancialPlans(term, limit, ownerId)}
               placeholder="Search plans by household…"
             />
           </Field>

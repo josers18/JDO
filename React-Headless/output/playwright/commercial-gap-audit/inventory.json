@@ -1,0 +1,730 @@
+{
+  "inventory": [
+    {
+      "label": "today",
+      "params": {
+        "page": "today"
+      },
+      "width": 1512,
+      "headings": [
+        "Your book at a glance.",
+        "Your daily brief",
+        " Portfolio pulse",
+        "Cameron-Olson Construction",
+        "Coordinate a relationship and credit check-in.",
+        "The shape of the scored book.",
+        "What deserves a conversation?",
+        "Cameron-Olson Construction",
+        "Relationship signal",
+        "Payment behavior",
+        "Credit outlook",
+        "An opportunity, in context",
+        "A view of the pipeline.",
+        "Keep execution in sight.",
+        "Commercial - Treasury Services",
+        "Commercial - Treasury Services",
+        "Commercial - Treasury Services",
+        "Turn the company discussion into a next step.",
+        "Business credit card application follow-up",
+        "Business credit card application follow-up",
+        "ACH origination training",
+        "Business Checking"
+      ],
+      "text": "Good morning, Allen.\nYour book at a glance.\nYour daily brief\nNov 12 snapshot\n\nYou have 3,412 open opportunities worth $3.6B, with 707 open tasks to move forward. Put relationship and credit concerns first, then keep financing and treasury conversations moving.\n\nPortfolio pulse\n\nRelationship care and disciplined deal follow-through.\n\nReview book health\n$3.6B\nPipeline\n707\nOpen tasks\n949\nOpen cases\nYour first move\nRelationship & credit\nCC\nReach out to\nCameron-Olson Construction\nCoordinate a relationship and credit check-in.\n\nVery negative calls · PAYDEX 68 · Moody’s Negative\n\nOpen 360\nWhy this outreach\nPrep me\nPlan a call\nNext priority\nSaved Commercial signal · Nov 11 · Based on dated source evidence\nTrade-credit payment watch\nThe shape of the scored book.\nOpen credit & coverage\n30+ days beyond terms\n348\n15–29 days beyond terms\n1,155\n1–14 days beyond terms\n2,893\nPaying on terms\n1,230\n\nD&B supplier-payment observations, Nov 1. Not loan delinquencies or a credit decision.\n\nSelected company signals\nWhat deserves a conversation?\nCC\nCameron-Olson Construction\nCredit & relationship\nBS\nBurgess Supply\nCredit & relationship\nSC\nSchroeder Contractors\nProduct opportunity\nKL\nKennedy Ltd Enterprises\nProduct opportunity\nMH\nMontgomery Holdings\nCompetitor research\nM&\nMissoula & Sons Inc.\nFunding\nSaved Commercial signal · Nov 11\nCameron-Olson Construction\n\nVery negative calls · PAYDEX 68 · Moody’s Negative\n\nGong\nRelationship signal\n\nVery Negative and declining calls; deal risk 87.3.\n\nD&B credit\nPayment behavior\n\nPAYDEX 68; 18 days beyond terms. High failure-risk tier.\n\nMoody’s\nCredit outlook\n\nNegative outlook; Ba2 rating.\n\nOffer eligibility\nAn opportunity, in context\n\n32.36% modeled conversion probability for business checking. Address relationship concerns first.\n\nCoordinate a relationship check-in with a review of payment behavior. Clarify the company’s needs before deciding whether a treasury conversation is appropriate.\n\nReview source evidence\nPrepare company conversation\nDeal execution\nA view of the pipeline.\nExplore pipeline\nQualification\n$1.4B\n1322 open\nProposal Issued\n$1.4B\n1286 open\nProspecting\n$776.7M\n804 open\n\nCaptured stage aggregates for the owner’s open opportunities.\n\nCaptured opportunity sample\nKeep execution in sight.\nOpen deal room\n\nMitchell LLC Holdings\n\nCommercial - Treasury Services\n$11.7M\nProposal Issued\nRecorded close Feb 14, 2027\nReview opportunity\n\nFlores PLC Enterprises\n\nCommercial - Treasury Services\n$9.9M\nProposal Issued\nRecorded close Feb 12, 2026\nReview opportunity\n\nFlores PLC Corp\n\nCommercial - Treasury Services\n$9.9M\nProposal Issued\nRecorded close Feb 12, 2026\nReview opportunity\nRecorded commitments\nTurn the company discussion into a next step.\nOpen workbench\nBusiness credit card application follow-up\n\nKnight-Hutchinson Outlet\n\nApr 20, 2026 · Deferred\nPlan action\nBusiness credit card application follow-up\n\nBarnes LLC Real Estate\n\nApr 20, 2026 · Deferred\nPlan action\nACH origination training\n\nCharles-Petersen Bistro\n\nApr 20, 2026 · Not Started\nPlan action\n\nOldest open tasks from the bounded capture. These dates are not today’s appointments.\n\nGrowth, with a reason\nBusiness Checking\n\nKennedy Ltd Enterprises\n\n48.0\n% modeled conversion\n$8.5K\nExpected value\n\nOne selected eligible offer. Review the evidence alongside ownership and customer needs.\n\nReview offer evidenceOpen Growth\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "relationships",
+      "params": {
+        "page": "relationships"
+      },
+      "width": 1512,
+      "headings": [
+        "Your book. With context.",
+        "Explore the expanded workspace",
+        "The relationship landscape",
+        "Cameron-Olson Construction"
+      ],
+      "text": "Allen Carter · Commercial banking\n\nYour book. With context.\n\nCompanies and the people behind the relationship.\n\nNew lead\n22 in this sample\nAll captured\nPinned\nNew in Atlas\nExplore the expanded workspace\n\nNew relationship tabs, persona health views, and task-action planning.\n\nCredit & coverage\nOpen Cameron-Olson’s expanded profile\nExplore task actions\nThe relationship landscape\n\nChoose a person to bring their context into focus.\n\nSignals\nMilestones\nGoals\nAC\nYour book\nCC\nCameron-Olson Construction\nCredit & relationship\nBS\nBurgess Supply\nCredit & relationship\nSC\nSchroeder Contractors\nProduct opportunity\nKL\nKennedy Ltd Enterprises\nProduct opportunity\nAE\nAlex E Cooper\nRelationship context\nBL\nBarnes LLC Real Estate\nRelationship context\n\nSix selected accounts around the advisor’s book. Lines do not imply relationships between clients; distance carries no financial meaning.\n\nCC\nCredit & relationship\nCameron-Olson Construction\n\nVery negative calls · PAYDEX 68 · Moody’s Negative\n\n0\nMilestones captured\n0\nGoals captured\nOpen relationship\nAdd to comparison\nPrepare conversation\nCC\nCameron-Olson Construction\nBS\nBurgess Supply\nSC\nSchroeder Contractors\nKL\nKennedy Ltd Enterprises\nAE\nAlex E Cooper\nBL\nBarnes LLC Real Estate\nCB\nCharles-Petersen Bistro\nCA\nChristian A Wolff\nD\nDisplaytech\nEG\nEvans Group Clinic\nFP\nFlores PLC Corp\nFP\nFlores PLC Corp\nFP\nFlores PLC Enterprises\nHG\nHoward-Frazier Grill\nKL\nKaren L Wells\nKO\nKnight-Hutchinson Outlet\nMB\nMike B Garcia\nML\nMitchell LLC Holdings\nNI\nNelson Industries\nNI\nNelson Industries\nRP\nRichmond-Williams Practice\nUP\nUnited Partners\n\nDirectory combines captured Accounts and exact account links from CRM records. Saved CRM capture: Nov 12, 2026. Data Cloud detail was captured Nov 12 with provider periods shown; saved priority fixtures date from Nov 10–11. Selected samples, not complete book lists.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "pipeline",
+      "params": {
+        "page": "pipeline"
+      },
+      "width": 1512,
+      "headings": [
+        "Move the right conversations forward.",
+        "3,412 open opportunities",
+        "The deal landscape",
+        "Mitchell LLC Holdings"
+      ],
+      "text": "Allen Carter · Commercial banking\n\nMove the right conversations forward.\n\nA complete captured aggregate, with room to work through individual deals.\n\nNew opportunity\n\nOpen pipeline · Allen Carter\n\n$3.6B\n3,412 open opportunities\n\nAggregate across all open stages. The 6 displayed records are a bounded high-value sample.\n\nQualification\n$1.4B\n1,322 open opportunities\nProposal Issued\n$1.4B\n1,286 open opportunities\nProspecting\n$776.7M\n804 open opportunities\nAll 3 stages\nStage\nAll stages\nQualification · 1,322 total\nProposal Issued · 1,286 total\nProspecting · 804 total\nThe deal landscape\n\nRecorded opportunity value against recorded close date. Select a deal to inspect it.\n\nDeal plot\nPlanning board\nRecorded amount\nFrom zero\nFit values\n$13.1M\n$8.7M\n$4.4M\n$0\nML\n$11.7M\nFP\nFP\nFP\nNI\nNI\nFeb 5, 2026\nJun 12, 2026\nOct 17, 2026\nFeb 21, 2027\n\nRecorded close date\n\nMitchell LLC Holdings\nFlores PLC Enterprises\nFlores PLC Corp\nFlores PLC Corp\nNelson Industries\nNelson Industries\nProposal Issued\nMitchell LLC Holdings\n\nCommercial - Treasury Services\n\n$11.7M\nCaptured stage\nProposal Issued\nRecorded close\nFeb 14, 2027\nClose timing\nFuture recorded date\nPreview a stage\nQualification\nProposal Issued\nProspecting\nReview dealPlan follow-up\n\nThe dots and cards are the captured high-value sample, not the full pipeline. A stage preview is a local scenario; full captured totals above remain unchanged.\n\nSaved CRM capture: Nov 12, 2026. Data Cloud detail was captured Nov 12 with provider periods shown; saved priority fixtures date from Nov 10–11. Selected samples, not complete book lists.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "journey",
+      "params": {
+        "page": "journey"
+      },
+      "width": 1512,
+      "headings": [
+        "Business relationships have human milestones.",
+        "A year in the relationship",
+        "Grandchild Born"
+      ],
+      "text": "Allen Carter · Commercial banking\n\nBusiness relationships have human milestones.\n\nRecorded milestones and financial goals, with the next conversation close at hand.\n\nLog life event\nLife events\nFinancial goals\n21 selected records · not book totals\nAll\nBaby\nRelocation\nNew Baby\nCar\nNew Home\nGraduation\nHome\nJob\nNew Job\nNew Business\nCollege\nA year in the relationship\n\nSelect a milestone to see the person, source, and next step.\n\nExplore year\n2025\n2024\n2023\n2021\n2020\n2019\n2018\n2017\n2016\n2025\nJan\nFeb\nMar\nApr\nMay\nJun\nJul\nAug\nSep\nOct\nNov\nDec\nFamily & education\n2 captured\n31\n3\nHome & mobility\n1 captured\n31\n31\nJul 2025\nBaby\nGrandchild Born\n\nMike B Garcia · Jul 31, 2025\n\nRecorded life event, not an inferred milestone.\n\nReview milestone\nPrepare outreach\nOpen relationship\nJul 31, 2025\nMike B Garcia\nBaby\nJul 31, 2025\nChristian A Wolff\nRelocation\nJul 3, 2025\nMike B Garcia\nNew Baby\n\n3 captured milestones in 2025. Switch year to explore the rest of the selected sample.\n\nLife events are deduplicated by person, event type, and date, matching the app. Saved CRM capture: Nov 12, 2026. Data Cloud detail was captured Nov 12 with provider periods shown; saved priority fixtures date from Nov 10–11. Selected samples, not complete book lists.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "growth",
+      "params": {
+        "page": "growth"
+      },
+      "width": 1512,
+      "headings": [
+        "Build the operating relationship.",
+        "Schroeder Contractors",
+        "Operate",
+        "Optimize cash",
+        "Fund growth",
+        "Business Checking",
+        "Product coverage, with the evidence intact."
+      ],
+      "text": "Allen Carter · Commercial banking\n\nBuild the operating relationship.\n\nA company-first view of treasury, liquidity, and financing conversations.\n\nAll eligible examples\nRising\nFalling\nLeads & referrals\nNew lead or referral\nSchroeder Contractors\n\nEligible product coverage in the captured sample\n\nCompany\nSchroeder Contractors\nKennedy Ltd Enterprises\nBurgess Supply\nCameron-Olson Construction\nOperate\nBusiness Checking\n42.3%\n$929.5 modeled expected value\nCommercial Card\n27.0%\n$772.9 modeled expected value\nRemote Deposit\n22.9%\n$180.5 modeled expected value\nACH Origination\n22.9%\n$124.3 modeled expected value\nPositive Pay\n19.4%\n$72 modeled expected value\nOptimize cash\n\nNo eligible row in this capture.\n\nFund growth\nLine of Credit\n25.8%\n$747.4 modeled expected value\nSBA Loan\n15.2%\n$511.1 modeled expected value\nEquipment Financing\n18.8%\n$370 modeled expected value\nTerm Loan\n15.9%\n$297.6 modeled expected value\nConversation design\nBusiness Checking\n\nUnderstand the company’s operating needs before proposing a product.\n\n42.34\n% conversion probability\nNov 1, 2026\n42.34\n% modeled conversion\nExplore monthly score\nMay 1, 2026 · 42.35%\nNov 1, 2026 · 42.34%\nPlan next step\nWhy this offer\nCompany relationship\nProduct coverage, with the evidence intact.\n\nOwned comes from captured CRM holdings. Percentages are eligible model probabilities.\n\n4 selected relationships\nRelationship\tBusiness Checking\tTreasury\tCommercial Card\tSweep\tLine of Credit\tTerm Loan\tCRE\tEquipment / SBA\nCameron-Olson Construction\t32%\n$486.5\n\t22%\n$172\n\tNot captured\tNot captured\tNot captured\tNot captured\tNot captured\tNot captured\nKennedy Ltd Enterprises\t48%\n$8.5K\n\t32%\n$2.1K\n\tNot captured\tNot captured\t21%\n$6.5K\n\t14%\n$3.7K\n\tNot captured\t14%\n$2.4K\n\nBurgess Supply\t29%\n$583.4\n\t26%\n$210.9\n\t34%\n$1.1K\n\tNot captured\tNot captured\t11%\n$206.6\n\tNot captured\t15%\n$236.6\n\nSchroeder Contractors\t42%\n$929.5\n\t23%\n$180.5\n\t27%\n$772.9\n\tNot captured\t26%\n$747.4\n\t16%\n$297.6\n\tNot captured\t15%\n$511.1\n\nSelected real records captured Nov 12; saved external signals are dated Nov 10–11. Actions keep local drafts.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "intelligence",
+      "params": {
+        "page": "intelligence"
+      },
+      "width": 1512,
+      "headings": [
+        "Know what changed around the company.",
+        "Cameron-Olson Construction"
+      ],
+      "text": "Allen Carter · Commercial banking\n\nKnow what changed around the company.\n\nReview independent sources together, then choose the relationship response.\n\nCC\nCameron-Olson Construction\nCredit & relationship\nBS\nBurgess Supply\nCredit & relationship\nSC\nSchroeder Contractors\nProduct opportunity\nKL\nKennedy Ltd Enterprises\nProduct opportunity\nMH\nMontgomery Holdings\nCompetitor research\nM&\nMissoula & Sons Inc.\nFunding\nSaved Commercial signal · Nov 11\nCameron-Olson Construction\n\nVery negative calls · PAYDEX 68 · Moody’s Negative\n\nCC\nCompany\ncontext\nGong\nRelationship signal\nD&B credit\nPayment behavior\nMoody’s\nCredit outlook\nOffer eligibility\nAn opportunity, in context\nPAYDEX\n68\n/ 100\nDays beyond terms\n18\ndays\nMoody’s\nBa2\nNegative\n\nCoordinate a relationship check-in with a review of payment behavior. Clarify the company’s needs before deciding whether a treasury conversation is appropriate.\n\nReview evidence\nPrepare relationship call\n\nSelected real records captured Nov 12; saved external signals are dated Nov 10–11. Actions keep local drafts.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "work",
+      "params": {
+        "page": "work"
+      },
+      "width": 1512,
+      "headings": [
+        "A deal room for the next decision.",
+        "Deals in view",
+        "Mitchell LLC Holdings",
+        "Prepare the next discussion.",
+        "Execution context"
+      ],
+      "text": "Allen Carter · Commercial banking\n\nA deal room for the next decision.\n\nBring the company, recorded deal, and preparation work together.\n\nDeal room\nTasks\nMeetings\nService cases\nLocal drafts\nCreate task\nSchedule\nEmail\nDeals in view\nML\nMitchell LLC Holdings\n$11.7M · Proposal Issued\nFP\nFlores PLC Enterprises\n$9.9M · Proposal Issued\nFP\nFlores PLC Corp\n$9.9M · Proposal Issued\nFP\nFlores PLC Corp\n$9.9M · Proposal Issued\nNI\nNelson Industries\n$9.9M · Proposal Issued\nNI\nNelson Industries\n$9.9M · Proposal Issued\nProposal Issued\nMitchell LLC Holdings\n\nCommercial - Treasury Services\n\n$11.7M\nRecorded opportunity amount\nCompany\nMitchell LLC Holdings\nOpportunity\nProposal Issued\nRecorded close\nFeb 14, 2027\nPrepare the next discussion.\nConfirm the company need\nReview the recorded economics\nPrepare the follow-through\nDeal-room notes\nExecution context\nLocal preparation\n0%\nCaptured stage\nProposal Issued\nClose timing\nFuture recorded close date\nReview opportunity\nKeep deal preparation\nPlan follow-up task\nSchedule discussion\nCompany relationship\n\nSelected real records captured Nov 12; saved external signals are dated Nov 10–11. Actions keep local drafts.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "health",
+      "params": {
+        "page": "health"
+      },
+      "width": 1512,
+      "headings": [
+        "Credit & coverage",
+        "Trade-credit payment behavior",
+        "30+ days beyond terms"
+      ],
+      "text": "Allen Carter · Commercial banking\n\nCredit & coverage\n\nRead the book’s payment behavior alongside its growth and market coverage.\n\nPayment watch\nCompany mix\nMarket footprint\nTrade-credit payment behavior\n\nD&B records across Allen Carter’s scored book.\n\n30+ days beyond terms\n348\n15–29 days beyond terms\n1,155\n1–14 days beyond terms\n2,893\nPaying on terms\n1,230\nD&B · Nov 1, 2026\n30+ days beyond terms\n348\n\nScored accounts in this band\n\nAverage PAYDEX\n37.0 / 100\nScored book population\n5,626\n\nPAYDEX is higher when payment behavior is stronger. These are supplier-payment observations, not loan delinquency or a credit decision.\n\nExplore company intelligence\n\nAllen Carter’s book. D&B and ZoomInfo grouped aggregates; ESRI markets are six selected ZIPs joined through billing postal code. Static read-only capture, Nov 12, 2026.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "config",
+      "params": {
+        "page": "config"
+      },
+      "width": 1512,
+      "headings": [
+        "Make the workspace yours.",
+        "Brand & display",
+        "Models & AI actions"
+      ],
+      "text": "Allen Carter · Commercial banking\n\nMake the workspace yours.\n\nBrand, reading comfort, and AI configuration remain part of the experience.\n\nBrand & display\n\nChanges here apply to this preview tab.\n\nWorkspace accent\nPreview a brand color. The production theme library also supports logo palettes, role colors, AI accents, and Light/Dark baselines.\nReading size\nComfortable · 18px\nLarge · 20px\nExtra large · 22px\nThis mock previews reading size. Production retains its existing app-wide 100%, 110%, 125%, and 140% display presets.\nApply to previewReset style defaults\nModels & AI actions\n\nThe current per-center action configuration.\n\nPriority queue rationale\nThe production catalog remains the source for available models.\nPipeline summary\nThe production catalog remains the source for available models.\nFollow-up drafting\nThe production catalog remains the source for available models.\nFree-form requests\nThe production catalog remains the source for available models.\nTemperature\nMaximum tokens\nSource defaults shown. The current Apex binding stores generation parameters but only applies the model name.\nKeep configuration draft\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "overview",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "overview"
+      },
+      "width": 1512,
+      "headings": [
+        "Cameron-Olson Construction",
+        "The relationship at a glance",
+        "A useful next conversation",
+        "Relationship signal",
+        "Payment behavior",
+        "Credit outlook",
+        "An opportunity, in context",
+        "Milestones & goals",
+        "No milestones in this account capture.",
+        "Follow-through"
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nThe relationship at a glance\n\nAccount facts from the read-only capture.\n\nName\nCameron-Olson Construction\nIndustry\nConstruction\nLocation\nBellburgh, WA\nAnnual revenue\n$897,900\nEmployees\n5\nAccount type\nPartner\nA useful next conversation\n\nSuggested approach from the saved signal.\n\nCoordinate a relationship check-in with a review of payment behavior. Clarify the company’s needs before deciding whether a treasury conversation is appropriate.\n\nRelationship signal\n\nVery Negative and declining calls; deal risk 87.3.\n\nGong · saved signal\nPayment behavior\n\nPAYDEX 68; 18 days beyond terms. High failure-risk tier.\n\nD&B credit · saved signal\nCredit outlook\n\nNegative outlook; Ba2 rating.\n\nMoody’s · saved signal\nAn opportunity, in context\n\n32.36% modeled conversion probability for business checking. Address relationship concerns first.\n\nOffer eligibility · saved signal\nMilestones & goals\n\nOnly records joined to this exact account.\n\nView journey\nNo milestones in this account capture.\n\nOpen Life & goals to explore the book sample.\n\nFollow-through\n\nKeep the action connected to this relationship.\n\nSchedule meeting\nDraft email\nCreate case\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "profile",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "profile"
+      },
+      "width": 1512,
+      "headings": [
+        "Cameron-Olson Construction",
+        "Cameron-Olson Construction",
+        "The recorded profile",
+        "Work attached to this relationship"
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nCC\nCameron-Olson Construction\n\nPartner\n\nRelationship ID\n001am00002AAAvtAAH\nLocation\nBellburgh, WA\nPrepare profile changes\nThe recorded profile\nIndustry\nConstruction\nAnnual revenue\n$897,900\nEmployees\n5\nPhone\nNot captured\nEmail\nNot captured\nWebsite\nNot captured\n\nProfile changes are kept as a proposal. Missing fields stay unavailable rather than inheriting another relationship’s values.\n\nWork attached to this relationship\n0 captured tasks\n0 captured cases\nNotes & review packet\n\nExact Account record. Counts refer to captured rows. Static read-only capture, Nov 12, 2026.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "finances",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "finances"
+      },
+      "width": 1512,
+      "headings": [
+        "Cameron-Olson Construction",
+        "Financial accounts",
+        "Financial-account balances not included for this relationship.",
+        "Portfolio & outside assets",
+        "Relationship signal",
+        "Payment behavior",
+        "Credit outlook",
+        "An opportunity, in context",
+        "The trade ledger",
+        "No trade records in this account capture."
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nFinancial accounts\n\nReal balances from selected CRM records.\n\nFinancial-account balances not included for this relationship.\n\nThis source capture does not establish that the customer has no accounts.\n\nPortfolio & outside assets\n\nExternal evidence stays separate from CRM balances.\n\nRelationship signal\n\nVery Negative and declining calls; deal risk 87.3.\n\nGong · saved signal\nPayment behavior\n\nPAYDEX 68; 18 days beyond terms. High failure-risk tier.\n\nD&B credit · saved signal\nCredit outlook\n\nNegative outlook; Ba2 rating.\n\nMoody’s · saved signal\nAn opportunity, in context\n\n32.36% modeled conversion probability for business checking. Address relationship concerns first.\n\nOffer eligibility · saved signal\n\nTrading activity\n\nThe trade ledger\n\nExecution records alongside the relationship, separate from account balances.\n\nCaptured buys\n$0\nCaptured sells\n$0\nAll trades\nBuys\nSells\nFind a trade\nNo trade records in this account capture.\n\nSelect Julie E Morris to inspect the captured trade ledger. This is not evidence of zero trading activity.\n\nGross execution values in this bounded sample; not portfolio value, performance, or net flow.\n\nBT_Financial_Trades; latest ten Julie records. Static read-only capture, Nov 12, 2026.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "intel",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "intel"
+      },
+      "width": 1512,
+      "headings": [
+        "Cameron-Olson Construction",
+        "ZoomInfo",
+        "BoardEx",
+        "MSCI ESG",
+        "SEC filings",
+        "No matching filing sections were returned."
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nZoomInfo\n\nFirmographics · Nov 1, 2026\n\nRevenue band\n<$1M\nEmployee band\n1-10\nFounded\n1979\nWebsite\ncameronolsonconstruction.com\nHeadquarters\nFL, US\nTechnology\nWorkday\n\nProvider bands are distinct from CRM Account revenue and employee fields.\n\nBoardEx\n\nGovernance · Nov 1, 2026\n\nBoard size\n5\nGovernance rating\nAdequate\nCEO tenure\n1.3 years\nAverage board tenure\n12.2 years\nKey director\nDavid Kim\nExecutive turnover\nNot flagged\nMSCI ESG\n\nESG context · Nov 1, 2026\n\nBBB\n5.58 / 10\n\nOverall ESG score · unchanged\n\nEnvironmental\n4.96\nSocial\n5.87\nGovernance\n6.36\nCarbon intensity\n493.11 tons / $1M revenue\nControversy flags\n4\nTop controversy category\nHuman Rights\nSEC filings\n\nSelected company query.\n\nNo matching filing sections were returned.\n\nThis is an empty query result for Cameron-Olson, not a claim that the company has never filed. The current app’s filings view remains part of the integration.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "journey",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "journey"
+      },
+      "width": 1512,
+      "headings": [
+        "Cameron-Olson Construction",
+        "Life events",
+        "No life events in this account capture.",
+        "Financial plan",
+        "Financial goals",
+        "No goal records captured for this account."
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nLife events\n\nCustomer-linked records.\n\nLog life event\nNo life events in this account capture.\n\nYou can explore the creation flow without writing to Salesforce.\n\nFinancial plan\n\nMoneyGuidePro · Nov 1, 2026\n\nActive\n58.26%\n\nModeled plan success, not portfolio return\n\nRetirement target age\n65\nMonthly income target\n$9,973\nTotal goal amount\n$5M\nGoals in provider plan\n6\nAllocation\nModerate\nNext review\nNov 8, 2027\n\nProvider plan goals and CRM FinancialGoal records are separate sources and may have different counts.\n\nFinancial goals\n\nScoped through this account’s financial plans.\n\nNew goal\nNo goal records captured for this account.\n\nBook-level goals remain available in Life & goals.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "engagement",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "engagement"
+      },
+      "width": 1512,
+      "headings": [
+        "Cameron-Olson Construction",
+        "The conversation thread",
+        "Interaction history not captured.",
+        "Listen across time.",
+        "Service follow-through",
+        "No cases in this bounded capture.",
+        "Captured commitments"
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nThe conversation thread\nConversation topic\nAll captured topics\n\n0 of 0 captured conversations shown\n\nInteraction history not captured.\n\nThe source sample has Julie’s conversation history. Other customers retain their own service records below.\n\nCustomer feedback\n\nListen across time.\nSurvey period\nMay 1, 2026\nJun 1, 2026\nJul 1, 2026\nAug 1, 2026\nSep 1, 2026\nOct 1, 2026\n65/100\nCSAT · Fair\n6/10\nRecommendation response · Detractor\n66\nMay 1\n64\nJun 1\n69\nJul 1\n75\nAug 1\n58\nSep 1\n65\nOct 1\n\nThe recommendation response is an individual 0–10 survey score, not aggregate NPS. Descriptions are source categories, not customer quotations.\n\nService follow-through\nNo cases in this bounded capture.\n\nThis does not establish that the relationship has no cases.\n\nCaptured commitments\n\nNo tasks in this account capture.\n\nInteractionSummary, CSAT and exact-account CRM cases/tasks. Conversation rows are a latest-24 sample across selected accounts. Static read-only capture, Nov 12, 2026.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "growth",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "growth"
+      },
+      "width": 1512,
+      "headings": [
+        "Cameron-Olson Construction",
+        "Open opportunities",
+        "No opportunities in this account capture.",
+        "Next-best conversation",
+        "Relationship signal",
+        "Payment behavior",
+        "Credit outlook",
+        "An opportunity, in context"
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nOpen opportunities\n\nSelected account-linked opportunities, not an aggregate count.\n\nNew opportunity\nNo opportunities in this account capture.\n\nThe banker’s full pipeline aggregate is available in Pipeline.\n\nNext-best conversation\n\nAn indication to investigate, never an approved offer.\n\nVery negative calls · PAYDEX 68 · Moody’s Negative\n\nRelationship signal\n\nVery Negative and declining calls; deal risk 87.3.\n\nGong · saved signal\nPayment behavior\n\nPAYDEX 68; 18 days beyond terms. High failure-risk tier.\n\nD&B credit · saved signal\nCredit outlook\n\nNegative outlook; Ba2 rating.\n\nMoody’s · saved signal\nAn opportunity, in context\n\n32.36% modeled conversion probability for business checking. Address relationship concerns first.\n\nOffer eligibility · saved signal\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "tools",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "tools"
+      },
+      "width": 1512,
+      "headings": [
+        "Cameron-Olson Construction",
+        "Notes that stay with the relationship",
+        "Action drafts for this relationship",
+        "Choose what the conversation needs.",
+        "Cameron-Olson Construction"
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nNotes that stay with the relationship\n\nLocal to this mock’s browser tab.\n\nRelationship notes\nKeep notes in this tab\nAction drafts for this relationship\n\nNo action drafts yet.\n\nRelationship review packet\n\nChoose what the conversation needs.\nInclude in the packet\nProfile\nFinances\nGoals\nEvidence\nNotebook\nScreening\nWriting style\nConcise\nConversation guide\nDetailed\nPreview review packet\nConcise · Captured evidence\nCameron-Olson Construction\nProfile\nFinances\nGoals\nEvidence\n\nAssembled from captured records and your local preparation. No model is called.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "notebook",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "notebook"
+      },
+      "width": 1512,
+      "headings": [
+        "Cameron-Olson Construction",
+        "Relationship notebook",
+        "A notebook for the next conversation."
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nRelationship notebook\n\nNo source notes captured.\n\nWrite preparation note\nA notebook for the next conversation.\n\nSaved meeting-note content is available for Julie. Keep your own preparation in Notes & tools.\n\nMeeting_Note_c_Home. Original wording and source dates retained. Static read-only capture, Nov 12, 2026.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "screening",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "screening"
+      },
+      "width": 1512,
+      "headings": [
+        "Cameron-Olson Construction",
+        "Screening on file",
+        "The recorded screening result"
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nScreening on file\n\nNov 12, 2026\n\nThe recorded screening result\nOverall source risk\nLow\nSanctions hit\nNo hit recorded\nPEP hit\nNo hit recorded\nAdverse media\nNo hit recorded\n\nWorldCheck source evidence as of Nov 12, 2026. This view is not an approval, clearance decision, or a replacement for the screening process.\n\nPrepare screening follow-up\n\nBT_WorldCheck_AML; latest available source period for selected accounts. Static read-only capture, Nov 12, 2026.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "today",
+      "params": {
+        "page": "today"
+      },
+      "width": 390,
+      "headings": [
+        "Your book at a glance.",
+        "Your daily brief",
+        " Portfolio pulse",
+        "Cameron-Olson Construction",
+        "Coordinate a relationship and credit check-in.",
+        "The shape of the scored book.",
+        "What deserves a conversation?",
+        "Cameron-Olson Construction",
+        "Relationship signal",
+        "Payment behavior",
+        "Credit outlook",
+        "An opportunity, in context",
+        "A view of the pipeline.",
+        "Keep execution in sight.",
+        "Commercial - Treasury Services",
+        "Commercial - Treasury Services",
+        "Commercial - Treasury Services",
+        "Turn the company discussion into a next step.",
+        "Business credit card application follow-up",
+        "Business credit card application follow-up",
+        "ACH origination training",
+        "Business Checking"
+      ],
+      "text": "Good morning, Allen.\nYour book at a glance.\nYour daily brief\nNov 12 snapshot\n\nYou have 3,412 open opportunities worth $3.6B, with 707 open tasks to move forward. Put relationship and credit concerns first, then keep financing and treasury conversations moving.\n\nPortfolio pulse\nReview book health\n$3.6B\nPipeline\n707\nOpen tasks\n949\nOpen cases\nYour first move\nRelationship & credit\nCC\nReach out to\nCameron-Olson Construction\nCoordinate a relationship and credit check-in.\n\nVery negative calls · PAYDEX 68 · Moody’s Negative\n\nOpen 360\nWhy this outreach\nPrep me\nPlan a call\nNext priority\nSaved Commercial signal · Nov 11 · Based on dated source evidence\nTrade-credit payment watch\nThe shape of the scored book.\nOpen credit & coverage\n30+ days beyond terms\n348\n15–29 days beyond terms\n1,155\n1–14 days beyond terms\n2,893\nPaying on terms\n1,230\n\nD&B supplier-payment observations, Nov 1. Not loan delinquencies or a credit decision.\n\nSelected company signals\nWhat deserves a conversation?\nCC\nCameron-Olson Construction\nCredit & relationship\nBS\nBurgess Supply\nCredit & relationship\nSC\nSchroeder Contractors\nProduct opportunity\nKL\nKennedy Ltd Enterprises\nProduct opportunity\nMH\nMontgomery Holdings\nCompetitor research\nM&\nMissoula & Sons Inc.\nFunding\nSaved Commercial signal · Nov 11\nCameron-Olson Construction\n\nVery negative calls · PAYDEX 68 · Moody’s Negative\n\nGong\nRelationship signal\n\nVery Negative and declining calls; deal risk 87.3.\n\nD&B credit\nPayment behavior\n\nPAYDEX 68; 18 days beyond terms. High failure-risk tier.\n\nMoody’s\nCredit outlook\n\nNegative outlook; Ba2 rating.\n\nOffer eligibility\nAn opportunity, in context\n\n32.36% modeled conversion probability for business checking. Address relationship concerns first.\n\nCoordinate a relationship check-in with a review of payment behavior. Clarify the company’s needs before deciding whether a treasury conversation is appropriate.\n\nReview source evidence\nPrepare company conversation\nDeal execution\nA view of the pipeline.\nExplore pipeline\nQualification\n$1.4B\n1322 open\nProposal Issued\n$1.4B\n1286 open\nProspecting\n$776.7M\n804 open\n\nCaptured stage aggregates for the owner’s open opportunities.\n\nCaptured opportunity sample\nKeep execution in sight.\nOpen deal room\n\nMitchell LLC Holdings\n\nCommercial - Treasury Services\n$11.7M\nProposal Issued\nRecorded close Feb 14, 2027\nReview opportunity\n\nFlores PLC Enterprises\n\nCommercial - Treasury Services\n$9.9M\nProposal Issued\nRecorded close Feb 12, 2026\nReview opportunity\n\nFlores PLC Corp\n\nCommercial - Treasury Services\n$9.9M\nProposal Issued\nRecorded close Feb 12, 2026\nReview opportunity\nRecorded commitments\nTurn the company discussion into a next step.\nOpen workbench\nBusiness credit card application follow-up\n\nKnight-Hutchinson Outlet\n\nApr 20, 2026 · Deferred\nPlan action\nBusiness credit card application follow-up\n\nBarnes LLC Real Estate\n\nApr 20, 2026 · Deferred\nPlan action\nACH origination training\n\nCharles-Petersen Bistro\n\nApr 20, 2026 · Not Started\nPlan action\n\nOldest open tasks from the bounded capture. These dates are not today’s appointments.\n\nGrowth, with a reason\nBusiness Checking\n\nKennedy Ltd Enterprises\n\n48.0\n% modeled conversion\n$8.5K\nExpected value\n\nOne selected eligible offer. Review the evidence alongside ownership and customer needs.\n\nReview offer evidence\nOpen Growth\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "relationships",
+      "params": {
+        "page": "relationships"
+      },
+      "width": 390,
+      "headings": [
+        "Your book. With context.",
+        "Explore the expanded workspace",
+        "The relationship landscape",
+        "Cameron-Olson Construction"
+      ],
+      "text": "Allen Carter · Commercial banking\n\nYour book. With context.\n\nCompanies and the people behind the relationship.\n\nNew lead\n22 in this sample\nAll captured\nPinned\nNew in Atlas\nExplore the expanded workspace\n\nNew relationship tabs, persona health views, and task-action planning.\n\nCredit & coverage\nOpen Cameron-Olson’s expanded profile\nExplore task actions\nThe relationship landscape\n\nChoose a person to bring their context into focus.\n\nSignals\nMilestones\nGoals\nAC\nYour book\nCC\nCameron-Olson Construction\nCredit & relationship\nBS\nBurgess Supply\nCredit & relationship\nSC\nSchroeder Contractors\nProduct opportunity\nKL\nKennedy Ltd Enterprises\nProduct opportunity\nAE\nAlex E Cooper\nRelationship context\nBL\nBarnes LLC Real Estate\nRelationship context\n\nSix selected accounts around the advisor’s book. Lines do not imply relationships between clients; distance carries no financial meaning.\n\nCC\nCredit & relationship\nCameron-Olson Construction\n\nVery negative calls · PAYDEX 68 · Moody’s Negative\n\n0\nMilestones captured\n0\nGoals captured\nOpen relationship\nAdd to comparison\nPrepare conversation\nCC\nCameron-Olson Construction\nBS\nBurgess Supply\nSC\nSchroeder Contractors\nKL\nKennedy Ltd Enterprises\nAE\nAlex E Cooper\nBL\nBarnes LLC Real Estate\nCB\nCharles-Petersen Bistro\nCA\nChristian A Wolff\nD\nDisplaytech\nEG\nEvans Group Clinic\nFP\nFlores PLC Corp\nFP\nFlores PLC Corp\nFP\nFlores PLC Enterprises\nHG\nHoward-Frazier Grill\nKL\nKaren L Wells\nKO\nKnight-Hutchinson Outlet\nMB\nMike B Garcia\nML\nMitchell LLC Holdings\nNI\nNelson Industries\nNI\nNelson Industries\nRP\nRichmond-Williams Practice\nUP\nUnited Partners\n\nDirectory combines captured Accounts and exact account links from CRM records. Saved CRM capture: Nov 12, 2026. Data Cloud detail was captured Nov 12 with provider periods shown; saved priority fixtures date from Nov 10–11. Selected samples, not complete book lists.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "pipeline",
+      "params": {
+        "page": "pipeline"
+      },
+      "width": 390,
+      "headings": [
+        "Move the right conversations forward.",
+        "3,412 open opportunities",
+        "The deal landscape",
+        "Mitchell LLC Holdings"
+      ],
+      "text": "Allen Carter · Commercial banking\n\nMove the right conversations forward.\n\nA complete captured aggregate, with room to work through individual deals.\n\nNew opportunity\n\nOpen pipeline · Allen Carter\n\n$3.6B\n3,412 open opportunities\n\nAggregate across all open stages. The 6 displayed records are a bounded high-value sample.\n\nQualification\n$1.4B\n1,322 open opportunities\nProposal Issued\n$1.4B\n1,286 open opportunities\nProspecting\n$776.7M\n804 open opportunities\nAll 3 stages\nStage\nAll stages\nQualification · 1,322 total\nProposal Issued · 1,286 total\nProspecting · 804 total\nThe deal landscape\n\nRecorded opportunity value against recorded close date. Select a deal to inspect it.\n\nDeal plot\nPlanning board\nRecorded amount\nFrom zero\nFit values\n$13.1M\n$8.7M\n$4.4M\n$0\nML\n$11.7M\nFP\nFP\nFP\nNI\nNI\nFeb 5, 2026\nJun 12, 2026\nOct 17, 2026\nFeb 21, 2027\n\nRecorded close date\n\nMitchell LLC Holdings\nFlores PLC Enterprises\nFlores PLC Corp\nFlores PLC Corp\nNelson Industries\nNelson Industries\nProposal Issued\nMitchell LLC Holdings\n\nCommercial - Treasury Services\n\n$11.7M\nCaptured stage\nProposal Issued\nRecorded close\nFeb 14, 2027\nClose timing\nFuture recorded date\nPreview a stage\nQualification\nProposal Issued\nProspecting\nReview dealPlan follow-up\n\nThe dots and cards are the captured high-value sample, not the full pipeline. A stage preview is a local scenario; full captured totals above remain unchanged.\n\nSaved CRM capture: Nov 12, 2026. Data Cloud detail was captured Nov 12 with provider periods shown; saved priority fixtures date from Nov 10–11. Selected samples, not complete book lists.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "journey",
+      "params": {
+        "page": "journey"
+      },
+      "width": 390,
+      "headings": [
+        "Business relationships have human milestones.",
+        "A year in the relationship",
+        "Grandchild Born"
+      ],
+      "text": "Allen Carter · Commercial banking\n\nBusiness relationships have human milestones.\n\nRecorded milestones and financial goals, with the next conversation close at hand.\n\nLog life event\nLife events\nFinancial goals\n21 selected records · not book totals\nAll\nBaby\nRelocation\nNew Baby\nCar\nNew Home\nGraduation\nHome\nJob\nNew Job\nNew Business\nCollege\nA year in the relationship\n\nSelect a milestone to see the person, source, and next step.\n\nExplore year\n2025\n2024\n2023\n2021\n2020\n2019\n2018\n2017\n2016\n2025\nJan\nFeb\nMar\nApr\nMay\nJun\nJul\nAug\nSep\nOct\nNov\nDec\nFamily & education\n2 captured\n31\n3\nHome & mobility\n1 captured\n31\n31\nJul 2025\nBaby\nGrandchild Born\n\nMike B Garcia · Jul 31, 2025\n\nRecorded life event, not an inferred milestone.\n\nReview milestone\nPrepare outreach\nOpen relationship\nJul 31, 2025\nMike B Garcia\nBaby\nJul 31, 2025\nChristian A Wolff\nRelocation\nJul 3, 2025\nMike B Garcia\nNew Baby\n\n3 captured milestones in 2025. Switch year to explore the rest of the selected sample.\n\nLife events are deduplicated by person, event type, and date, matching the app. Saved CRM capture: Nov 12, 2026. Data Cloud detail was captured Nov 12 with provider periods shown; saved priority fixtures date from Nov 10–11. Selected samples, not complete book lists.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "growth",
+      "params": {
+        "page": "growth"
+      },
+      "width": 390,
+      "headings": [
+        "Build the operating relationship.",
+        "Schroeder Contractors",
+        "Operate",
+        "Optimize cash",
+        "Fund growth",
+        "Business Checking",
+        "Product coverage, with the evidence intact."
+      ],
+      "text": "Allen Carter · Commercial banking\n\nBuild the operating relationship.\n\nA company-first view of treasury, liquidity, and financing conversations.\n\nAll eligible examples\nRising\nFalling\nLeads & referrals\nNew lead or referral\nSchroeder Contractors\n\nEligible product coverage in the captured sample\n\nCompany\nSchroeder Contractors\nKennedy Ltd Enterprises\nBurgess Supply\nCameron-Olson Construction\nOperate\nBusiness Checking\n42.3%\n$929.5 modeled expected value\nCommercial Card\n27.0%\n$772.9 modeled expected value\nRemote Deposit\n22.9%\n$180.5 modeled expected value\nACH Origination\n22.9%\n$124.3 modeled expected value\nPositive Pay\n19.4%\n$72 modeled expected value\nOptimize cash\n\nNo eligible row in this capture.\n\nFund growth\nLine of Credit\n25.8%\n$747.4 modeled expected value\nSBA Loan\n15.2%\n$511.1 modeled expected value\nEquipment Financing\n18.8%\n$370 modeled expected value\nTerm Loan\n15.9%\n$297.6 modeled expected value\nConversation design\nBusiness Checking\n\nUnderstand the company’s operating needs before proposing a product.\n\n42.34\n% conversion probability\nNov 1, 2026\n42.34\n% modeled conversion\nExplore monthly score\nMay 1, 2026 · 42.35%\nNov 1, 2026 · 42.34%\nPlan next step\nWhy this offer\nCompany relationship\nProduct coverage, with the evidence intact.\n\nOwned comes from captured CRM holdings. Percentages are eligible model probabilities.\n\n4 selected relationships\nRelationship\tBusiness Checking\tTreasury\tCommercial Card\tSweep\tLine of Credit\tTerm Loan\tCRE\tEquipment / SBA\nCameron-Olson Construction\t32%\n$486.5\n\t22%\n$172\n\tNot captured\tNot captured\tNot captured\tNot captured\tNot captured\tNot captured\nKennedy Ltd Enterprises\t48%\n$8.5K\n\t32%\n$2.1K\n\tNot captured\tNot captured\t21%\n$6.5K\n\t14%\n$3.7K\n\tNot captured\t14%\n$2.4K\n\nBurgess Supply\t29%\n$583.4\n\t26%\n$210.9\n\t34%\n$1.1K\n\tNot captured\tNot captured\t11%\n$206.6\n\tNot captured\t15%\n$236.6\n\nSchroeder Contractors\t42%\n$929.5\n\t23%\n$180.5\n\t27%\n$772.9\n\tNot captured\t26%\n$747.4\n\t16%\n$297.6\n\tNot captured\t15%\n$511.1\n\nSelected real records captured Nov 12; saved external signals are dated Nov 10–11. Actions keep local drafts.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "intelligence",
+      "params": {
+        "page": "intelligence"
+      },
+      "width": 390,
+      "headings": [
+        "Know what changed around the company.",
+        "Cameron-Olson Construction"
+      ],
+      "text": "Allen Carter · Commercial banking\n\nKnow what changed around the company.\n\nReview independent sources together, then choose the relationship response.\n\nCC\nCameron-Olson Construction\nCredit & relationship\nBS\nBurgess Supply\nCredit & relationship\nSC\nSchroeder Contractors\nProduct opportunity\nKL\nKennedy Ltd Enterprises\nProduct opportunity\nMH\nMontgomery Holdings\nCompetitor research\nM&\nMissoula & Sons Inc.\nFunding\nSaved Commercial signal · Nov 11\nCameron-Olson Construction\n\nVery negative calls · PAYDEX 68 · Moody’s Negative\n\nCC\nCompany\ncontext\nGong\nRelationship signal\nD&B credit\nPayment behavior\nMoody’s\nCredit outlook\nOffer eligibility\nAn opportunity, in context\nPAYDEX\n68\n/ 100\nDays beyond terms\n18\ndays\nMoody’s\nBa2\nNegative\n\nCoordinate a relationship check-in with a review of payment behavior. Clarify the company’s needs before deciding whether a treasury conversation is appropriate.\n\nReview evidence\nPrepare relationship call\n\nSelected real records captured Nov 12; saved external signals are dated Nov 10–11. Actions keep local drafts.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "work",
+      "params": {
+        "page": "work"
+      },
+      "width": 390,
+      "headings": [
+        "A deal room for the next decision.",
+        "Deals in view",
+        "Mitchell LLC Holdings",
+        "Prepare the next discussion.",
+        "Execution context"
+      ],
+      "text": "Allen Carter · Commercial banking\n\nA deal room for the next decision.\n\nBring the company, recorded deal, and preparation work together.\n\nDeal room\nTasks\nMeetings\nService cases\nLocal drafts\nCreate task\nSchedule\nEmail\nML\nMitchell LLC Holdings\n$11.7M · Proposal Issued\nFP\nFlores PLC Enterprises\n$9.9M · Proposal Issued\nFP\nFlores PLC Corp\n$9.9M · Proposal Issued\nFP\nFlores PLC Corp\n$9.9M · Proposal Issued\nNI\nNelson Industries\n$9.9M · Proposal Issued\nNI\nNelson Industries\n$9.9M · Proposal Issued\nProposal Issued\nMitchell LLC Holdings\n\nCommercial - Treasury Services\n\n$11.7M\nRecorded opportunity amount\nCompany\nMitchell LLC Holdings\nOpportunity\nProposal Issued\nRecorded close\nFeb 14, 2027\nPrepare the next discussion.\nConfirm the company need\nReview the recorded economics\nPrepare the follow-through\nDeal-room notes\nExecution context\nLocal preparation\n0%\nCaptured stage\nProposal Issued\nClose timing\nFuture recorded close date\nReview opportunity\nKeep deal preparation\nPlan follow-up task\nSchedule discussion\nCompany relationship\n\nSelected real records captured Nov 12; saved external signals are dated Nov 10–11. Actions keep local drafts.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "health",
+      "params": {
+        "page": "health"
+      },
+      "width": 390,
+      "headings": [
+        "Credit & coverage",
+        "Trade-credit payment behavior",
+        "30+ days beyond terms"
+      ],
+      "text": "Allen Carter · Commercial banking\n\nCredit & coverage\n\nRead the book’s payment behavior alongside its growth and market coverage.\n\nPayment watch\nCompany mix\nMarket footprint\nTrade-credit payment behavior\n\nD&B records across Allen Carter’s scored book.\n\n30+ days beyond terms\n348\n15–29 days beyond terms\n1,155\n1–14 days beyond terms\n2,893\nPaying on terms\n1,230\nD&B · Nov 1, 2026\n30+ days beyond terms\n348\n\nScored accounts in this band\n\nAverage PAYDEX\n37.0 / 100\nScored book population\n5,626\n\nPAYDEX is higher when payment behavior is stronger. These are supplier-payment observations, not loan delinquency or a credit decision.\n\nExplore company intelligence\n\nAllen Carter’s book. D&B and ZoomInfo grouped aggregates; ESRI markets are six selected ZIPs joined through billing postal code. Static read-only capture, Nov 12, 2026.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "config",
+      "params": {
+        "page": "config"
+      },
+      "width": 390,
+      "headings": [
+        "Make the workspace yours.",
+        "Brand & display",
+        "Models & AI actions"
+      ],
+      "text": "Allen Carter · Commercial banking\n\nMake the workspace yours.\n\nBrand, reading comfort, and AI configuration remain part of the experience.\n\nBrand & display\n\nChanges here apply to this preview tab.\n\nWorkspace accent\nPreview a brand color. The production theme library also supports logo palettes, role colors, AI accents, and Light/Dark baselines.\nReading size\nComfortable · 18px\nLarge · 20px\nExtra large · 22px\nThis mock previews reading size. Production retains its existing app-wide 100%, 110%, 125%, and 140% display presets.\nApply to previewReset style defaults\nModels & AI actions\n\nThe current per-center action configuration.\n\nPriority queue rationale\nThe production catalog remains the source for available models.\nPipeline summary\nThe production catalog remains the source for available models.\nFollow-up drafting\nThe production catalog remains the source for available models.\nFree-form requests\nThe production catalog remains the source for available models.\nTemperature\nMaximum tokens\nSource defaults shown. The current Apex binding stores generation parameters but only applies the model name.\nKeep configuration draft\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "overview",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "overview"
+      },
+      "width": 390,
+      "headings": [
+        "Cameron-Olson Construction",
+        "The relationship at a glance",
+        "A useful next conversation",
+        "Relationship signal",
+        "Payment behavior",
+        "Credit outlook",
+        "An opportunity, in context",
+        "Milestones & goals",
+        "No milestones in this account capture.",
+        "Follow-through"
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nThe relationship at a glance\n\nAccount facts from the read-only capture.\n\nName\nCameron-Olson Construction\nIndustry\nConstruction\nLocation\nBellburgh, WA\nAnnual revenue\n$897,900\nEmployees\n5\nAccount type\nPartner\nA useful next conversation\n\nSuggested approach from the saved signal.\n\nCoordinate a relationship check-in with a review of payment behavior. Clarify the company’s needs before deciding whether a treasury conversation is appropriate.\n\nRelationship signal\n\nVery Negative and declining calls; deal risk 87.3.\n\nGong · saved signal\nPayment behavior\n\nPAYDEX 68; 18 days beyond terms. High failure-risk tier.\n\nD&B credit · saved signal\nCredit outlook\n\nNegative outlook; Ba2 rating.\n\nMoody’s · saved signal\nAn opportunity, in context\n\n32.36% modeled conversion probability for business checking. Address relationship concerns first.\n\nOffer eligibility · saved signal\nMilestones & goals\n\nOnly records joined to this exact account.\n\nView journey\nNo milestones in this account capture.\n\nOpen Life & goals to explore the book sample.\n\nFollow-through\n\nKeep the action connected to this relationship.\n\nSchedule meeting\nDraft email\nCreate case\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "profile",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "profile"
+      },
+      "width": 390,
+      "headings": [
+        "Cameron-Olson Construction",
+        "Cameron-Olson Construction",
+        "The recorded profile",
+        "Work attached to this relationship"
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nCC\nCameron-Olson Construction\n\nPartner\n\nRelationship ID\n001am00002AAAvtAAH\nLocation\nBellburgh, WA\nPrepare profile changes\nThe recorded profile\nIndustry\nConstruction\nAnnual revenue\n$897,900\nEmployees\n5\nPhone\nNot captured\nEmail\nNot captured\nWebsite\nNot captured\n\nProfile changes are kept as a proposal. Missing fields stay unavailable rather than inheriting another relationship’s values.\n\nWork attached to this relationship\n0 captured tasks\n0 captured cases\nNotes & review packet\n\nExact Account record. Counts refer to captured rows. Static read-only capture, Nov 12, 2026.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "finances",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "finances"
+      },
+      "width": 390,
+      "headings": [
+        "Cameron-Olson Construction",
+        "Financial accounts",
+        "Financial-account balances not included for this relationship.",
+        "Portfolio & outside assets",
+        "Relationship signal",
+        "Payment behavior",
+        "Credit outlook",
+        "An opportunity, in context",
+        "The trade ledger",
+        "No trade records in this account capture."
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nFinancial accounts\n\nReal balances from selected CRM records.\n\nFinancial-account balances not included for this relationship.\n\nThis source capture does not establish that the customer has no accounts.\n\nPortfolio & outside assets\n\nExternal evidence stays separate from CRM balances.\n\nRelationship signal\n\nVery Negative and declining calls; deal risk 87.3.\n\nGong · saved signal\nPayment behavior\n\nPAYDEX 68; 18 days beyond terms. High failure-risk tier.\n\nD&B credit · saved signal\nCredit outlook\n\nNegative outlook; Ba2 rating.\n\nMoody’s · saved signal\nAn opportunity, in context\n\n32.36% modeled conversion probability for business checking. Address relationship concerns first.\n\nOffer eligibility · saved signal\n\nTrading activity\n\nThe trade ledger\n\nExecution records alongside the relationship, separate from account balances.\n\nCaptured buys\n$0\nCaptured sells\n$0\nAll trades\nBuys\nSells\nFind a trade\nNo trade records in this account capture.\n\nSelect Julie E Morris to inspect the captured trade ledger. This is not evidence of zero trading activity.\n\nGross execution values in this bounded sample; not portfolio value, performance, or net flow.\n\nBT_Financial_Trades; latest ten Julie records. Static read-only capture, Nov 12, 2026.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "intel",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "intel"
+      },
+      "width": 390,
+      "headings": [
+        "Cameron-Olson Construction",
+        "ZoomInfo",
+        "BoardEx",
+        "MSCI ESG",
+        "SEC filings",
+        "No matching filing sections were returned."
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nZoomInfo\n\nFirmographics · Nov 1, 2026\n\nRevenue band\n<$1M\nEmployee band\n1-10\nFounded\n1979\nWebsite\ncameronolsonconstruction.com\nHeadquarters\nFL, US\nTechnology\nWorkday\n\nProvider bands are distinct from CRM Account revenue and employee fields.\n\nBoardEx\n\nGovernance · Nov 1, 2026\n\nBoard size\n5\nGovernance rating\nAdequate\nCEO tenure\n1.3 years\nAverage board tenure\n12.2 years\nKey director\nDavid Kim\nExecutive turnover\nNot flagged\nMSCI ESG\n\nESG context · Nov 1, 2026\n\nBBB\n5.58 / 10\n\nOverall ESG score · unchanged\n\nEnvironmental\n4.96\nSocial\n5.87\nGovernance\n6.36\nCarbon intensity\n493.11 tons / $1M revenue\nControversy flags\n4\nTop controversy category\nHuman Rights\nSEC filings\n\nSelected company query.\n\nNo matching filing sections were returned.\n\nThis is an empty query result for Cameron-Olson, not a claim that the company has never filed. The current app’s filings view remains part of the integration.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "journey",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "journey"
+      },
+      "width": 390,
+      "headings": [
+        "Cameron-Olson Construction",
+        "Life events",
+        "No life events in this account capture.",
+        "Financial plan",
+        "Financial goals",
+        "No goal records captured for this account."
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nLife events\n\nCustomer-linked records.\n\nLog life event\nNo life events in this account capture.\n\nYou can explore the creation flow without writing to Salesforce.\n\nFinancial plan\n\nMoneyGuidePro · Nov 1, 2026\n\nActive\n58.26%\n\nModeled plan success, not portfolio return\n\nRetirement target age\n65\nMonthly income target\n$9,973\nTotal goal amount\n$5M\nGoals in provider plan\n6\nAllocation\nModerate\nNext review\nNov 8, 2027\n\nProvider plan goals and CRM FinancialGoal records are separate sources and may have different counts.\n\nFinancial goals\n\nScoped through this account’s financial plans.\n\nNew goal\nNo goal records captured for this account.\n\nBook-level goals remain available in Life & goals.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "engagement",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "engagement"
+      },
+      "width": 390,
+      "headings": [
+        "Cameron-Olson Construction",
+        "The conversation thread",
+        "Interaction history not captured.",
+        "Listen across time.",
+        "Service follow-through",
+        "No cases in this bounded capture.",
+        "Captured commitments"
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nThe conversation thread\nConversation topic\nAll captured topics\n\n0 of 0 captured conversations shown\n\nInteraction history not captured.\n\nThe source sample has Julie’s conversation history. Other customers retain their own service records below.\n\nCustomer feedback\n\nListen across time.\nSurvey period\nMay 1, 2026\nJun 1, 2026\nJul 1, 2026\nAug 1, 2026\nSep 1, 2026\nOct 1, 2026\n65/100\nCSAT · Fair\n6/10\nRecommendation response · Detractor\n66\nMay 1\n64\nJun 1\n69\nJul 1\n75\nAug 1\n58\nSep 1\n65\nOct 1\n\nThe recommendation response is an individual 0–10 survey score, not aggregate NPS. Descriptions are source categories, not customer quotations.\n\nService follow-through\nNo cases in this bounded capture.\n\nThis does not establish that the relationship has no cases.\n\nCaptured commitments\n\nNo tasks in this account capture.\n\nInteractionSummary, CSAT and exact-account CRM cases/tasks. Conversation rows are a latest-24 sample across selected accounts. Static read-only capture, Nov 12, 2026.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "growth",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "growth"
+      },
+      "width": 390,
+      "headings": [
+        "Cameron-Olson Construction",
+        "Open opportunities",
+        "No opportunities in this account capture.",
+        "Next-best conversation",
+        "Relationship signal",
+        "Payment behavior",
+        "Credit outlook",
+        "An opportunity, in context"
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nOpen opportunities\n\nSelected account-linked opportunities, not an aggregate count.\n\nNew opportunity\nNo opportunities in this account capture.\n\nThe banker’s full pipeline aggregate is available in Pipeline.\n\nNext-best conversation\n\nAn indication to investigate, never an approved offer.\n\nVery negative calls · PAYDEX 68 · Moody’s Negative\n\nRelationship signal\n\nVery Negative and declining calls; deal risk 87.3.\n\nGong · saved signal\nPayment behavior\n\nPAYDEX 68; 18 days beyond terms. High failure-risk tier.\n\nD&B credit · saved signal\nCredit outlook\n\nNegative outlook; Ba2 rating.\n\nMoody’s · saved signal\nAn opportunity, in context\n\n32.36% modeled conversion probability for business checking. Address relationship concerns first.\n\nOffer eligibility · saved signal\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "tools",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "tools"
+      },
+      "width": 390,
+      "headings": [
+        "Cameron-Olson Construction",
+        "Notes that stay with the relationship",
+        "Action drafts for this relationship",
+        "Choose what the conversation needs.",
+        "Cameron-Olson Construction"
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nNotes that stay with the relationship\n\nLocal to this mock’s browser tab.\n\nRelationship notes\nKeep notes in this tab\nAction drafts for this relationship\n\nNo action drafts yet.\n\nRelationship review packet\n\nChoose what the conversation needs.\nInclude in the packet\nProfile\nFinances\nGoals\nEvidence\nNotebook\nScreening\nWriting style\nConcise\nConversation guide\nDetailed\nPreview review packet\nConcise · Captured evidence\nCameron-Olson Construction\nProfile\nFinances\nGoals\nEvidence\n\nAssembled from captured records and your local preparation. No model is called.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "notebook",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "notebook"
+      },
+      "width": 390,
+      "headings": [
+        "Cameron-Olson Construction",
+        "Relationship notebook",
+        "A notebook for the next conversation."
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nRelationship notebook\n\nNo source notes captured.\n\nWrite preparation note\nA notebook for the next conversation.\n\nSaved meeting-note content is available for Julie. Keep your own preparation in Notes & tools.\n\nMeeting_Note_c_Home. Original wording and source dates retained. Static read-only capture, Nov 12, 2026.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "screening",
+      "params": {
+        "page": "relationships",
+        "client": "001am00002AAAvtAAH",
+        "tab": "screening"
+      },
+      "width": 390,
+      "headings": [
+        "Cameron-Olson Construction",
+        "Screening on file",
+        "The recorded screening result"
+      ],
+      "text": "Relationships\n/\nCameron-Olson Construction\nCameron-Olson Construction\n\nPartner · Construction · Bellburgh\n\nPin relationship\nPrepare conversation\nCreate task\nOverview\nProfile\nFinances\nCompany Intel\nJourney & goals\nEngagement & service\nOpportunities\nNotes & tools\nNotebook\nScreening\nScreening on file\n\nNov 12, 2026\n\nThe recorded screening result\nOverall source risk\nLow\nSanctions hit\nNo hit recorded\nPEP hit\nNo hit recorded\nAdverse media\nNo hit recorded\n\nWorldCheck source evidence as of Nov 12, 2026. This view is not an approval, clearance decision, or a replacement for the screening process.\n\nPrepare screening follow-up\n\nBT_WorldCheck_AML; latest available source period for selected accounts. Static read-only capture, Nov 12, 2026.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "work-tasks",
+      "width": 1512,
+      "text": "Allen Carter · Commercial banking\n\nMove the relationship forward.\n\nPlan the next step around the commitments in your captured book.\n\nDeal room\nTasks\nMeetings\nService cases\nLocal drafts\nCreate task\nSchedule\nEmail\nCards & credit\n3\nKnight-Hutchinson Outlet\nBusiness credit card application follow-up\nApr 20, 2026 · Deferred\nTo prepare\nBarnes LLC Real Estate\nBusiness credit card application follow-up\nApr 20, 2026 · Deferred\nTo prepare\nHoward-Frazier Grill\nLOC renewal package preparation\nApr 20, 2026 · Deferred\nTo prepare\nPayments enablement\n2\nCharles-Petersen Bistro\nACH origination training\nApr 20, 2026 · Not Started\nTo prepare\nEvans Group Clinic\nACH origination training\nApr 20, 2026 · Not Started\nTo prepare\nTreasury conversations\n1\nRichmond-Williams Practice\nTreasury services demo\nApr 20, 2026 · Waiting on someone else\nTo prepare\n\nSelected commitment\n\nBusiness credit card application follow-up\n\nKnight-Hutchinson Outlet\n\nRecorded due date\nApr 20, 2026\nRecorded status\nDeferred\nLocal next step\nTo prepare\nIn focus\nPrepared\nPreparation note\n\nPlanning changes stay local; they do not mark the captured task complete.\n\nReview task\nKeep follow-up draft\nPlan task action\n\nBounded Salesforce sample captured Nov 12, 2026. Recorded status stays separate from local preparation.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "work-meetings",
+      "width": 1512,
+      "text": "Allen Carter · Commercial banking\n\nBring the right people to the table.\n\nChoose a date, sketch the agenda, and keep a meeting draft.\n\nDeal room\nTasks\nMeetings\nService cases\nLocal drafts\nCreate task\nSchedule\nEmail\nML\nMitchell LLC Holdings\nFP\nFlores PLC Enterprises\nFP\nFlores PLC Corp\nNI\nNelson Industries\n\nConversation planner\n\nNovember 2026\n‹\n›\nMon\nTue\nWed\nThu\nFri\nSat\nSun\n9\n10\n11\n12\n13\n14\n15\nSelected planning date\nMeeting drafts stay local\nNov 12, 2026\nRoom to plan a conversation\n\nNo captured appointments or local meeting drafts on this date.\n\n09:00\nProposed start\nPlan a business discussion\nPlanning date\nProposed time\nRelationship\nConversation outline\n1\nBusiness priorities\n2\nOpen deal or service needs\n3\nOwners and next steps\nPrepare meeting draft\n\nA planning slot does not imply availability. Confirm attendees and details in the draft.\n\nNo upcoming events were returned in the captured sample. Calendar entries shown here are your local meeting drafts.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "work-cases",
+      "width": 1512,
+      "text": "Allen Carter · Commercial banking\n\nSee the service behind the company.\n\nOpen a request, understand its context, and prepare a response.\n\nDeal room\nTasks\nMeetings\nService cases\nLocal drafts\nCreate task\nSchedule\nEmail\nUP\nUnited Partners\n2 requests\nD\nDisplaytech\n3 requests\n\nCompany service portfolio\n\nUnited Partners\nAccount Update - Add User Scott Jenkins\nMedium priority\nWorking\nAdd ACH Origination Services\nMedium priority\nNew\n\nService response\n\nAccount Update - Add User Scott Jenkins\n\nUnited Partners\n\nMedium priority\nWorking\n1\nRead the request\n2\nConfirm the next step\n3\nPrepare the customer update\nResponse preparation\nReview service case\nPrepare response\n\nChecklist tracks local preparation. No case status or customer message is changed.\n\nBounded Salesforce sample captured Nov 12, 2026. Recorded status stays separate from local preparation.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "work-drafts",
+      "width": 1512,
+      "text": "Allen Carter · Commercial banking\n\nTurn preparation into a next step.\n\nPreview, edit, and organize the work you have prepared locally.\n\nDeal room\nTasks\nMeetings\nService cases\nLocal drafts\nCreate task\nSchedule\nEmail\n0\nWorking\n0\nReview\n0\nReady\nDraft type\nAll types\nRelationship outbox\n\nNo local drafts here yet. Create one to start your review shelf.\n\nYour next piece of work starts here.\n\nPrepare a customer follow-up, meeting, or task. Your saved draft will appear here for review.\n\nDraft a task\nPlan a meeting\n\nLocal drafts are stored in this browser session. Ready describes preparation only.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "health-coverage",
+      "width": 1512,
+      "text": "Allen Carter · Commercial banking\n\nCredit & coverage\n\nRead the book’s payment behavior alongside its growth and market coverage.\n\nPayment watch\nCompany mix\nMarket footprint\nThe book’s company mix\n\nRevenue bands from the latest ZoomInfo profile.\n\n<$1M\n2,983\n$1M-$10M\n1,671\n$10M-$50M\n729\n$50M-$200M\n215\n$200M-$1B\n22\n$1B+\n6\n\n5,626 matched records across six revenue bands. Provider revenue bands are distinct from CRM revenue.\n\nAllen Carter’s book. D&B and ZoomInfo grouped aggregates; ESRI markets are six selected ZIPs joined through billing postal code. Static read-only capture, Nov 12, 2026.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    },
+    {
+      "label": "health-markets",
+      "width": 1512,
+      "text": "Allen Carter · Commercial banking\n\nCredit & coverage\n\nRead the book’s payment behavior alongside its growth and market coverage.\n\nPayment watch\nCompany mix\nMarket footprint\nSelected branch markets\nWealth index\n0\n100\n200\n0\n3\n6\n9\n12\nNearest branch distance (miles)\nFL\n33397\n8 matched accounts\nOptimize\nFL\n34943\n7 matched accounts\nOptimize\nFL\n32662\n7 matched accounts\nOptimize\nFL\n33409\n6 matched accounts\nOptimize\nIL\n60385\n6 matched accounts\nConsolidate\nCA\n92357\n5 matched accounts\nOptimize\n\nSix highest-count matched ZIPs; placement is a directory, not a geographic map. “Consolidate” is a provider recommendation, not an announced branch closure.\n\nAllen Carter’s book. D&B and ZoomInfo grouped aggregates; ESRI markets are six selected ZIPs joined through billing postal code. Static read-only capture, Nov 12, 2026.\n\nAllen Carter · Captured CRM and dated source fixtures. Interactive mock; no live updates or Salesforce writes. View study coverage",
+      "overflow": false
+    }
+  ],
+  "errors": [],
+  "writes": []
+}

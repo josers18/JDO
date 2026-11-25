@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Blocks, Check, DatabaseZap, MessagesSquare, NotebookPen, Palette, Settings2 } from "lucide-react";
+import { Braces, Blocks, Check, DatabaseZap, MessagesSquare, Palette, Settings2 } from "lucide-react";
+import { ConnectModule } from "./connect/ConnectModule";
 import { api } from "./api";
 import { ChatModule } from "./chat/ChatModule";
 import { OrgsPage } from "./admin/OrgsPage";
@@ -9,8 +10,8 @@ import { NotebookModule } from "./notebook/NotebookModule";
 import { THEMES, tokens, useTheme } from "./themes";
 import type { OrgsResponse } from "../../shared/types";
 
-type Module = "chat" | "mcp" | "query" | "notebook" | "admin";
-const MODULES: Module[] = ["chat", "mcp", "query", "notebook", "admin"];
+type Module = "chat" | "mcp" | "query" | "notebook" | "connect" | "admin";
+const MODULES: Module[] = ["chat", "mcp", "query", "notebook", "connect", "admin"];
 const fromHash = (): Module => MODULES.find((m) => location.hash === `#${m}`) ?? "chat";
 
 export function App() {
@@ -50,8 +51,11 @@ export function App() {
         <RailButton label="Query" active={module === "query"} onClick={() => setModule("query")}>
           <DatabaseZap size={20} strokeWidth={1.7} />
         </RailButton>
+        <RailButton label="API" active={module === "connect"} onClick={() => setModule("connect")}>
+          <Braces size={20} strokeWidth={1.7} />
+        </RailButton>
         <RailButton label="Notebook" active={module === "notebook"} onClick={() => setModule("notebook")}>
-          <NotebookPen size={20} strokeWidth={1.7} />
+          <img src="/jupyter.svg" width={20} height={20} alt="" />
         </RailButton>
         <RailButton label="Admin" active={module === "admin"} onClick={() => setModule("admin")}>
           <Settings2 size={20} strokeWidth={1.7} />
@@ -67,6 +71,8 @@ export function App() {
           <McpModule orgs={orgs} onOpenAdmin={() => setModule("admin")} />
         ) : module === "query" ? (
           <QueryModule orgs={orgs} onOpenAdmin={() => setModule("admin")} />
+        ) : module === "connect" ? (
+          <ConnectModule key={orgs.activeOrgId} orgs={orgs} />
         ) : module === "notebook" ? (
           <NotebookModule orgs={orgs} onOpenAdmin={() => setModule("admin")} />
         ) : (

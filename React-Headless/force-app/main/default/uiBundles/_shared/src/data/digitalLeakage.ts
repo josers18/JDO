@@ -63,8 +63,8 @@ const kindOf = (v: unknown): LeakageKind => (v === 'Crypto Exchange' ? 'crypto' 
 const EMPTY: LeakageTotals = { clients: 0, balance: 0, inflow: 0 };
 
 /** W4 — the book's crypto-exchange + robo-advisor balances (top 3 each + totals). */
-export async function fetchDigitalLeakage(ownerId: string | null | undefined): Promise<DigitalLeakageResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 6);
+export async function fetchDigitalLeakage(ownerId: string | null | undefined, strictBook = false): Promise<DigitalLeakageResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 6, strictBook);
   const totals = await queryDataCloud<Record<string, unknown>>(summarySql(res.accountFilter), 2)
     .then(r => r.rows)
     .catch((): Record<string, unknown>[] => []);

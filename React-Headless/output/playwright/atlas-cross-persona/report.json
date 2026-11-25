@@ -1,0 +1,795 @@
+{
+  "layouts": 108,
+  "routes": [
+    {
+      "key": "wealth-today-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=today",
+      "heading": [
+        "Make the next conversation count."
+      ]
+    },
+    {
+      "key": "wealth-relationships-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships",
+      "heading": [
+        "My relationships, in perspective."
+      ]
+    },
+    {
+      "key": "wealth-pipeline-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=pipeline",
+      "heading": [
+        "Move the next commitment forward."
+      ]
+    },
+    {
+      "key": "wealth-journey-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=journey",
+      "heading": [
+        "Make space for the turning points."
+      ]
+    },
+    {
+      "key": "wealth-growth-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=growth",
+      "heading": [
+        "Bring the whole financial picture closer."
+      ]
+    },
+    {
+      "key": "wealth-intelligence-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=intelligence",
+      "heading": [
+        "An observatory for the household."
+      ]
+    },
+    {
+      "key": "wealth-health-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=health",
+      "heading": [
+        "Give the next review a clear purpose."
+      ]
+    },
+    {
+      "key": "wealth-work-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=work",
+      "heading": [
+        "Turn preparation into a commitment."
+      ]
+    },
+    {
+      "key": "wealth-relationships-overview-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=overview",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-finances-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=finances",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-growth-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=growth",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-engagement-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=engagement",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-notebook-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=notebook",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "commercial-today-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=today",
+      "heading": [
+        "Keep your companies moving."
+      ]
+    },
+    {
+      "key": "commercial-relationships-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships",
+      "heading": [
+        "Find the company. Keep its context."
+      ]
+    },
+    {
+      "key": "commercial-pipeline-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=pipeline",
+      "heading": [
+        "Move the deal. Keep the company in view."
+      ]
+    },
+    {
+      "key": "commercial-journey-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=journey",
+      "heading": [
+        "Plan the company conversation."
+      ]
+    },
+    {
+      "key": "commercial-growth-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=growth",
+      "heading": [
+        "Build around how the business works."
+      ]
+    },
+    {
+      "key": "commercial-intelligence-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=intelligence",
+      "heading": [
+        "Read the change. Choose the response."
+      ]
+    },
+    {
+      "key": "commercial-health-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=health",
+      "heading": [
+        "Credit & coverage. See what is underneath."
+      ]
+    },
+    {
+      "key": "commercial-work-directory-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=work",
+      "heading": [
+        "Your Commercial execution desk."
+      ]
+    },
+    {
+      "key": "commercial-relationships-overview-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=overview",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-finances-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=finances",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-growth-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=growth",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-engagement-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=engagement",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-notebook-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=notebook",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-intel-1512",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=intel",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "wealth-today-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=today",
+      "heading": [
+        "Make the next conversation count."
+      ]
+    },
+    {
+      "key": "wealth-relationships-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships",
+      "heading": [
+        "My relationships, in perspective."
+      ]
+    },
+    {
+      "key": "wealth-pipeline-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=pipeline",
+      "heading": [
+        "Move the next commitment forward."
+      ]
+    },
+    {
+      "key": "wealth-journey-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=journey",
+      "heading": [
+        "Make space for the turning points."
+      ]
+    },
+    {
+      "key": "wealth-growth-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=growth",
+      "heading": [
+        "Bring the whole financial picture closer."
+      ]
+    },
+    {
+      "key": "wealth-intelligence-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=intelligence",
+      "heading": [
+        "An observatory for the household."
+      ]
+    },
+    {
+      "key": "wealth-health-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=health",
+      "heading": [
+        "Give the next review a clear purpose."
+      ]
+    },
+    {
+      "key": "wealth-work-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=work",
+      "heading": [
+        "Turn preparation into a commitment."
+      ]
+    },
+    {
+      "key": "wealth-relationships-overview-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=overview",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-finances-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=finances",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-growth-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=growth",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-engagement-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=engagement",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-notebook-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=notebook",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "commercial-today-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=today",
+      "heading": [
+        "Keep your companies moving."
+      ]
+    },
+    {
+      "key": "commercial-relationships-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships",
+      "heading": [
+        "Find the company. Keep its context."
+      ]
+    },
+    {
+      "key": "commercial-pipeline-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=pipeline",
+      "heading": [
+        "Move the deal. Keep the company in view."
+      ]
+    },
+    {
+      "key": "commercial-journey-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=journey",
+      "heading": [
+        "Plan the company conversation."
+      ]
+    },
+    {
+      "key": "commercial-growth-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=growth",
+      "heading": [
+        "Build around how the business works."
+      ]
+    },
+    {
+      "key": "commercial-intelligence-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=intelligence",
+      "heading": [
+        "Read the change. Choose the response."
+      ]
+    },
+    {
+      "key": "commercial-health-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=health",
+      "heading": [
+        "Credit & coverage. See what is underneath."
+      ]
+    },
+    {
+      "key": "commercial-work-directory-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=work",
+      "heading": [
+        "Your Commercial execution desk."
+      ]
+    },
+    {
+      "key": "commercial-relationships-overview-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=overview",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-finances-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=finances",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-growth-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=growth",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-engagement-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=engagement",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-notebook-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=notebook",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-intel-1024",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=intel",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "wealth-today-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=today",
+      "heading": [
+        "Make the next conversation count."
+      ]
+    },
+    {
+      "key": "wealth-relationships-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships",
+      "heading": [
+        "My relationships, in perspective."
+      ]
+    },
+    {
+      "key": "wealth-pipeline-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=pipeline",
+      "heading": [
+        "Move the next commitment forward."
+      ]
+    },
+    {
+      "key": "wealth-journey-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=journey",
+      "heading": [
+        "Make space for the turning points."
+      ]
+    },
+    {
+      "key": "wealth-growth-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=growth",
+      "heading": [
+        "Bring the whole financial picture closer."
+      ]
+    },
+    {
+      "key": "wealth-intelligence-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=intelligence",
+      "heading": [
+        "An observatory for the household."
+      ]
+    },
+    {
+      "key": "wealth-health-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=health",
+      "heading": [
+        "Give the next review a clear purpose."
+      ]
+    },
+    {
+      "key": "wealth-work-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=work",
+      "heading": [
+        "Turn preparation into a commitment."
+      ]
+    },
+    {
+      "key": "wealth-relationships-overview-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=overview",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-finances-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=finances",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-growth-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=growth",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-engagement-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=engagement",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-notebook-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=notebook",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "commercial-today-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=today",
+      "heading": [
+        "Keep your companies moving."
+      ]
+    },
+    {
+      "key": "commercial-relationships-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships",
+      "heading": [
+        "Find the company. Keep its context."
+      ]
+    },
+    {
+      "key": "commercial-pipeline-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=pipeline",
+      "heading": [
+        "Move the deal. Keep the company in view."
+      ]
+    },
+    {
+      "key": "commercial-journey-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=journey",
+      "heading": [
+        "Plan the company conversation."
+      ]
+    },
+    {
+      "key": "commercial-growth-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=growth",
+      "heading": [
+        "Build around how the business works."
+      ]
+    },
+    {
+      "key": "commercial-intelligence-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=intelligence",
+      "heading": [
+        "Read the change. Choose the response."
+      ]
+    },
+    {
+      "key": "commercial-health-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=health",
+      "heading": [
+        "Credit & coverage. See what is underneath."
+      ]
+    },
+    {
+      "key": "commercial-work-directory-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=work",
+      "heading": [
+        "Your Commercial execution desk."
+      ]
+    },
+    {
+      "key": "commercial-relationships-overview-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=overview",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-finances-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=finances",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-growth-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=growth",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-engagement-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=engagement",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-notebook-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=notebook",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-intel-768",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=intel",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "wealth-today-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=today",
+      "heading": [
+        "Make the next conversation count."
+      ]
+    },
+    {
+      "key": "wealth-relationships-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships",
+      "heading": [
+        "My relationships, in perspective."
+      ]
+    },
+    {
+      "key": "wealth-pipeline-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=pipeline",
+      "heading": [
+        "Move the next commitment forward."
+      ]
+    },
+    {
+      "key": "wealth-journey-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=journey",
+      "heading": [
+        "Make space for the turning points."
+      ]
+    },
+    {
+      "key": "wealth-growth-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=growth",
+      "heading": [
+        "Bring the whole financial picture closer."
+      ]
+    },
+    {
+      "key": "wealth-intelligence-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=intelligence",
+      "heading": [
+        "An observatory for the household."
+      ]
+    },
+    {
+      "key": "wealth-health-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=health",
+      "heading": [
+        "Give the next review a clear purpose."
+      ]
+    },
+    {
+      "key": "wealth-work-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=work",
+      "heading": [
+        "Turn preparation into a commitment."
+      ]
+    },
+    {
+      "key": "wealth-relationships-overview-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=overview",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-finances-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=finances",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-growth-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=growth",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-engagement-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=engagement",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "wealth-relationships-notebook-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=wealth&page=relationships&client=001am00000qvjsAAAQ&tab=notebook",
+      "heading": [
+        "Julie E Morris"
+      ]
+    },
+    {
+      "key": "commercial-today-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=today",
+      "heading": [
+        "Keep your companies moving."
+      ]
+    },
+    {
+      "key": "commercial-relationships-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships",
+      "heading": [
+        "Find the company. Keep its context."
+      ]
+    },
+    {
+      "key": "commercial-pipeline-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=pipeline",
+      "heading": [
+        "Move the deal. Keep the company in view."
+      ]
+    },
+    {
+      "key": "commercial-journey-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=journey",
+      "heading": [
+        "Plan the company conversation."
+      ]
+    },
+    {
+      "key": "commercial-growth-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=growth",
+      "heading": [
+        "Build around how the business works."
+      ]
+    },
+    {
+      "key": "commercial-intelligence-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=intelligence",
+      "heading": [
+        "Read the change. Choose the response."
+      ]
+    },
+    {
+      "key": "commercial-health-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=health",
+      "heading": [
+        "Credit & coverage. See what is underneath."
+      ]
+    },
+    {
+      "key": "commercial-work-directory-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=work",
+      "heading": [
+        "Your Commercial execution desk."
+      ]
+    },
+    {
+      "key": "commercial-relationships-overview-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=overview",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-finances-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=finances",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-growth-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=growth",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-engagement-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=engagement",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-notebook-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=notebook",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    },
+    {
+      "key": "commercial-relationships-intel-390",
+      "url": "http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=commercial&page=relationships&client=001am00002AAAvtAAH&tab=intel",
+      "heading": [
+        "Cameron-Olson Construction"
+      ]
+    }
+  ],
+  "failures": [],
+  "errors": [],
+  "writes": [],
+  "scrollableContent": [],
+  "readabilityObservations": [
+    {
+      "key": "commercial-journey-directory-390",
+      "smallActions": [
+        {
+          "text": "2 events",
+          "font": "11px",
+          "height": 36
+        },
+        {
+          "text": "5 events",
+          "font": "11px",
+          "height": 36
+        },
+        {
+          "text": "8 events",
+          "font": "11px",
+          "height": 36
+        },
+        {
+          "text": "15 events",
+          "font": "11px",
+          "height": 36
+        }
+      ],
+      "smallActionCount": 4,
+      "smallChartLabels": [],
+      "smallChartLabelCount": 0
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "slackUserId" : {
+      "title" : "Slack User ID",
+      "description" : "The Slack user ID.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "The Slack user ID",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

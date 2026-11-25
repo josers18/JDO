@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
-import { SfError } from "./salesforce.ts";
-import { apiRead, cancel, catalog, dataSpaces, queryError, rows, status, submit } from "./query.ts";
+import { getOrgCredentials } from "./orgStore.ts";
+import { restUrl, sfJson, SfError } from "./salesforce.ts";
+import { apiRead, cancel, catalog, recordObject, dataSpaces, queryError, rows, status, submit } from "./query.ts";
 import type { WireSink } from "./wire.ts";
 import type { QueryApiCall, QueryRunOptions, WireEntry } from "../shared/types.ts";
 
@@ -46,6 +47,11 @@ queryApi.post(
   route(async ({ orgId, dataspace, refresh }, wire) => ({ catalog: await catalog(orgId, space(dataspace), Boolean(refresh), wire) })),
 );
 
+queryApi.post("/record-object", route(async ({orgId, dataspace, name, graph}, wire) => {
+  if (typeof name !== "string" || !name) throw Error("Choose a graph or profile DMO.");
+  return { object: await recordObject(orgId, space(dataspace), name, graph === true, wire) };
+}));
+
 queryApi.post(
   "/run",
   route(async (body, wire) => {
@@ -82,3 +88,10 @@ queryApi.post(
     return { ok: true };
   }),
 );
+
+queryApi.post("/note", route(async ({ orgId, documentId }, wire) => {
+  if (typeof documentId !== "string" || !/^069[a-zA-Z0-9]{12}(?:[a-zA-Z0-9]{3})?$/.test(documentId)) throw new Error("Invalid content document ID");
+  const url = restUrl(getOrgCredentials(orgId).myDomain, `/sobjects/ContentNote/${documentId}/Content`);
+  const content = await sfJson({ orgId, method: "GET", label: "Read note", url, wire, responseText: true });
+  return { content };
+}));

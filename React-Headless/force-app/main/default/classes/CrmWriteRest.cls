@@ -20,6 +20,7 @@ global with sharing class CrmWriteRest {
 
     global class WriteRequest {
         public String action;           // 'task' | 'event' | 'case' | 'email'  (required)
+        public String requestId;         // Stable UUID for an explicitly reviewed V2 action.
         public String subject;          // required for all
         public String description;
         public String whoId;            // Contact/Lead Id (Task/Event)
@@ -100,6 +101,7 @@ global with sharing class CrmWriteRest {
             RestContext.response = res;
         }
         res.addHeader('Content-Type', 'application/json');
+        Savepoint start;
         try {
             String body = RestContext.request != null && RestContext.request.requestBody != null
                 ? RestContext.request.requestBody.toString()
@@ -114,6 +116,25 @@ global with sharing class CrmWriteRest {
                 return;
             }
 
+            AtlasActionReceipt__c receipt;
+            if (String.isNotBlank(reqBody.requestId)) {
+                if (!Pattern.matches('[a-zA-Z0-9-]{36}', reqBody.requestId)) {
+                    writeError(res, 400, 'Invalid action request ID.'); return;
+                }
+                String key = UserInfo.getUserId() + ':' + action + ':' + reqBody.requestId;
+                start = Database.setSavepoint();
+                receipt = new AtlasActionReceipt__c(RequestKey__c = key);
+                Database.SaveResult reserved = Database.insert(receipt, false, AccessLevel.SYSTEM_MODE);
+                if (!reserved.isSuccess()) {
+                    if (reserved.getErrors()[0].getStatusCode() != StatusCode.DUPLICATE_VALUE) {
+                        writeError(res, 500, 'Unable to register the request. Retry or contact your administrator.'); return;
+                    }
+                    List<AtlasActionReceipt__c> prior = [SELECT ResultId__c FROM AtlasActionReceipt__c WHERE RequestKey__c = :key WITH SYSTEM_MODE LIMIT 1];
+                    if (!prior.isEmpty()) writeSuccess(res, (Id)prior[0].ResultId__c);
+                    else writeError(res, 409, 'The request is being processed. Retry to check the result.');
+                    return;
+                }
+            }
             if (action == 'task') {
                 handleTask(res, reqBody);
             } else if (action == 'event') {
@@ -130,14 +151,27 @@ global with sharing class CrmWriteRest {
                 handleLead(res, reqBody);
             } else if (action == 'opportunity') {
                 handleOpportunity(res, reqBody);
+            } else if (action == 'meetingnote') {
+                handleMeetingNote(res, reqBody);
+            } else if (action == 'note') {
+                handleNote(res, reqBody);
+            } else if (action == 'kyc') {
+                handleKyc(res, reqBody);
             } else if (action == 'update') {
                 handleUpdate(res, reqBody);
             } else if (action == 'delete') {
                 handleDelete(res, reqBody);
             } else {
-                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, goal, lifeEvent, lead, opportunity, update, or delete.');
+                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, goal, lifeEvent, lead, opportunity, meetingNote, note, kyc, update, or delete.');
+            }
+            if (receipt != null) {
+                if (res.statusCode == 200) {
+                    receipt.ResultId__c = (String)((Map<String,Object>)JSON.deserializeUntyped(res.responseBody.toString())).get('id');
+                    update as system receipt;
+                } else Database.rollback(start);
             }
         } catch (Exception e) {
+            if (start != null) Database.rollback(start);
             System.debug(LoggingLevel.ERROR, 'CrmWriteRest error: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
             writeError(res, 500, 'CRM write failed.');
         }
@@ -153,6 +187,9 @@ global with sharing class CrmWriteRest {
         t.Description = req.description;
         t.Priority = String.isBlank(req.priority) ? 'Normal' : req.priority;
         t.Status = String.isBlank(req.status) ? 'Not Started' : req.status;
+        if (!String.isBlank(req.type)) {
+            t.Type = req.type;
+        }
         if (!String.isBlank(req.dueDate)) {
             t.ActivityDate = Date.valueOf(req.dueDate);
         }
@@ -162,6 +199,7 @@ global with sharing class CrmWriteRest {
         if (!String.isBlank(req.whatId)) {
             t.WhatId = req.whatId;
         }
+        if (String.isNotBlank(req.ownerId)) t.OwnerId = req.ownerId;
         insert t;
         writeSuccess(res, t.Id);
     }
@@ -186,6 +224,8 @@ global with sharing class CrmWriteRest {
         if (!String.isBlank(req.whatId)) {
             ev.WhatId = req.whatId;
         }
+        if (String.isNotBlank(req.ownerId)) ev.OwnerId = req.ownerId;
+        if (String.isNotBlank(req.location)) ev.Location = req.location;
         insert ev;
         writeSuccess(res, ev.Id);
     }
@@ -218,11 +258,21 @@ global with sharing class CrmWriteRest {
             return;
         }
         Messaging.SingleEmailMessage msg = new Messaging.SingleEmailMessage();
-        msg.setToAddresses(new List<String>{ req.toAddress });
+        if (String.isNotBlank(req.whoId)) {
+            List<Lead> leads = [SELECT Id, Email, OwnerId, HasOptedOutOfEmail, IsConverted FROM Lead WHERE Id = :req.whoId WITH USER_MODE LIMIT 1];
+            if (leads.isEmpty() || leads[0].OwnerId != req.ownerId || leads[0].IsConverted || leads[0].HasOptedOutOfEmail ||
+                String.isBlank(leads[0].Email) || !leads[0].Email.equalsIgnoreCase(req.toAddress.trim())) {
+                writeError(res, 409, 'Check the current lead owner, email address and email consent before sending.'); return;
+            }
+            msg.setTargetObjectId(leads[0].Id);
+            msg.setOptOutPolicy('REJECT');
+        } else msg.setToAddresses(new List<String>{ req.toAddress });
         msg.setSubject(req.subject);
-        msg.setHtmlBody(String.isBlank(req.htmlBody) ? req.description : req.htmlBody);
+        if (String.isBlank(req.htmlBody)) msg.setPlainTextBody(req.description);
+        else msg.setHtmlBody(req.htmlBody);
         if (!Test.isRunningTest()) {
-            Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{ msg });
+            Messaging.SendEmailResult sent = Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{ msg }, false)[0];
+            if (!sent.isSuccess()) { writeError(res, 400, sent.getErrors()[0].getMessage()); return; }
         }
         writeSuccess(res, null);
     }
@@ -353,6 +403,7 @@ global with sharing class CrmWriteRest {
         if (!String.isBlank(req.leadSource)) { ld.LeadSource = req.leadSource; }
         if (!String.isBlank(req.email))      { ld.Email = req.email; }
         if (req.annualRevenue != null)       { ld.AnnualRevenue = req.annualRevenue; }
+        if (String.isNotBlank(req.ownerId)) ld.OwnerId = req.ownerId;
         insert ld;
         writeSuccess(res, ld.Id);
     }
@@ -377,6 +428,15 @@ global with sharing class CrmWriteRest {
             writeError(res, 400, 'An account is required for an opportunity.');
             return;
         }
+        if (req.leadSource == 'Cross-sell grid') {
+            List<Account> accounts = [SELECT Id, OwnerId FROM Account WHERE Id = :acctId LIMIT 1 FOR UPDATE];
+            if (accounts.isEmpty() || (String.isNotBlank(req.ownerId) && accounts[0].OwnerId != req.ownerId)) {
+                writeError(res, 409, 'This account is no longer in the selected book.'); return;
+            }
+            String canonicalName = req.name.left(120);
+            List<Opportunity> existing = [SELECT Id FROM Opportunity WHERE AccountId = :acctId AND Name = :canonicalName AND IsClosed = false AND LeadSource = 'Cross-sell grid' LIMIT 1];
+            if (!existing.isEmpty()) { writeSuccess(res, existing[0].Id); return; }
+        }
         Opportunity opp = new Opportunity();
         opp.AccountId = acctId;
         opp.Name = req.name.left(120);
@@ -388,6 +448,103 @@ global with sharing class CrmWriteRest {
         if (!String.isBlank(req.ownerId))    { opp.OwnerId = req.ownerId; }
         insert opp;
         writeSuccess(res, opp.Id);
+    }
+
+    private static Id accountIdOf(WriteRequest req) {
+        try {
+            Id acctId = String.isBlank(req.accountId) ? null : Id.valueOf(req.accountId);
+            return acctId != null && acctId.getSObjectType() == Account.SObjectType ? acctId : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Meeting note on an Account — the "After the call" approve step saves the
+     * call summary here. subject → Title__c, description → Notes__c,
+     * eventDate ('YYYY-MM-DD') → Date__c (default today).
+     */
+    private static void handleMeetingNote(RestResponse res, WriteRequest req) {
+        Id acctId = accountIdOf(req);
+        if (acctId == null) {
+            writeError(res, 400, 'An account is required for a meeting note.');
+            return;
+        }
+        if (String.isBlank(req.subject)) {
+            writeError(res, 400, 'A title is required for a meeting note.');
+            return;
+        }
+        Meeting_Note__c n = new Meeting_Note__c();
+        n.Account__c = acctId;
+        n.Title__c = req.subject.left(255);
+        n.Notes__c = req.description;
+        n.Date__c = String.isBlank(req.eventDate) ? Date.today() : Date.valueOf(req.eventDate);
+        insert n;
+        writeSuccess(res, n.Id);
+    }
+
+    /**
+     * ContentNote on an Account (the native Notes related list): a ContentVersion
+     * ('.snote', HTML-escaped body like StoryFeed's notes) plus a ContentDocumentLink.
+     * subject -> Title, description -> body. A past eventDate ('YYYY-MM-DD') becomes the
+     * note's ContentModifiedDate (midnight GMT); today, a future date or none keeps now.
+     * External_ID__c = 'note:<requestId>' (or a generated UUID). Returns the ContentNote id.
+     */
+    private static void handleNote(RestResponse res, WriteRequest req) {
+        Id acctId = accountIdOf(req);
+        if (acctId == null) {
+            writeError(res, 400, 'An account is required for a note.');
+            return;
+        }
+        if (String.isBlank(req.subject)) {
+            writeError(res, 400, 'A title is required for a note.');
+            return;
+        }
+        String body = escapeNoteHtml(req.description);
+        ContentVersion cv = new ContentVersion(
+            Title = req.subject.left(255),
+            PathOnClient = req.subject.left(249) + '.snote',
+            VersionData = Blob.valueOf(String.isBlank(body) ? ' ' : body),
+            External_ID__c = 'note:' + (String.isNotBlank(req.requestId) ? req.requestId : UUID.randomUUID().toString())
+        );
+        Date noteDay = String.isBlank(req.eventDate) ? null : Date.valueOf(req.eventDate);
+        if (noteDay != null && noteDay < Date.today()) {
+            cv.ContentModifiedDate = Datetime.newInstanceGmt(noteDay, Time.newInstance(0, 0, 0, 0));
+        }
+        insert cv;
+        Id docId = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id].ContentDocumentId;
+        insert new ContentDocumentLink(ContentDocumentId = docId, LinkedEntityId = acctId, ShareType = 'V', Visibility = 'AllUsers');
+        writeSuccess(res, docId);
+    }
+
+    /** Same escaping as StoryFeed.escapeHtml; the UI's fetchNotes decodes it back. */
+    private static String escapeNoteHtml(String text) {
+        if (text == null) return '';
+        return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            .replace('"', '&quot;').replace('\'', '&#39;')
+            .replace('\r\n', '\n').replace('\n', '<br>');
+    }
+
+    /**
+     * KYC refresh on an Account. Deliberately narrow: only
+     * FinServ__KYCStatus__c (status) and KYC_Summary__c (description) are
+     * writable — not a general Account update.
+     */
+    private static void handleKyc(RestResponse res, WriteRequest req) {
+        Id acctId = accountIdOf(req);
+        if (acctId == null) {
+            writeError(res, 400, 'An account is required for a KYC update.');
+            return;
+        }
+        if (String.isBlank(req.status) && String.isBlank(req.description)) {
+            writeError(res, 400, 'Enter a KYC status or summary.');
+            return;
+        }
+        Account a = new Account(Id = acctId);
+        if (!String.isBlank(req.status))      { a.FinServ__KYCStatus__c = req.status; }
+        if (!String.isBlank(req.description)) { a.KYC_Summary__c = req.description; }
+        update a;
+        writeSuccess(res, acctId);
     }
 
     /**

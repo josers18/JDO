@@ -33,6 +33,42 @@ private class CrmWriteRestTest {
     }
 
     @IsTest
+    static void retryAfterValidationFailureCreatesOneTask() {
+        String key = '14d96232-d579-48f8-998f-9d488d2db97f';
+        setupRequest('{"action":"task","requestId":"' + key + '"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode);
+        String request = '{"action":"task","subject":"Retry task","requestId":"' + key + '"}';
+        setupRequest(request); CrmWriteRest.write();
+        Object id = parseBody().get('id');
+        System.assertNotEquals(null, id);
+        setupRequest(request); CrmWriteRest.write();
+        System.assertEquals(id, parseBody().get('id'));
+        System.assertEquals(1, [SELECT COUNT() FROM Task WHERE Subject = 'Retry task']);
+    }
+
+    @IsTest
+    static void prospectEmailChecksReviewedRecipient() {
+        Lead prospect = new Lead(LastName='Prospect', Company='Test', Email='prospect@example.com');
+        insert prospect;
+        Map<String,Object> request = new Map<String,Object>{
+            'action'=>'email','requestId'=>'9992552e-3050-41b9-933a-f9adff7b2b7c','subject'=>'Reviewed email','description'=>'Banker approved body',
+            'whoId'=>prospect.Id,'ownerId'=>UserInfo.getUserId(),'toAddress'=>'old@example.com'
+        };
+        setupRequest(JSON.serialize(request)); CrmWriteRest.write();
+        System.assertEquals(409, RestContext.response.statusCode);
+        request.put('toAddress',prospect.Email);
+        setupRequest(JSON.serialize(request)); CrmWriteRest.write();
+        System.assertEquals(200, RestContext.response.statusCode);
+        // A replay must return the original receipt before even looking up a recipient.
+        request.put('toAddress','old@example.com');
+        setupRequest(JSON.serialize(request)); CrmWriteRest.write();
+        System.assertEquals(200, RestContext.response.statusCode);
+        System.assertEquals(1, [SELECT COUNT() FROM AtlasActionReceipt__c WITH SYSTEM_MODE]);
+
+    }
+
+    @IsTest
     static void createsTask() {
         setupRequest('{"action":"task","subject":"Follow up call","description":"Ring the client","dueDate":"2026-08-01","priority":"High"}');
         Test.startTest();
@@ -746,6 +782,24 @@ private class CrmWriteRestTest {
     }
 
     @IsTest
+    static void separateGridDraftsResolveToSameOpenOpportunity() {
+        Account household = new Account(Name='Grid Household');
+        insert household;
+        Map<String,Object> proposal = new Map<String,Object>{
+            'action'=>'opportunity','accountId'=>household.Id,'ownerId'=>UserInfo.getUserId(),
+            'name'=>'Managed Account — Grid Household','amount'=>1250,'leadSource'=>'Cross-sell grid',
+            'requestId'=>'b725b358-7146-4849-8aab-5d91c106a000'
+        };
+        setupRequest(JSON.serialize(proposal)); CrmWriteRest.write();
+        System.assertEquals(200, RestContext.response.statusCode);
+        Object original = parseBody().get('id');
+        proposal.put('requestId','b725b358-7146-4849-8aab-5d91c106a001');
+        setupRequest(JSON.serialize(proposal)); CrmWriteRest.write();
+        System.assertEquals(original, parseBody().get('id'));
+        System.assertEquals(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :household.Id]);
+    }
+
+    @IsTest
     static void opportunityDefaultsCloseDate() {
         Account a = new Account(Name = 'Grid Default Co');
         insert a;
@@ -766,5 +820,124 @@ private class CrmWriteRestTest {
         setupRequest('{"action":"opportunity","accountId":"001000000000000AAA"}');
         CrmWriteRest.write();
         System.assertEquals(400, RestContext.response.statusCode, 'missing name → 400');
+    }
+
+    @IsTest
+    static void createsMeetingNote() {
+        Account a = new Account(Name = 'Test Treasury Client');
+        insert a;
+        setupRequest('{"action":"meetingNote","accountId":"' + a.Id + '","subject":"Call summary","description":"Pricing pushback","eventDate":"2026-11-15"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'meeting note should 200');
+        Meeting_Note__c n = [SELECT Title__c, Notes__c, Date__c FROM Meeting_Note__c WHERE Account__c = :a.Id];
+        System.assertEquals('Call summary', n.Title__c, 'title');
+        System.assertEquals('Pricing pushback', n.Notes__c, 'notes');
+        System.assertEquals(Date.newInstance(2026, 11, 15), n.Date__c, 'date');
+    }
+
+    @IsTest
+    static void meetingNoteRequiresAccountAndTitle() {
+        setupRequest('{"action":"meetingNote","subject":"No account"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode, 'missing account should 400');
+        Account a = new Account(Name = 'Test Treasury Client');
+        insert a;
+        setupRequest('{"action":"meetingNote","accountId":"' + a.Id + '"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode, 'missing title should 400');
+    }
+
+    @IsTest
+    static void noteRequiresAccountAndTitle() {
+        setupRequest('{"action":"note","subject":"No account"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode, 'missing account should 400');
+        Account a = new Account(Name = 'Test Treasury Client');
+        insert a;
+        setupRequest('{"action":"note","accountId":"' + a.Id + '"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode, 'missing title should 400');
+        System.assertEquals(0, [SELECT COUNT() FROM ContentVersion], 'no note on a rejected request');
+    }
+
+    @IsTest
+    static void noteCreatesLinkedContentNote() {
+        Account a = new Account(Name = 'Test Treasury Client');
+        insert a;
+        String rid = '8b0d3c3e-6f1e-4b8a-9c2d-1a2b3c4d5e6f';
+        setupRequest('{"action":"note","requestId":"' + rid + '","accountId":"' + a.Id + '","subject":"Call summary — Treasury review","description":"Pricing pushback","eventDate":"2026-11-15"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'note should 200');
+        Id docId = (Id) parseBody().get('id');
+        System.assertEquals(ContentDocument.SObjectType, docId.getSObjectType(), 'returns the ContentDocument (ContentNote) id');
+        ContentNote n = [SELECT Title, FileType FROM ContentNote WHERE Id = :docId];
+        System.assertEquals('Call summary — Treasury review', n.Title, 'title');
+        System.assertEquals('SNOTE', n.FileType, 'stored as a note');
+        ContentVersion cv = [SELECT External_ID__c, ContentModifiedDate FROM ContentVersion WHERE ContentDocumentId = :docId AND IsLatest = true];
+        System.assertEquals('note:' + rid, cv.External_ID__c, 'request id marker');
+        System.assertEquals(Date.newInstance(2026, 11, 15), cv.ContentModifiedDate.dateGmt(), 'eventDate carried as the note date');
+        ContentDocumentLink l = [SELECT ShareType, Visibility FROM ContentDocumentLink WHERE ContentDocumentId = :docId AND LinkedEntityId = :a.Id];
+        System.assertEquals('V', l.ShareType, 'viewer share');
+        System.assertEquals('AllUsers', l.Visibility, 'visibility');
+        System.assertEquals(0, [SELECT COUNT() FROM Meeting_Note__c], 'note action does not write Meeting_Note__c');
+    }
+
+    @IsTest
+    static void noteBodyEscaping() {
+        Account a = new Account(Name = 'Test Treasury Client');
+        insert a;
+        setupRequest(JSON.serialize(new Map<String, Object>{
+            'action' => 'note', 'accountId' => a.Id, 'subject' => 'Escaping',
+            'description' => 'Fees < 5% & rates > 2% "x" it\'s\nLine two\r\nLine three'
+        }));
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'note should 200');
+        Id docId = (Id) parseBody().get('id');
+        ContentNote n = [SELECT Content FROM ContentNote WHERE Id = :docId];
+        System.assertEquals('Fees &lt; 5% &amp; rates &gt; 2% &quot;x&quot; it&#39;s<br>Line two<br>Line three', n.Content.toString(), 'HTML-escaped body with <br> line breaks');
+    }
+
+    @IsTest
+    static void updatesKyc() {
+        Account a = new Account(Name = 'Test Treasury Client', FinServ__KYCStatus__c = 'Expired');
+        insert a;
+        setupRequest('{"action":"kyc","accountId":"' + a.Id + '","status":"Required","description":"PEP refresh; beneficial ownership"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'kyc should 200');
+        Account after = [SELECT FinServ__KYCStatus__c, KYC_Summary__c FROM Account WHERE Id = :a.Id];
+        System.assertEquals('Required', after.FinServ__KYCStatus__c, 'status');
+        System.assertEquals('PEP refresh; beneficial ownership', after.KYC_Summary__c, 'summary');
+    }
+
+    @IsTest
+    static void kycRejectsNonAccountAndEmptyBody() {
+        Task t = new Task(Subject = 'Not an account');
+        insert t;
+        setupRequest('{"action":"kyc","accountId":"' + t.Id + '","status":"Required"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode, 'non-account id should 400');
+        Account a = new Account(Name = 'Test Treasury Client');
+        insert a;
+        setupRequest('{"action":"kyc","accountId":"' + a.Id + '"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode, 'no fields should 400');
+    }
+
+    @IsTest
+    static void taskAcceptsType() {
+        setupRequest('{"action":"task","subject":"Email: revised pricing","type":"Email","status":"Completed"}');
+        CrmWriteRest.write();
+        System.assertEquals(200, RestContext.response.statusCode, 'task should 200');
+        Task t = [SELECT Type, Status FROM Task WHERE Subject = 'Email: revised pricing'];
+        System.assertEquals('Email', t.Type, 'type');
+        System.assertEquals('Completed', t.Status, 'status');
     }
 }

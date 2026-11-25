@@ -1,0 +1,98 @@
+/**
+ * Fills native KYC gaps on Accounts: one FinServ__IdentificationDocument__c (SourceSystemId kyc:<accountId>)
+ * for accounts without any document, and FinServ__LastReview__c / NextReview__c / ReviewFrequency__c where null.
+ * Dates are consistent with FinServ__KYCStatus__c (read only) and derived deterministically from the account Id.
+ */
+public with sharing class KycHydrator {
+
+    public static final String PREFIX = 'kyc:';
+
+    public static void hydrate(List<Account> scope) {
+        if (scope == null || scope.isEmpty()) return;
+        Set<Id> ids = new Set<Id>();
+        for (Account a : scope) ids.add(a.Id);
+
+        Set<Id> hasDoc = new Set<Id>();
+        for (FinServ__IdentificationDocument__c d : [
+            SELECT FinServ__Account__c FROM FinServ__IdentificationDocument__c WHERE FinServ__Account__c IN :ids
+        ]) {
+            hasDoc.add(d.FinServ__Account__c);
+        }
+
+        Date today = Date.today();
+        List<FinServ__IdentificationDocument__c> newDocs = new List<FinServ__IdentificationDocument__c>();
+        List<Account> toUpdate = new List<Account>();
+        for (Account a : scope) {
+            Integer h = Math.abs(String.valueOf(a.Id).hashCode());
+            String status = a.FinServ__KYCStatus__c;
+            Boolean past = status == 'Expired' || status == 'Overdue';
+            Boolean valid = status == 'Completed - Valid';
+
+            Integer cycle = cycleMonths(a.FinServ__ReviewFrequency__c);
+            Date expiry;
+            Date nextReview; // used only when both review dates are null
+            if (past) {
+                expiry = today.addDays(-(30 + Math.mod(h, 150)));
+                nextReview = today.addDays(-(10 + Math.mod(h, 80)));
+            } else if (valid) {
+                expiry = today.addDays(365 + Math.mod(h, 700));
+                nextReview = today.addDays(10 + Math.mod(h, 80));
+            } else {
+                expiry = today.addDays(30 + Math.mod(h, 60));
+                nextReview = today.addDays(10 + Math.mod(h, 50));
+            }
+            // A missing review date is derived from the existing one so Last < Next always holds.
+            Date lastReview;
+            if (a.FinServ__NextReview__c != null) {
+                nextReview = a.FinServ__NextReview__c;
+                lastReview = nextReview.addMonths(-cycle);
+            } else if (a.FinServ__LastReview__c != null) {
+                lastReview = a.FinServ__LastReview__c;
+                nextReview = lastReview.addMonths(cycle);
+            } else {
+                lastReview = nextReview.addMonths(-cycle);
+            }
+
+            if (!hasDoc.contains(a.Id)) {
+                newDocs.add(new FinServ__IdentificationDocument__c(
+                    FinServ__Account__c = a.Id,
+                    FinServ__DocumentType__c = Math.mod(h, 2) == 0 ? 'Passport' : 'License',
+                    FinServ__IssueDate__c = expiry.addYears(-10),
+                    FinServ__ExpirationDate__c = expiry,
+                    FinServ__SourceSystemId__c = PREFIX + String.valueOf(a.Id)
+                ));
+            }
+
+            Account u = new Account(Id = a.Id);
+            Boolean changed = false;
+            if (a.FinServ__LastReview__c == null) { u.FinServ__LastReview__c = lastReview; changed = true; }
+            if (a.FinServ__NextReview__c == null) { u.FinServ__NextReview__c = nextReview; changed = true; }
+            if (a.FinServ__ReviewFrequency__c == null) { u.FinServ__ReviewFrequency__c = 'Annually'; changed = true; }
+            if (changed) {
+                toUpdate.add(u);
+                // keep the caller's in-memory rows current so story signals see the hydrated dates
+                if (a.FinServ__LastReview__c == null) a.FinServ__LastReview__c = lastReview;
+                if (a.FinServ__NextReview__c == null) a.FinServ__NextReview__c = nextReview;
+                if (a.FinServ__ReviewFrequency__c == null) a.FinServ__ReviewFrequency__c = 'Annually';
+            }
+        }
+
+        if (!newDocs.isEmpty()) log('insert document', Database.insert(newDocs, false));
+        if (!toUpdate.isEmpty()) log('update account', Database.update(toUpdate, false));
+    }
+
+    private static Integer cycleMonths(String frequency) {
+        if (frequency == 'Monthly') return 1;
+        if (frequency == 'Quarterly') return 3;
+        return 12;
+    }
+
+    private static void log(String what, List<Database.SaveResult> res) {
+        for (Database.SaveResult r : res) {
+            if (!r.isSuccess()) {
+                System.debug(LoggingLevel.ERROR, 'KycHydrator ' + what + ' failed: '
+                    + r.getErrors()[0].getStatusCode() + ' ' + r.getErrors()[0].getMessage());
+            }
+        }
+    }
+}

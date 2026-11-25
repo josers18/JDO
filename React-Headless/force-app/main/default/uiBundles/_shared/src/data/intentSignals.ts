@@ -92,8 +92,8 @@ export interface IntentSignalResult {
 }
 
 /** Demandbase — the book's top surging and competitor-research accounts this week, plus counts. */
-export async function fetchIntentSignals(ownerId: string | null | undefined): Promise<IntentSignalResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(intentRowsSql, ownerId, PER_KIND * 2);
+export async function fetchIntentSignals(ownerId: string | null | undefined, strictBook = false): Promise<IntentSignalResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(intentRowsSql, ownerId, PER_KIND * 2, strictBook);
   // The counts are additive — if the summary query fails, the rows still render.
   const total = await queryDataCloud<Record<string, unknown>>(intentSummarySql(res.accountFilter), 1)
     .then(r => r.rows[0] ?? {})

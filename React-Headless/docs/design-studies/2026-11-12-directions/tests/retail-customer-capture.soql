@@ -1,0 +1,20 @@
+-- account
+SELECT Id,Name,OwnerId,PersonContactId,PersonEmail,Phone,Type,BillingCity,BillingState FROM Account WHERE Id='001am00000qvjt7AAA' LIMIT 1;
+
+-- finances
+SELECT Id,Name,FinServ__PrimaryOwner__c,FinServ__FinancialAccountType__c,FinServ__Balance__c,FinServ__Status__c,FinServ__OpenDate__c FROM FinServ__FinancialAccount__c WHERE FinServ__PrimaryOwner__c='001am00000qvjt7AAA' LIMIT 50;
+
+-- tasks
+SELECT Id,Subject,Status,Priority,Type,Description,ActivityDate,WhatId,WhoId,OwnerId,Owner.Name,AccountId FROM Task WHERE AccountId='001am00000qvjt7AAA' ORDER BY ActivityDate DESC LIMIT 50;
+
+-- events
+SELECT Id,Subject,Description,StartDateTime,EndDateTime,DurationInMinutes,Location,ShowAs,Type,WhatId,WhoId,OwnerId,Owner.Name,AccountId FROM Event WHERE AccountId='001am00000qvjt7AAA' ORDER BY StartDateTime DESC LIMIT 50;
+
+-- plans
+SELECT FIELDS(STANDARD) FROM FinancialPlan WHERE AccountId='001am00000qvjt7AAA' LIMIT 50;
+
+-- goals
+SELECT Id,Name,Type,Priority,Status,Description,FinancialPlanId,FinancialPlan.AccountId,TargetDate,TargetAmount,ActualAmount FROM FinancialGoal WHERE FinancialPlan.AccountId='001am00000qvjt7AAA' LIMIT 50;
+
+-- cases
+SELECT Id,CaseNumber,Subject,Status,Priority,Description,AccountId FROM Case WHERE AccountId='001am00000qvjt7AAA' ORDER BY CreatedDate DESC LIMIT 20;

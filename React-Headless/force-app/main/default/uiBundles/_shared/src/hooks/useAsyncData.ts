@@ -1,3 +1,4 @@
+import { invalidateAtlasReads } from '../data/atlasReadCache';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseAsyncDataResult<T> {
@@ -40,7 +41,10 @@ export function useAsyncData<T>(
   // data stays on screen while the fresh query runs in the background, then
   // swaps in. This is what lets a newly-created task/event appear without the
   // whole page collapsing to a spinner for the ~20s of a live refetch.
-  const refetch = useCallback(() => setGeneration(g => g + 1), []);
+  const refetch = useCallback(() => {
+    invalidateAtlasReads();
+    setGeneration(g => g + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

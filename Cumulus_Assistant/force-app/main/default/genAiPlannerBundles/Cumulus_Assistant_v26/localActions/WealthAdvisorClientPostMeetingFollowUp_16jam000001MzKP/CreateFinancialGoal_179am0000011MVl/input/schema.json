@@ -1,0 +1,65 @@
+{
+  "required" : [ "goalName", "goalPriority", "goalStartDate", "goalTargetDate", "goalStatus", "goalType", "goalTargetAmount", "personAccountId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "goalName" : {
+      "title" : "Goal Name",
+      "description" : "The name of the financial goal.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "goalPriority" : {
+      "title" : "Goal Priority",
+      "description" : "The priority level of the financial goal.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "goalStartDate" : {
+      "title" : "Goal Start Date",
+      "description" : "The start date of the financial goal.",
+      "lightning:type" : "lightning__dateType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "goalTargetDate" : {
+      "title" : "Goal Target Date",
+      "description" : "The target completion date of the financial goal.",
+      "lightning:type" : "lightning__dateType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "goalStatus" : {
+      "title" : "Goal Status",
+      "description" : "The status of the financial goal.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "goalType" : {
+      "title" : "Goal Type",
+      "description" : "The type of the financial goal.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "goalTargetAmount" : {
+      "title" : "Goal Target Amount",
+      "description" : "The target amount of the financial goal.",
+      "multipleOf" : 1.0E-34,
+      "lightning:type" : "lightning__numberType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "personAccountId" : {
+      "title" : "Person Account Id",
+      "description" : "The person account ID.",
+      "lightning:type" : "lightning__recordIdType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

@@ -1,0 +1,25 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "messageUrl" : {
+      "title" : "Slack Message URL",
+      "description" : "The Slack message URL for the sent message; opens in Slack.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "The Slack message URL for the sent message; opens in Slack.",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : false,
+      "copilotAction:isUsedByPlanner" : true
+    },
+    "messageTs" : {
+      "title" : "Slack Message Timestamp",
+      "description" : "The timestamp for when the message was sent in Slack.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "The timestamp for when the message was sent in Slack.",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : false,
+      "copilotAction:isUsedByPlanner" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

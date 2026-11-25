@@ -1,5 +1,5 @@
 import { getOrgCredentials } from "./orgStore.ts";
-import { maskBody, newWireEntry, type WireSink } from "./wire.ts";
+import { maskBody, maskHeaders, newWireEntry, type WireSink } from "./wire.ts";
 import { parseSse, type SseEvent } from "./sse.ts";
 import type { WireEntry } from "../shared/types.ts";
 
@@ -30,6 +30,7 @@ interface CallOptions {
   headers?: Record<string, string>;
   turn?: number | null;
   wire?: WireSink;
+  responseText?: boolean;
   auth?: boolean; // default true
   signal?: AbortSignal;
 }
@@ -77,7 +78,7 @@ async function send(opts: CallOptions, token: string | null): Promise<{ res: Res
   try {
     const res = await fetch(opts.url, { method: opts.method, headers, body: payload, signal: opts.signal });
     entry.status = res.status;
-    entry.responseHeaders = Object.fromEntries(res.headers.entries());
+    entry.responseHeaders = maskHeaders(Object.fromEntries(res.headers.entries()));
     return { res, entry, t0 };
   } catch (e) {
     entry.error = (e as Error).message;
@@ -122,7 +123,7 @@ export async function sfJson<T = unknown>(opts: CallOptions): Promise<T> {
   for (let attempt = 0; ; attempt++) {
     const token = opts.auth === false ? null : await getToken(opts.orgId, opts.wire, attempt > 0);
     const { res, entry, t0 } = await send(opts, token);
-    const body = await readBody(res);
+    const body = opts.responseText && res.ok ? await res.text() : await readBody(res);
     entry.responseBody = maskBody(body);
     entry.durationMs = Date.now() - t0;
     opts.wire?.(entry);

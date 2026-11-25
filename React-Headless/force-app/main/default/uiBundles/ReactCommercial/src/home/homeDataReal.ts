@@ -46,7 +46,7 @@
  * driver in the blended "who to call" score. Field names + DMO columns
  * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, FEE_SPIKES, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult, fetchFirmographicMix, type FirmographicMixResult, fetchOwnerWealthHandoffs, ownerHandoffLeads, type OwnerHandoffResult, fetchMarketFootprint, type MarketFootprintResult, fetchCommercialWhoToCall, commercialWhoToCallItems, dropCovered, inheritDue, fetchIntentSignals, intentQueueItems, INTENT_SURGE_ROWS, COMPETITOR_ROWS, type IntentSignalResult, fetchFundingSignals, fundingQueueItems, FUNDING_ROWS, type FundingSignalResult, fetchChampionDepartures, championQueueItems, CHAMPION_ROWS, type JobChangeResult, fetchNetFlow, summaryTrend, type NetFlowResult, fetchCrmKpis, type CrmKpis, type CrmKpiValue } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, FEE_SPIKES, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult, fetchFirmographicMix, type FirmographicMixResult, fetchOwnerWealthHandoffs, ownerHandoffLeads, type OwnerHandoffResult, fetchMarketFootprint, type MarketFootprintResult, fetchCommercialWhoToCall, commercialWhoToCallItems, dropCovered, inheritDue, fetchIntentSignals, intentQueueItems, INTENT_SURGE_ROWS, COMPETITOR_ROWS, type IntentSignalResult, fetchFundingSignals, fundingQueueItems, FUNDING_ROWS, type FundingSignalResult, fetchChampionDepartures, championQueueItems, CHAMPION_ROWS, type JobChangeResult, fetchProspectSignals, rankProspectLeads, type ProspectSignalMap, fetchNetFlow, summaryTrend, type NetFlowResult, fetchCrmKpis, type CrmKpis, type CrmKpiValue } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /* ── Life-event signals ───────────────────────────────────────────
@@ -99,7 +99,7 @@ const HOME_CORE_QUERY = /* GraphQL */ `
       query {
         Opportunity(first: 200, where: { IsClosed: { eq: false } }, orderBy: { Amount: { order: DESC } }) {
           totalCount
-          edges { node { Id Name @optional { value } StageName @optional { value } Amount @optional { value } CloseDate @optional { value } Probability @optional { value } Account @optional { Name @optional { value } } } }
+          edges { node { Id Name @optional { value } StageName @optional { value } Amount @optional { value } CloseDate @optional { value } Probability @optional { value } AccountId @optional { value } Account @optional { Name @optional { value } } } }
         }
         Case(first: 8, where: { IsClosed: { eq: false } }, orderBy: { CreatedDate: { order: DESC } }) {
           totalCount
@@ -123,8 +123,8 @@ const HOME_CORE_QUERY = /* GraphQL */ `
         CustomerGoal: FinancialGoal(first: 8, where: { and: [ { TargetDate: { gte: { literal: TODAY } } }, { Status: { ne: "COMPLETED" } }, { FinancialPlanId: { ne: null } } ] }, orderBy: { TargetDate: { order: ASC } }) {
           edges { node { Id Name @optional { value } Status @optional { value } Priority @optional { value } Type @optional { value } Description @optional { value } TargetDate @optional { value } TargetAmount @optional { value } ActualAmount @optional { value } FinancialPlan @optional { Name @optional { value } AccountId @optional { value } Account @optional { Name @optional { value } } } } }
         }
-        Lead(first: 6, where: { IsConverted: { eq: false } }) {
-          edges { node { Id Name @optional { value } FirstName @optional { value } LastName @optional { value } Company @optional { value } Status @optional { value } LeadSource @optional { value } AnnualRevenue @optional { value } Email @optional { value } } }
+        Lead(first: 25, where: { IsConverted: { eq: false } }, orderBy: { LastModifiedDate: { order: DESC } }) {
+          edges { node { Id Name @optional { value } FirstName @optional { value } LastName @optional { value } Company @optional { value } Status @optional { value } LeadSource @optional { value } AnnualRevenue @optional { value } Email @optional { value } FinServ__RelatedAccount__c @optional { value } } }
         }
         PersonLifeEvent(first: 200, orderBy: { EventDate: { order: DESC } }) {
           edges { node { Id Name @optional { value } EventType @optional { value } EventDate @optional { value } PrimaryPersonId @optional { value } PrimaryPerson @optional { Name @optional { value } Account @optional { Name @optional { value } } } } }
@@ -251,39 +251,63 @@ interface CoreShape {
   } };
 }
 
-export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
+/** Closed-won dollars and recorded activity across the selected banker's recent calendar days. */
+async function readPortfolioActivity(ownerId: string) {
+  const date = (daysAgo: number) => new Date(Date.now() - daysAgo * 86400000).toISOString().slice(0, 10);
+  const window = (days: number) => `{ gte: { value: "${date(days - 1)}" }, lte: { value: "${date(0)}" } }`;
+  const owner = `OwnerId: { eq: ${JSON.stringify(ownerId)} }`;
+  const result = await executeGraphQL<{ uiapi: {
+    aggregate: { Opportunity: { edges: { node: { aggregate: { Id: { count: { value: number } }; Amount: { sum: { value: number | null } } } } }[] } };
+    query: { Task: { totalCount: number }; Event: { totalCount: number } };
+  } }>(`query PortfolioActivity { uiapi {
+    aggregate { Opportunity(where: { ${owner}, IsWon: { eq: true }, CloseDate: ${window(30)} }) {
+      edges { node { aggregate { Id { count { value } } Amount { sum { value } } } } }
+    } }
+    query {
+      Task(first: 1, where: { ${owner}, ActivityDate: ${window(7)} }) { totalCount }
+      Event(first: 1, where: { ${owner}, ActivityDate: ${window(7)} }) { totalCount }
+    }
+  } }`);
+  const won = result.uiapi.aggregate.Opportunity.edges[0]?.node.aggregate;
+  return { wonAmount: won?.Id.count.value ? won.Amount.sum.value : 0,
+    activities: result.uiapi.query.Task.totalCount + result.uiapi.query.Event.totalCount };
+}
+
+export async function fetchHomeDashboardReal(book?: { userId: string; name: string; firstName?: string }): Promise<HomeDashboard> {
   // The D&B queries need the banker's user Id to scope to their book;
   // GraphQL runs in parallel with that chain.
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
-  const userP = fetchEffectiveUser();
+  const strictBook = Boolean(book);
+  const userP = book ? Promise.resolve(book) : fetchEffectiveUser();
   // Weekly net flow from Snowflake FINANCIAL_TRANSACTIONS (via Data Cloud) — additive.
-  const netFlowP = userP.then(u => fetchNetFlow(u?.userId, 'Business')).catch((): NetFlowResult | null => null);
+  const portfolioActivityP = book ? readPortfolioActivity(book.userId).catch(() => undefined) : undefined;
+  const netFlowP = userP.then(u => fetchNetFlow(u?.userId, 'Business', strictBook)).catch((): NetFlowResult | null => null);
   // True CRM totals (aggregates, not the first N rows) + their weekly history, computed in Data 360 (crmKpis.ts).
-  const crmP = userP.then(u => fetchCrmKpis(u?.userId)).catch((): CrmKpis | null => null);
+  const crmP = userP.then(u => fetchCrmKpis(u?.userId, new Date(), strictBook)).catch((): CrmKpis | null => null);
   const [core, credit, who, currentUser, feeSpikes, gong, aml, offers, intros, receipts, uplift, touches, serviceNow, freshness, outlook, leadership, esg, firmo, handoffs, footprint, intent, funding, champions] = await Promise.all([
-    executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
-    userP.then(u => queryDataCloudForBook<CreditRow>(creditRiskSql, u?.userId, 8)),
-    userP.then(u => fetchCommercialWhoToCall(u?.userId)),
+    executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, book?.userId ?? getViewAs()?.userId)),
+    userP.then(u => queryDataCloudForBook<CreditRow>(creditRiskSql, u?.userId, 8, strictBook)),
+    userP.then(u => fetchCommercialWhoToCall(u?.userId, strictBook)),
     userP,
     // C9 is additive — a failed transaction query must not blank the page.
     userP.then(u => fetchFeeSpikes(u?.userId))
       .catch((): TxSignalResult<FeeSpike> => ({ rows: [], scope: 'org' })),
-    userP.then(u => fetchCallSentiment(u?.userId))
+    userP.then(u => fetchCallSentiment(u?.userId, strictBook))
       .catch((): CallSentimentResult => ({ rows: [], scope: 'org', weekly: [] })),
-    userP.then(u => fetchAmlChanges(u?.userId))
+    userP.then(u => fetchAmlChanges(u?.userId, strictBook))
       .catch((): TxSignalResult<AmlChange> => ({ rows: [], scope: 'org' })),
-    userP.then(u => fetchNextBestOffers(u?.userId, 'commercial'))
+    userP.then(u => fetchNextBestOffers(u?.userId, 'commercial', strictBook))
       .catch((): NextBestOfferResult => ({ rows: [], scope: 'org' })),
-    userP.then(u => fetchWarmIntros(u?.userId))
+    userP.then(u => fetchWarmIntros(u?.userId, strictBook))
       .catch((): WarmIntroResult => ({ rows: [], scope: 'org' })),
     // S5 business slice — additive like C9.
-    userP.then(u => fetchBusinessInflows(u?.userId))
+    userP.then(u => fetchBusinessInflows(u?.userId, strictBook))
       .catch((): TxSignalResult<LargeInflow> => ({ rows: [], scope: 'org' })),
     // S3 Growth KPI + S6 campaign touches — additive, like the other DC signals.
-    userP.then(u => fetchModeledUplift(u?.userId, 'commercial'))
+    userP.then(u => fetchModeledUplift(u?.userId, 'commercial', strictBook))
       .catch((): ModeledUplift => ({ total: 0, clients: 0, byOffer: [], scope: 'org' })),
-    userP.then(u => fetchCampaignTouches(u?.userId, 'Business'))
+    userP.then(u => fetchCampaignTouches(u?.userId, 'Business', strictBook))
       .catch((): CampaignTouchResult => ({ rows: [], scope: 'org' })),
     // S7 ServiceNow open cases (book-only) + S8 per-source freshness.
     userP.then(u => fetchServiceNowDrag(u?.userId))
@@ -291,27 +315,27 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     fetchDataFreshness(['transactions', 'worldCheck', 'marketing', 'serviceNow', 'gong', 'graph', 'offers', 'bizOffers', 'dnb', 'moodys', 'boardex', 'msci', 'zoominfo', 'claritas', 'esri'])
       .catch((): DataFreshness | undefined => undefined),
     // C2 Moody's outlook + C3 BoardEx leadership change — additive.
-    userP.then(u => fetchOutlookWatch(u?.userId))
+    userP.then(u => fetchOutlookWatch(u?.userId, strictBook))
       .catch((): OutlookResult => ({ history: {}, rows: [], negative: 0, watch: 0, scope: 'org' })),
-    userP.then(u => fetchLeadershipChanges(u?.userId))
+    userP.then(u => fetchLeadershipChanges(u?.userId, strictBook))
       .catch((): LeadershipResult => ({ history: {}, rows: [], turnover: 0, recent: 0, weak: 0, scope: 'org' })),
     // C4 MSCI ESG movers — additive.
-    userP.then(u => fetchEsgMovers(u?.userId))
+    userP.then(u => fetchEsgMovers(u?.userId, strictBook))
       .catch((): EsgMoversResult => ({ rows: [], up: 0, down: 0, controversies: 0, scope: 'org' })),
     // C5 ZoomInfo growth-tier mix + C6 owner-wealth handoffs — additive.
-    userP.then(u => fetchFirmographicMix(u?.userId))
+    userP.then(u => fetchFirmographicMix(u?.userId, strictBook))
       .catch((): FirmographicMixResult => ({ history: {}, revenue: [], employees: [], total: 0, upmarket: 0, rows: [], scope: 'org' })),
-    userP.then(u => fetchOwnerWealthHandoffs(u?.userId))
+    userP.then(u => fetchOwnerWealthHandoffs(u?.userId, strictBook))
       .catch((): OwnerHandoffResult => ({ rows: [], owners: 0, millionaires: 0, scope: 'org' })),
     // C7 ESRI branch footprint — additive.
-    userP.then(u => fetchMarketFootprint(u?.userId))
+    userP.then(u => fetchMarketFootprint(u?.userId, strictBook))
       .catch((): MarketFootprintResult => ({ history: {}, rows: [], clients: 0, zips: 0, consolidate: 0, affluent: 0, avgWealthIndex: 0, avgFootTraffic: 0, avgDistanceMi: 0, scope: 'org' })),
     // Plans 14–16 — Demandbase intent, Harmonic funding, UserGems job changes — additive.
-    userP.then(u => fetchIntentSignals(u?.userId))
+    userP.then(u => fetchIntentSignals(u?.userId, strictBook))
       .catch((): IntentSignalResult => ({ rows: [], surging: 0, competitor: 0, scope: 'org' })),
-    userP.then(u => fetchFundingSignals(u?.userId))
+    userP.then(u => fetchFundingSignals(u?.userId, strictBook))
       .catch((): FundingSignalResult => ({ rows: [], funded: 0, scope: 'org' })),
-    userP.then(u => fetchChampionDepartures(u?.userId))
+    userP.then(u => fetchChampionDepartures(u?.userId, strictBook))
       .catch((): JobChangeResult => ({ rows: [], total: 0, scope: 'org' })),
   ]);
   const netFlow = await netFlowP;
@@ -545,7 +569,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     return true;
   });
 
-  const leads: LeadReferral[] = (q?.Lead?.edges ?? []).map((e, i) => ({
+  const crmLeads: LeadReferral[] = (q?.Lead?.edges ?? []).map((e, i) => ({
     id: `l${i}`, name: s(e.node, 'Name') || s(e.node, 'Company') || 'Lead',
     source: s(e.node, 'LeadSource') || '—', status: s(e.node, 'Status') || 'New',
     value: num(e.node, 'AnnualRevenue'),
@@ -554,10 +578,29 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     firstName: s(e.node, 'FirstName') || undefined,
     lastName: s(e.node, 'LastName') || undefined,
     company: s(e.node, 'Company') || undefined,
+    accountId: s(e.node, 'FinServ__RelatedAccount__c') || undefined,
   }));
+  // Identify & Acquire — leads linked to a prospect Account borrow its
+  // UserGems / Demandbase / Harmonic signals; signalled leads rank first.
+  const prospectSignals: ProspectSignalMap = await fetchProspectSignals(crmLeads.map(l => l.accountId ?? '')).catch(() => ({}));
+  // Resolve the champions' former employers so the chip reads "Champion joined from X".
+  const formerIds = [...new Set(Object.values(prospectSignals).map(p => p.champion?.fromAccountId ?? ''))]
+    .filter(id => id && !nameById[id]).slice(0, 50);
+  if (formerIds.length) {
+    try {
+      const names = await executeGraphQL<{ uiapi?: { query?: { Account?: { edges?: { node: Node }[] } } } }>(accountNamesQuery(formerIds));
+      for (const e of names.uiapi?.query?.Account?.edges ?? []) {
+        const id = (e.node as { Id?: string }).Id ?? '';
+        if (id) nameById[id] = s(e.node, 'Name');
+      }
+    } catch { /* names best-effort — chip falls back to "Champion joined" */ }
+  }
+  const leads: LeadReferral[] = rankProspectLeads(crmLeads, prospectSignals, nameById).slice(0, 6);
 
   const pipeline: PipelineItem[] = (opp?.edges ?? []).slice(0, 8).map((e, i) => ({
     id: `o${i}`,
+    recordId: (e.node as { Id?: string }).Id,
+    clientId: s(e.node, 'AccountId') || undefined,
     clientName: e.node.Account?.Name?.value ?? '—',
     name: s(e.node, 'Name'), stage: s(e.node, 'StageName'),
     amount: num(e.node, 'Amount'), closeDate: s(e.node, 'CloseDate'),
@@ -694,6 +737,13 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     confidencePct: freshness?.pct,
     dataSourceCount: freshness?.sources.length,
     dataFreshness: freshness,
+    portfolioActivity: await portfolioActivityP,
+    unavailableMetrics: strictBook ? Object.entries({
+      netFlow: !netFlow?.last, pipeline: !crm, openOpps: !crm, leads: !crm, goals: !crm,
+      openCases: !crm || serviceNow.scope !== 'book', atRisk: !watch, callTone: gong.scope !== 'book',
+      uplift: uplift.scope !== 'book', outlook: outlook.scope !== 'book', leadership: leadership.scope !== 'book',
+      esg: esg.scope !== 'book', upmarket: firmo.scope !== 'book', branchRisk: footprint.scope !== 'book',
+    }).filter(([, unavailable]) => unavailable).map(([key]) => key) : undefined,
     marketFootprint: footprint,
     firmographics: { ...firmo, rows: firmo.rows.map(r => ({ ...r, clientName: nameById[r.accountId] || 'Client' })) },
     kpis: [

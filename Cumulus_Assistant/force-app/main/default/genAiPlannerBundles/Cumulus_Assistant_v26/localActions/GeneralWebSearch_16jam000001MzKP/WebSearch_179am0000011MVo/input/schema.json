@@ -1,0 +1,32 @@
+{
+  "required" : [ "searchQuery" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "searchQuery" : {
+      "title" : "Search Query",
+      "description" : "Free-text input that specifies what the user wants to search for.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "Free-text string containing what the user wants to search for.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "searchProvider" : {
+      "title" : "Search Provider",
+      "description" : "The search provider used for web searches.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "The search provider used for web searches. This can only be configured by admin.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "siteFilter" : {
+      "title" : "Allowed Domains",
+      "description" : "A comma-separated list of up to 10 allowed domains to filter web search results.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "A comma-separated list of up to 10 allowed domains to filter web search results. This can only be configured by admin.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

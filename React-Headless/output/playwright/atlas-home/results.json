@@ -1,0 +1,54 @@
+{
+  "layouts": [
+    {
+      "persona": "retail",
+      "width": 1512
+    },
+    {
+      "persona": "retail",
+      "width": 1024
+    },
+    {
+      "persona": "retail",
+      "width": 768
+    },
+    {
+      "persona": "retail",
+      "width": 390
+    },
+    {
+      "persona": "wealth",
+      "width": 1512
+    },
+    {
+      "persona": "wealth",
+      "width": 1024
+    },
+    {
+      "persona": "wealth",
+      "width": 768
+    },
+    {
+      "persona": "wealth",
+      "width": 390
+    },
+    {
+      "persona": "commercial",
+      "width": 1512
+    },
+    {
+      "persona": "commercial",
+      "width": 1024
+    },
+    {
+      "persona": "commercial",
+      "width": 768
+    },
+    {
+      "persona": "commercial",
+      "width": 390
+    }
+  ],
+  "journeys": "Retail modes and source case; exact-ID retention task; Wealth review/meeting/trades/platform handoff; Commercial bands/company/deal room; home task action draft",
+  "errors": []
+}

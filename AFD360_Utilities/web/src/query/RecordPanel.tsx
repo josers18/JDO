@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, X } from "lucide-react";
-import type { QueryColumn } from "../../../shared/types";
+import type { OrgSummary, QueryColumn } from "../../../shared/types";
 
 // A JSON string inside a cell (a blob column, say) reads as the object it holds.
 const unpack = (v: unknown): unknown => {
@@ -58,6 +58,7 @@ function Node({ name, value, depth, openDepth }: { name: string; value: unknown;
 }
 
 interface Props {
+  org: OrgSummary;
   columns: QueryColumn[];
   row: unknown[];
   index: number;
@@ -67,10 +68,13 @@ interface Props {
 }
 
 // One result row as a collapsible tree, nested data graph objects and JSON strings unfolded.
-export function RecordPanel({ columns, row, index, count, onMove, onClose }: Props) {
+export function RecordPanel({ org, columns, row, index, count, onMove, onClose }: Props) {
   const [openDepth, setOpenDepth] = useState(1); // columns open, nested records collapsed to a summary
   const [copied, setCopied] = useState(false);
   const record = Object.fromEntries(columns.map((c, i) => [c.name, unpack(row[i] ?? null)]));
+
+  const docId = String(record.content_document_id ?? "");
+  const isFile = /^069[a-zA-Z0-9]{12}(?:[a-zA-Z0-9]{3})?$/.test(docId);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -108,6 +112,7 @@ export function RecordPanel({ columns, row, index, count, onMove, onClose }: Pro
         </button>
       </div>
       <div key={`${index}-${openDepth}`} className="min-h-0 flex-1 overflow-auto p-2 font-mono text-xs">
+        {isFile && record.file_type !== "SNOTE" && <a className="mb-2 inline-block text-action underline" href={`${org.myDomain}/lightning/r/ContentDocument/${docId}/view`} target="_blank" rel="noreferrer">Open file in Salesforce</a>}
         {columns.map((c, i) => (
           <Node key={c.name} name={c.name} value={row[i] ?? null} depth={0} openDepth={openDepth} />
         ))}

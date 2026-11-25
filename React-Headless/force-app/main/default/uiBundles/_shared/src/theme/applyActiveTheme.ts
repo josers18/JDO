@@ -9,15 +9,16 @@
  *
  * Degrades silently on any failure: the persona default stays in effect.
  */
+import type { PersonaKey } from './themes';
 import { listThemes } from '../data/brandThemeClient';
 import { resolveActiveTheme } from './brandThemes';
 import { setBrandOverride } from './activeBrand';
 import { setDisplaySize } from './displaySize';
 import { findDefaultTheme } from './defaultThemes';
 
-export async function applyActiveThemeOnLoad(): Promise<void> {
+export async function applyActiveThemeOnLoad(workspace?: PersonaKey): Promise<void> {
   try {
-    const { themes, activeThemeId, displaySize } = await listThemes();
+    const { themes, activeThemeId, displaySize } = await listThemes(workspace);
     // Per-user display size (font/UI scale). Set FIRST so it applies regardless
     // of which theme branch below runs. Unknown/blank → baseline (setDisplaySize
     // guards this), so a user who never picked one renders at 100%.
@@ -45,6 +46,7 @@ export async function applyActiveThemeOnLoad(): Promise<void> {
         negColor: active.negColor?.trim() || undefined,
         linkColor: active.linkColor?.trim() || undefined,
         logoBase64: active.logoBase64,
+        logoContentType: active.logoContentType,
         brandName: active.brandName?.trim() || active.name,
         // A forked Light/Dark theme carries a structural mode + surface/sidebar
         // palettes; a URL-extracted brand leaves them undefined (holistic,

@@ -1,0 +1,356 @@
+{
+  "errors": [],
+  "writes": [],
+  "views": [
+    {
+      "width": 1512,
+      "action": "apps",
+      "rect": {
+        "x": 331,
+        "y": 50,
+        "right": 1181,
+        "bottom": 950
+      },
+      "visibleHeading": "App Launcher",
+      "focused": "as-app-query",
+      "buttons": [
+        {
+          "text": "×",
+          "font": "32px",
+          "height": 44
+        },
+        {
+          "text": "React RetailOpen preview",
+          "font": "16px",
+          "height": 132
+        },
+        {
+          "text": "React WealthCurrent workspace",
+          "font": "16px",
+          "height": 132
+        },
+        {
+          "text": "React CommercialOpen preview",
+          "font": "16px",
+          "height": 132
+        },
+        {
+          "text": "Retail Banking ConsoleSalesforce ↗",
+          "font": "16px",
+          "height": 132
+        },
+        {
+          "text": "Retail BankingSalesforce ↗",
+          "font": "16px",
+          "height": 132
+        },
+        {
+          "text": "Banking - ConsoleSalesforce ↗",
+          "font": "16px",
+          "height": 132
+        },
+        {
+          "text": "Commercial BankingSalesforce ↗",
+          "font": "16px",
+          "height": 132
+        }
+      ],
+      "nativeTiles": 33,
+      "dialogOverflow": false
+    },
+    {
+      "width": 1512,
+      "action": "notifications",
+      "rect": {
+        "x": 331,
+        "y": 50,
+        "right": 1181,
+        "bottom": 950
+      },
+      "visibleHeading": "Notifications & tasks",
+      "focused": "BUTTON",
+      "buttons": [
+        {
+          "text": "×",
+          "font": "32px",
+          "height": 44
+        },
+        {
+          "text": "Case 00013101 · 529 distribution timing question · New ↗",
+          "font": "15px",
+          "height": 54
+        },
+        {
+          "text": "Case 00013040 · Need to reorder checks · Waiting on Customer",
+          "font": "15px",
+          "height": 54
+        },
+        {
+          "text": "Case 00013240 · Treasury workstation outage · Waiting on Cus",
+          "font": "15px",
+          "height": 54
+        },
+        {
+          "text": "Case 00013027 · Card declined at point of sale · New ↗",
+          "font": "15px",
+          "height": 54
+        },
+        {
+          "text": "Case 00013021 · Card declined at point of sale · Working ↗",
+          "font": "15px",
+          "height": 54
+        },
+        {
+          "text": "Case 00013234 · ACH origination reject investigation · Waiti",
+          "font": "15px",
+          "height": 54
+        },
+        {
+          "text": "Retail - Personal Loan · Proposal Issued ↗",
+          "font": "15px",
+          "height": 54
+        }
+      ],
+      "nativeTiles": 0,
+      "dialogOverflow": false
+    },
+    {
+      "width": 1512,
+      "action": "user",
+      "rect": {
+        "x": 331,
+        "y": 114.09375,
+        "right": 1181,
+        "bottom": 885.890625
+      },
+      "visibleHeading": "My account",
+      "focused": "BUTTON",
+      "buttons": [
+        {
+          "text": "×",
+          "font": "32px",
+          "height": 44
+        },
+        {
+          "text": "Personal settings ↗",
+          "font": "16px",
+          "height": 50
+        },
+        {
+          "text": "App administration / Configuration →",
+          "font": "16px",
+          "height": 50
+        },
+        {
+          "text": "Setup ↗",
+          "font": "16px",
+          "height": 50
+        },
+        {
+          "text": "Data Cloud Setup ↗",
+          "font": "16px",
+          "height": 50
+        },
+        {
+          "text": "Default100%",
+          "font": "13px",
+          "height": 67
+        },
+        {
+          "text": "Comfortable110%",
+          "font": "13px",
+          "height": 67
+        },
+        {
+          "text": "Large125%",
+          "font": "13px",
+          "height": 67
+        }
+      ],
+      "nativeTiles": 0,
+      "dialogOverflow": false
+    },
+    {
+      "width": 1512,
+      "action": "search",
+      "groups": [],
+      "results": [],
+      "dialogWidth": 850
+    },
+    {
+      "width": 390,
+      "action": "apps",
+      "rect": {
+        "x": 14,
+        "y": 50,
+        "right": 376,
+        "bottom": 950
+      },
+      "visibleHeading": "App Launcher",
+      "focused": "as-app-query",
+      "buttons": [
+        {
+          "text": "×",
+          "font": "32px",
+          "height": 44
+        },
+        {
+          "text": "React RetailOpen preview",
+          "font": "15px",
+          "height": 126
+        },
+        {
+          "text": "React WealthCurrent workspace",
+          "font": "15px",
+          "height": 126
+        },
+        {
+          "text": "React CommercialOpen preview",
+          "font": "15px",
+          "height": 126
+        },
+        {
+          "text": "Retail Banking ConsoleSalesforce ↗",
+          "font": "15px",
+          "height": 145
+        },
+        {
+          "text": "Retail BankingSalesforce ↗",
+          "font": "15px",
+          "height": 145
+        },
+        {
+          "text": "Banking - ConsoleSalesforce ↗",
+          "font": "15px",
+          "height": 145
+        },
+        {
+          "text": "Commercial BankingSalesforce ↗",
+          "font": "15px",
+          "height": 145
+        }
+      ],
+      "nativeTiles": 33,
+      "dialogOverflow": false
+    },
+    {
+      "width": 390,
+      "action": "notifications",
+      "rect": {
+        "x": 14,
+        "y": 50,
+        "right": 376,
+        "bottom": 950
+      },
+      "visibleHeading": "Notifications & tasks",
+      "focused": "BUTTON",
+      "buttons": [
+        {
+          "text": "×",
+          "font": "32px",
+          "height": 44
+        },
+        {
+          "text": "Case 00013101 · 529 distribution timing question · New ↗",
+          "font": "15px",
+          "height": 76
+        },
+        {
+          "text": "Case 00013040 · Need to reorder checks · Waiting on Customer",
+          "font": "15px",
+          "height": 76
+        },
+        {
+          "text": "Case 00013240 · Treasury workstation outage · Waiting on Cus",
+          "font": "15px",
+          "height": 76
+        },
+        {
+          "text": "Case 00013027 · Card declined at point of sale · New ↗",
+          "font": "15px",
+          "height": 76
+        },
+        {
+          "text": "Case 00013021 · Card declined at point of sale · Working ↗",
+          "font": "15px",
+          "height": 76
+        },
+        {
+          "text": "Case 00013234 · ACH origination reject investigation · Waiti",
+          "font": "15px",
+          "height": 76
+        },
+        {
+          "text": "Retail - Personal Loan · Proposal Issued ↗",
+          "font": "15px",
+          "height": 76
+        }
+      ],
+      "nativeTiles": 0,
+      "dialogOverflow": false
+    },
+    {
+      "width": 390,
+      "action": "user",
+      "rect": {
+        "x": 14,
+        "y": 71.953125,
+        "right": 376,
+        "bottom": 928.03125
+      },
+      "visibleHeading": "My account",
+      "focused": "BUTTON",
+      "buttons": [
+        {
+          "text": "×",
+          "font": "32px",
+          "height": 44
+        },
+        {
+          "text": "Personal settings ↗",
+          "font": "16px",
+          "height": 50
+        },
+        {
+          "text": "App administration / Configuration →",
+          "font": "15px",
+          "height": 49
+        },
+        {
+          "text": "Setup ↗",
+          "font": "16px",
+          "height": 50
+        },
+        {
+          "text": "Data Cloud Setup ↗",
+          "font": "16px",
+          "height": 50
+        },
+        {
+          "text": "Default100%",
+          "font": "13px",
+          "height": 67
+        },
+        {
+          "text": "Comfortable110%",
+          "font": "13px",
+          "height": 67
+        },
+        {
+          "text": "Large125%",
+          "font": "13px",
+          "height": 67
+        }
+      ],
+      "nativeTiles": 0,
+      "dialogOverflow": false
+    },
+    {
+      "width": 390,
+      "action": "search",
+      "groups": [],
+      "results": [],
+      "dialogWidth": 362
+    }
+  ]
+}

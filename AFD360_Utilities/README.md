@@ -9,11 +9,27 @@ Local test bench for Agentforce and Data 360 APIs, built for SEs to demo live to
   - a **Wire** panel with every Salesforce call.
 - **MCP.** An MCP Apps host for Salesforce-hosted MCP servers: list and call tools, and render their HXL widgets
   in a sandbox.
+- **API (Data 360 Connect REST).** Explore the 36 families in the [Salesforce v68.0 reference](https://developer.salesforce.com/docs/data/connectapi/references/spec).
+  Pick a family or search all 428 operations by name, verb, or path. Each operation has its own parameter and
+  payload form. Use **Choose from org** for supported path, query, and request body inputs, including
+  data spaces, model and lake objects, segments, and configured models. Load more choices when a lookup returns
+  a continuation URL. You can also load a Salesforce example, edit fields or JSON, and inspect the response beside Wire. Switch between **Readable**
+  and **Raw JSON** for the full response or an inspected record. List responses
+  support record inspection and next-page requests when Salesforce returns a matching continuation URL.
+  Required and conditional inputs appear first. Expand optional inputs for additional filters and body fields.
+  **Reset form** clears the current inputs and response while keeping its call history in Wire.
+  Review and approve POST, PATCH, PUT, and DELETE requests before they are sent to the displayed org.
 - **Query (Data 360).** Browse a data space's objects and run them through the Query API:
   - a SQL editor with catalog autocomplete;
   - REST read forms for data graphs, insights, profiles and Universal ID;
   - a sortable, filterable result grid;
-  - vector and hybrid searches joined to their chunk text.
+  - vector and hybrid searches joined to their chunk text;
+  - **Content → Notes** lists current notes and their linked Account IDs. Run the query to read the first
+    full CRM note above the results. Select another row to read its body. A note linked to two accounts has
+    a row for each. Notes without a mapped account link have an empty Account ID.
+  - **Content → Images, HTML, Documents** reads current files directly from the content version source and joins
+    linked accounts when mapped. Files without an account link still appear. Open a result row to view the file
+    in Salesforce. Data spaces without the source fields use the mapped document and version objects. See the [Salesforce Files data model](https://help.salesforce.com/s/articleView?id=005314319&type=1).
 - **Notebook (Python).** Jupyter-style cells on a Python kernel per org, preloaded with the Data Cloud Python
   connector (`salesforce-cdp-connector`): connect, query a DMO into a pandas DataFrame, chart it. Tables and figures
   render under each cell with a one-line summary (time, rows, Data Cloud vs transfer time, size, HTTP calls). The

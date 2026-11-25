@@ -1,0 +1,40 @@
+{
+  "required" : [ "canvasId", "accessLevel" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "canvasId" : {
+      "title" : "Slack Canvas ID",
+      "description" : "Unique identifier of the existing canvas to share (e.g. F017CC8EGRG).",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "Unique identifier of the existing canvas to share (e.g. F017CC8EGRG). This is required to ensure that the correct canvas document is shared.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "userIds" : {
+      "title" : "Slack User IDs",
+      "description" : "A comma-separated list of Slack User IDs to share the provided Slack Canvas with.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "A comma separated list of Slack User IDs to share the provided Slack Canvas with. A single Slack User ID is represented as a string like U987654321. If a string like <@U987654321> is provided extract a Slack User ID from it by removing the <@ and > characters. For example, the Slack User in <@U987654321> is U987654321. The input here needs to be a comma separated list of Slack User IDs like U12345678,U987654321,U781345729.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "channelIds" : {
+      "title" : "Slack Channel IDs",
+      "description" : "A comma-separated list of Slack Channel IDs to share the provided Slack Canvas with.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "A comma separated list of Slack Channel IDs to share the provided Slack Canvas with. A single Slack Channel ID is represented as a string like C987654321. If a string like <@C987654321> is provided extract a Slack Channel ID from it by removing the <@ and > characters. For example, the Slack User in <@C987654321> is C987654321. The input here needs to be a comma separated list of Slack Channel IDs like C12345678,C987654321,C781345729.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "accessLevel" : {
+      "title" : "accessLevel",
+      "description" : "The access level for the shared Slack Canvas: view or edit.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "The access level for the shared Slack Canvas: view or edit",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

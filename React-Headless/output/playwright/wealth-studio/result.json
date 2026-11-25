@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "errors": [],
+  "writes": [],
+  "flows": [
+    "native stage filtering and exact Opportunity proposal",
+    "search empty and keyboard SVG selection",
+    "risk source provenance and review crosslinks",
+    "exact Contact-linked milestone edit",
+    "calendar month/day reset",
+    "native Event update times",
+    "source cases and local proposal library",
+    "1512/1024/768/390 overflow"
+  ]
+}

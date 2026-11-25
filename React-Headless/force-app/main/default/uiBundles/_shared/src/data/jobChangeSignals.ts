@@ -119,8 +119,9 @@ async function fetchJobChanges(
   summarySql: (f: string) => string,
   limit: number,
   accountKey: 'account_id__c' | 'person_account_id__c',
+  strictBook = false,
 ): Promise<JobChangeResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, limit);
+  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, limit, strictBook);
   // The count is additive — if the summary query fails, the rows still render.
   const total = await queryDataCloud<Record<string, unknown>>(summarySql(res.accountFilter), 1)
     .then(r => r.rows[0] ?? {})
@@ -133,12 +134,12 @@ async function fetchJobChanges(
 }
 
 /** UserGems — champions / primary contacts who left a client employer in the last 30 days. */
-export const fetchChampionDepartures = (ownerId: string | null | undefined) =>
-  fetchJobChanges(ownerId, championRowsSql, championSummarySql, CHAMPION_FETCH, 'account_id__c');
+export const fetchChampionDepartures = (ownerId: string | null | undefined, strictBook = false) =>
+  fetchJobChanges(ownerId, championRowsSql, championSummarySql, CHAMPION_FETCH, 'account_id__c', strictBook);
 
 /** UserGems — person accounts that left an employer with a liquidity event in the last 180 days. */
-export const fetchLiquidityEvents = (ownerId: string | null | undefined) =>
-  fetchJobChanges(ownerId, liquidityRowsSql, liquiditySummarySql, LIQUIDITY_FETCH, 'person_account_id__c');
+export const fetchLiquidityEvents = (ownerId: string | null | undefined, strictBook = false) =>
+  fetchJobChanges(ownerId, liquidityRowsSql, liquiditySummarySql, LIQUIDITY_FETCH, 'person_account_id__c', strictBook);
 
 /** Champion departures → priority-queue items, due a week after detection.
  *  Flagged `reserveSlot` so the strongest new signal always holds a queue slot. */

@@ -81,25 +81,14 @@ Other surfaces (Lightning, Claude, ChatGPT) apply their own look. The card *stru
 | MCP server | `AFD360Demo` at `/platform/mcp/v1/custom/AFD360Demo`: `getLeadSnapshot`, `getAccountSnapshot`, `getOpportunitySnapshot`, `createTask` |
 | Agents | **Cumulus Assistant v26** (`../Cumulus_Assistant`; the GeneralCRM topic has the four card actions, rollback = activate v25). `AFD360_HXL_Agent` is deactivated, but its source is kept. |
 
-**Card design.** Every card follows the same layout:
-- an avatar icon header with a title and summary line, in a row with `isWrapped: false`;
-- headline stats, with the label above the value;
-- badges;
-- a separator;
-- a two-column details grid;
-- an action row: a follow-up `sendMessage` button with an icon, plus "Open in Salesforce".
+The four cards use native HXL tiles and links to their source records. The task card displays the action result, including an error when creation fails. Record-card actions are available only for matched records.
 
-All four widgets validate against the official v68 schemas and the `childBlocks` limits (from the Playground's AI
-Toolkit, installed as the personal skill `hxl-widget-authoring`).
-
-The buttons and their messages:
-
-| Card | Button | Message sent |
+| Card | First visible information | Follow-up |
 |---|---|---|
-| Lead | Create follow-up task | "Create a follow-up task for the lead …" |
-| Account | Show top opportunity | "Show me the top open opportunity for …" |
-| Opportunity | Create follow-up task | "Create a follow-up task on the opportunity …" |
-| Task | Mark complete | "Mark the task "…" (Id) as Completed" |
+| Account | Open pipeline and opportunity count. Expand Relationship details for the owner and contact information. | View largest open deal uses the account ID. |
+| Lead | Contact information, status and rating. Expand Lead history for source and creation date. | Plan outreach carries the lead record URL and asks for the subject and due date. |
+| Opportunity | Amount, close date, stage, probability and recorded next step. | Plan follow-up carries the opportunity ID. |
+| Task | Creation result, status, priority, due date and assignee. | Review completion identifies the task by ID and requests confirmation. |
 
 **Deploy order.** Widget first, then Apex and CLTs (payload before wrapper), then the MCP server, then Activate it
 in Setup → MCP Servers. HXL must be on: Setup → Headless Experience Layer Settings.

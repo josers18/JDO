@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { embedAgentforceClient } from '@salesforce/agentforce-conversation-client';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { embedAgentforceClient, type AgentforceContextVariable, type EmbedAgentforceClientResult } from '@salesforce/agentforce-conversation-client';
+import type { PersonaKey } from '../theme/themes';
 import { orgCoreOrigin } from '../data/orgEnv';
 import { useBrandOverride } from '../theme/activeBrand';
 import { buildAiFamily } from '../theme/brandThemes';
@@ -52,9 +53,9 @@ export const CUMULUS_AGENTS: AgentOption[] = [
 const AGENT_CHOICE_KEY = 'cumulus.agentId';
 
 /** Read the persisted agent choice (per tab), guarding no-storage envs. */
-function readSavedAgentId(): string | null {
+function readSavedAgentId(key: string): string | null {
   try {
-    return window.sessionStorage.getItem(AGENT_CHOICE_KEY);
+    return window.sessionStorage.getItem(key);
   } catch {
     return null;
   }
@@ -65,12 +66,18 @@ function readSavedAgentId(): string | null {
  *  labels / accent differ). `accent` themes the FAB + header (ACC's styleTokens
  *  take flat hex strings, not CSS vars, since the panel is a cross-origin
  *  iframe — so the brand color is passed in, not read from the cascade). */
-function buildAccConfig(agentId: string, agentLabel: string, accent: string, placeholder?: string) {
+function buildAccConfig(agentId: string, agentLabel: string, accent: string, placeholder?: string, inline = false) {
   return {
     agentId,
     agentLabel,
     ...(placeholder ? { messageInputPlaceholderText: placeholder } : {}),
-    renderingConfig: {
+    renderingConfig: inline ? {
+      mode: 'inline' as const,
+      width: '100%',
+      height: '100%',
+      headerEnabled: false,
+      showAvatar: false,
+    } : {
       mode: 'floating' as const,
       // Roomier than the default panel so long, formatted answers (product
       // overviews, tables) have space to breathe. Floating mode has no
@@ -85,6 +92,13 @@ function buildAccConfig(agentId: string, agentLabel: string, accent: string, pla
     // Theme the FAB + header to the agentic accent (pink baseline, or the
     // active custom brand's accent).
     styleTokens: {
+      // ACC stacks its avatar above the body. Paint the same Salesforce mark in
+      // the message gutter so wrapped text aligns without moving the native content.
+      ...(inline ? {
+        messageBlockInboundBackgroundColor: `url("${orgCoreOrigin()}/resource/AtlasAgentforceAvatar") 0.5rem 0.68rem / 1.25rem 1.25rem no-repeat`,
+        messageBlockPadding: '0.5rem 0.625rem 0.5rem 2.35rem',
+        messageBlockContainerMarginTop: '0.25rem',
+      } : {}),
       fabBackground: accent,
       fabForegroundColor: '#ffffff',
       // `containerBackground: transparent` keeps ACC from painting a backdrop
@@ -172,11 +186,8 @@ function clipLauncherCss(): void {
  * into); it docks to the panel's top edge while open and collapses to a dot by
  * the FAB closed.
  *
- * CONTEXT: ACC v11.4.5 has NO context-injection channel — verified against both
- * the type surface and the built bundle (only outbound accready/min/max events,
- * no postMessage/send API), and the iframe is cross-origin so its input DOM is
- * unreachable. The honest ceiling is priming the visible chrome: header label +
- * input placeholder, so the panel opens scoped to the record.
+ * Inline V2 embeds use the SDK context bridge. Page and record changes update
+ * the current session. Legacy floating clients use their existing chrome labels.
  *
  * Docs: https://developer.salesforce.com/docs/platform/multiframework/guide/reactdev-acc.html
  */
@@ -185,6 +196,12 @@ export function AgentforceChat({
   agentLabel = 'Cumulus Assistant',
   agents = CUMULUS_AGENTS,
   contextLabel,
+  pageContext,
+  agentScope,
+  baselineAccent,
+  inline = false,
+  detailsOpen = false,
+  workspaceDetails,
 }: {
   /** Default agent for this page; overridden by a persisted user choice. */
   agentId?: string;
@@ -197,6 +214,12 @@ export function AgentforceChat({
    * silently told which record is open.
    */
   contextLabel?: string;
+  pageContext?: AgentforceContextVariable[];
+  agentScope?: PersonaKey;
+  baselineAccent?: string;
+  inline?: boolean;
+  detailsOpen?: boolean;
+  workspaceDetails?: ReactNode;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   // Agentic accent for the FAB + header. A CUSTOM brand (override with no
@@ -207,19 +230,47 @@ export function AgentforceChat({
   // without one it derives from the brand accent; baseline/fixed defaults keep
   // the reserved Aurora pink.
   const agentColor =
-    brand && !brand.mode
+    !inline && brand && !brand.mode
       ? buildAiFamily(brand.aiAccent?.trim() || brand.accent).bubble
-      : DEFAULT_AGENT_COLOR;
+      : baselineAccent ?? DEFAULT_AGENT_COLOR;
   // A persisted user choice (from a prior switch) wins over the page default.
-  const savedId = readSavedAgentId();
+  const choiceKey = agentScope ? AGENT_CHOICE_KEY + '.' + agentScope : AGENT_CHOICE_KEY;
+  const savedId = readSavedAgentId(choiceKey);
   const initialId =
     (savedId && agents.some(a => a.id === savedId) ? savedId : undefined) ??
     agentId ??
     agents[0]?.id ??
     '';
-  const [activeId, setActiveId] = useState(initialId);
+  const [chosenId, setActiveId] = useState(initialId);
+  const activeId = agents.some(a => a.id === chosenId) ? chosenId : initialId;
+  const handle = useRef<EmbedAgentforceClientResult | null>(null);
+  const [contextState, setContextState] = useState<'syncing' | 'applied' | 'failed'>('syncing');
+  const recordId = pageContext?.find(v => v.name === 'currentRecordId')?.value;
+  const [copiedRecord, setCopiedRecord] = useState('');
+  async function copyRecord(id: string) {
+    try {
+      await navigator.clipboard.writeText(id);
+      setCopiedRecord(id);
+    } catch {
+      // The ID stays selectable when the browser does not allow clipboard writes.
+      setCopiedRecord('');
+    }
+  }
+  const [contextAttempt, setContextAttempt] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const embedKey = `${activeId}:${agentColor}:${attempt}`;
+  const [connection, setConnection] = useState<{ key: string; ready: boolean } | null>(null);
+  const inlineStatus = connection?.key === embedKey ? (connection.ready ? 'ready' : 'failed') : 'connecting';
+
+
+  function pickAgent(id: string) {
+    setPickerOpen(false);
+    if (id === activeId) return;
+    try { sessionStorage.setItem(choiceKey, id); } catch { /* The selection still applies here. */ }
+    setActiveId(id);
+  }
 
   const active = agents.find(a => a.id === activeId);
   const baseLabel = active?.label ?? agentLabel;
@@ -250,6 +301,10 @@ export function AgentforceChat({
 
     let loApp: { remove?: () => void } | undefined;
     let cancelled = false;
+    let slowTimer: number | undefined;
+    const setInlineConnection = (ready: boolean) => {
+      if (inline && !cancelled) setConnection({ key: embedKey, ready });
+    };
     // Cross-origin Lightning Out registers the ACC web-component tag in a
     // GLOBAL registry; tearing one embed down and mounting the next in the same
     // tick races deregistration ("already registered to another App" → the new
@@ -265,15 +320,25 @@ export function AgentforceChat({
         const result = embedAgentforceClient({
           container: el,
           salesforceOrigin: orgCoreOrigin(),
-          agentforceClientConfig: buildAccConfig(activeId, headerLabel, agentColor, placeholder),
+          agentforceClientConfig: buildAccConfig(activeId, headerLabel, agentColor, placeholder, inline),
           onError: (err: { type: string; detail: unknown }) => {
+            setInlineConnection(false);
             // Keep failures quiet in the UI; surface in console for debugging.
             // eslint-disable-next-line no-console
             console.warn('[AgentforceChat] Lightning Out error', err.type, err.detail);
           },
         });
+        handle.current = result;
         loApp = result.loApp as unknown as { remove?: () => void };
+        if (inline) {
+          slowTimer = window.setTimeout(() => setInlineConnection(false), 20000);
+          result.chatClientComponent.addEventListener('accready', () => {
+            window.clearTimeout(slowTimer);
+            setInlineConnection(true);
+          }, { once: true });
+        }
       } catch (e) {
+        setInlineConnection(false);
         // eslint-disable-next-line no-console
         console.warn('[AgentforceChat] failed to embed', e);
       }
@@ -281,6 +346,8 @@ export function AgentforceChat({
 
     return () => {
       cancelled = true;
+      handle.current = null;
+      window.clearTimeout(slowTimer);
       cancelAnimationFrame(raf);
       try {
         loApp?.remove?.();
@@ -289,14 +356,25 @@ export function AgentforceChat({
       }
       container?.replaceChildren();
     };
-  }, [activeId, headerLabel, placeholder, agentColor]);
+  }, [activeId, headerLabel, placeholder, agentColor, inline, embedKey]);
+
+  useEffect(() => {
+    if (!pageContext || inlineStatus !== 'ready' || !handle.current) return;
+    let live = true;
+    setContextState('syncing');
+    const timer = window.setTimeout(() => { if (live) setContextState('failed'); }, 12000);
+    handle.current.setContext(pageContext, { awaitApplied: true }).then(({ applied }) => {
+      if (live) setContextState(applied === pageContext.length ? 'applied' : 'failed');
+    }).catch(() => { if (live) setContextState('failed'); }).finally(() => window.clearTimeout(timer));
+    return () => { live = false; window.clearTimeout(timer); };
+  }, [pageContext, inlineStatus, embedKey, contextAttempt]);
 
   // Trim the white card ACC paints behind the minimized launcher pill (see
   // clipLauncherCss). One-time shared injection; safe across every persona/app
   // since the rule is scoped to the ACC wrapper's collapsed states.
   useEffect(() => {
-    clipLauncherCss();
-  }, []);
+    if (!inline) clipLauncherCss();
+  }, [inline]);
 
   // Track the ACC panel's open/closed state so the picker can dock to the
   // panel's top edge when open and shrink to the FAB dot when closed. ACC fires
@@ -305,7 +383,7 @@ export function AgentforceChat({
   // (capture phase traverses ancestors regardless of the bubbles flag).
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || inline) return;
     const onMax = () => setPanelOpen(true);
     const onMin = () => setPanelOpen(false);
     container.addEventListener('accmaximize', onMax, true);
@@ -314,7 +392,27 @@ export function AgentforceChat({
       container.removeEventListener('accmaximize', onMax, true);
       container.removeEventListener('accminimize', onMin, true);
     };
-  }, []);
+  }, [inline]);
+
+  if (inline) return <>
+    <div id="atlas-chat-details" className="atlas-chat-details" hidden={!detailsOpen}>
+      {workspaceDetails}
+      {agents.length > 1 && <label className="atlas-chat-agent">
+        <span>Agent</span>
+        <select aria-label="Agentforce agent" value={activeId} onChange={event => pickAgent(event.target.value)}>
+          {agents.map(agent => <option key={agent.id} value={agent.id}>{agent.label}</option>)}
+        </select>
+      </label>}
+      {pageContext && inlineStatus === 'ready' && <p className="atlas-chat-sync" role="status" data-context-status={contextState}>
+        {contextState === 'applied' ? 'Workspace context shared' : contextState === 'syncing' ? 'Sharing workspace context…' :
+          <>Workspace context unconfirmed. {typeof recordId === 'string' && <>Include <code>{recordId}</code> in your message. <button type="button" onClick={() => void copyRecord(recordId)}>{copiedRecord === recordId ? 'Record ID copied' : 'Copy record ID'}</button> </>}
+            <button type="button" onClick={() => setContextAttempt(n => n + 1)}>Retry</button></>}
+      </p>}
+    </div>
+    {inlineStatus === 'connecting' && <p role="status">Connecting to Agentforce…</p>}
+    {inlineStatus === 'failed' && <p role="status">Agentforce is taking longer to connect. <button type="button" onClick={() => setAttempt(value => value + 1)}>Retry</button></p>}
+    <div ref={containerRef} className="atlas-chat-frame" data-testid="agentforce-chat" />
+  </>;
 
   return (
     <>
@@ -327,19 +425,7 @@ export function AgentforceChat({
           open={pickerOpen}
           panelOpen={panelOpen}
           onToggle={() => setPickerOpen(o => !o)}
-          onPick={id => {
-            setPickerOpen(false);
-            if (id === activeId) return;
-            // Persist so a later hard refresh keeps this agent.
-            try {
-              window.sessionStorage.setItem(AGENT_CHOICE_KEY, id);
-            } catch {
-              /* ignore no-storage */
-            }
-            // Re-embed the client for the new agent (the embed effect keys on
-            // activeId). This re-initializes the conversation to the new agent.
-            setActiveId(id);
-          }}
+          onPick={pickAgent}
         />
       )}
     </>

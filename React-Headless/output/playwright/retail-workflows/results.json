@@ -1,0 +1,150 @@
+{
+  "layouts": [
+    {
+      "name": "today",
+      "width": 1512
+    },
+    {
+      "name": "today",
+      "width": 1024
+    },
+    {
+      "name": "today",
+      "width": 768
+    },
+    {
+      "name": "today",
+      "width": 390
+    },
+    {
+      "name": "relationships",
+      "width": 1512
+    },
+    {
+      "name": "relationships",
+      "width": 1024
+    },
+    {
+      "name": "relationships",
+      "width": 768
+    },
+    {
+      "name": "relationships",
+      "width": 390
+    },
+    {
+      "name": "journey",
+      "width": 1512
+    },
+    {
+      "name": "journey",
+      "width": 1024
+    },
+    {
+      "name": "journey",
+      "width": 768
+    },
+    {
+      "name": "journey",
+      "width": 390
+    },
+    {
+      "name": "growth",
+      "width": 1512
+    },
+    {
+      "name": "growth",
+      "width": 1024
+    },
+    {
+      "name": "growth",
+      "width": 768
+    },
+    {
+      "name": "growth",
+      "width": 390
+    },
+    {
+      "name": "intelligence",
+      "width": 1512
+    },
+    {
+      "name": "intelligence",
+      "width": 1024
+    },
+    {
+      "name": "intelligence",
+      "width": 768
+    },
+    {
+      "name": "intelligence",
+      "width": 390
+    },
+    {
+      "name": "customer-finder",
+      "width": 1512
+    },
+    {
+      "name": "customer-finder",
+      "width": 1024
+    },
+    {
+      "name": "customer-finder",
+      "width": 768
+    },
+    {
+      "name": "customer-finder",
+      "width": 390
+    },
+    {
+      "name": "financial-goals",
+      "width": 1512
+    },
+    {
+      "name": "financial-goals",
+      "width": 1024
+    },
+    {
+      "name": "financial-goals",
+      "width": 768
+    },
+    {
+      "name": "financial-goals",
+      "width": 390
+    },
+    {
+      "name": "customer-opportunities",
+      "width": 1512
+    },
+    {
+      "name": "customer-opportunities",
+      "width": 1024
+    },
+    {
+      "name": "customer-opportunities",
+      "width": 768
+    },
+    {
+      "name": "customer-opportunities",
+      "width": 390
+    },
+    {
+      "name": "life-stage-opportunities",
+      "width": 1512
+    },
+    {
+      "name": "life-stage-opportunities",
+      "width": 1024
+    },
+    {
+      "name": "life-stage-opportunities",
+      "width": 768
+    },
+    {
+      "name": "life-stage-opportunities",
+      "width": 390
+    }
+  ],
+  "errors": [],
+  "journeys": "finder search/initial/no-match/direct open; annual/quarter calendar and source event; goal cards; referral source filtering and Lead-linked task; preserved opportunity explorer/heat map; life-stage workspace; recognized visitor search and exact-account follow-up; Today-to-referral continuity"
+}

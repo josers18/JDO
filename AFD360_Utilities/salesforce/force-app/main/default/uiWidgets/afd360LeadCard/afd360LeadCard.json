@@ -5,96 +5,77 @@
       "definition": "tile/widget",
       "children": [
         {
-          "definition": "tile/column",
+          "definition": "tile/container",
           "attributes": {
-            "gap": "md",
-            "align": "stretch"
+            "variant": "default"
           },
           "children": [
             {
-              "definition": "tile/row",
+              "definition": "tile/column",
               "attributes": {
                 "gap": "md",
-                "align": "start",
-                "isWrapped": false
+                "align": "stretch"
               },
               "children": [
                 {
-                  "definition": "tile/avatar",
+                  "definition": "tile/row",
                   "attributes": {
-                    "iconName": "user",
-                    "shape": "rounded",
-                    "size": "lg",
-                    "alt": "record"
-                  }
-                },
-                {
-                  "definition": "tile/column",
-                  "attributes": {
-                    "gap": "none",
+                    "gap": "sm",
                     "align": "start",
-                    "width": "stretch"
+                    "isWrapped": false
                   },
                   "children": [
                     {
-                      "definition": "tile/text",
+                      "definition": "tile/icon",
                       "attributes": {
-                        "text": "{!$attrs.name}",
-                        "variant": "h3",
-                        "weight": "semibold"
+                        "alt": "Lead",
+                        "name": "user",
+                        "size": "sm",
+                        "color": "primary"
                       }
                     },
                     {
-                      "definition": "tile/text",
+                      "definition": "tile/column",
                       "attributes": {
-                        "text": "{!$attrs.title} \u00b7 {!$attrs.company}",
-                        "variant": "caption",
-                        "color": "muted"
-                      }
+                        "gap": "none",
+                        "align": "start",
+                        "width": "stretch"
+                      },
+                      "children": [
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "{!$attrs.name}",
+                            "variant": "h4",
+                            "weight": "semibold"
+                          }
+                        },
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "{!$attrs.title} \u00b7 {!$attrs.company}",
+                            "variant": "caption",
+                            "color": "muted"
+                          },
+                          "meta": {
+                            "if": "{!$attrs.found}"
+                          }
+                        }
+                      ]
                     }
                   ]
-                }
-              ]
-            },
-            {
-              "definition": "tile/row",
-              "attributes": {
-                "gap": "sm",
-                "align": "center"
-              },
-              "children": [
-                {
-                  "definition": "tile/badge",
-                  "attributes": {
-                    "label": "{!$attrs.status}",
-                    "variant": "info"
-                  }
                 },
                 {
-                  "definition": "tile/badge",
+                  "definition": "tile/text",
                   "attributes": {
-                    "label": "{!$attrs.rating}",
-                    "variant": "warning"
+                    "text": "{!$attrs.status} \u00b7 Rating: {!$attrs.rating}",
+                    "variant": "caption",
+                    "weight": "semibold"
+                  },
+                  "meta": {
+                    "if": "{!$attrs.found}"
                   }
-                }
-              ],
-              "meta": {
-                "if": "{!$attrs.found}"
-              }
-            },
-            {
-              "definition": "tile/separator",
-              "meta": {
-                "if": "{!$attrs.found}"
-              }
-            },
-            {
-              "definition": "tile/row",
-              "attributes": {
-                "gap": "lg",
-                "align": "start"
-              },
-              "children": [
+                },
                 {
                   "definition": "tile/column",
                   "attributes": {
@@ -137,93 +118,111 @@
                         "weight": "medium"
                       }
                     }
-                  ]
+                  ],
+                  "meta": {
+                    "if": "{!$attrs.found}"
+                  }
                 },
                 {
-                  "definition": "tile/column",
-                  "attributes": {
-                    "gap": "xs",
-                    "align": "start",
-                    "width": "stretch"
-                  },
+                  "definition": "tile/accordion",
                   "children": [
                     {
-                      "definition": "tile/text",
+                      "definition": "tile/accordionItem",
                       "attributes": {
-                        "text": "Lead source",
-                        "variant": "caption",
-                        "color": "muted",
-                        "weight": "medium"
-                      }
-                    },
-                    {
-                      "definition": "tile/text",
-                      "attributes": {
-                        "text": "{!$attrs.leadSource}",
-                        "variant": "body",
-                        "weight": "medium"
-                      }
-                    },
-                    {
-                      "definition": "tile/text",
-                      "attributes": {
-                        "text": "Created",
-                        "variant": "caption",
-                        "color": "muted",
-                        "weight": "medium"
-                      }
-                    },
-                    {
-                      "definition": "tile/text",
-                      "attributes": {
-                        "text": "{!$attrs.createdDate}",
-                        "variant": "body",
-                        "weight": "medium"
-                      }
-                    }
-                  ]
-                }
-              ],
-              "meta": {
-                "if": "{!$attrs.found}"
-              }
-            },
-            {
-              "definition": "tile/row",
-              "attributes": {
-                "gap": "md",
-                "align": "center"
-              },
-              "children": [
-                {
-                  "definition": "tile/button",
-                  "attributes": {
-                    "label": "Create follow-up task",
-                    "variant": "secondary",
-                    "iconName": "list-checks",
-                    "actions": {
-                      "click": [
+                        "title": "Lead history",
+                        "isExpanded": false
+                      },
+                      "children": [
                         {
-                          "definition": "action/sendMessage",
+                          "definition": "tile/column",
                           "attributes": {
-                            "content": "Create a follow-up task for the lead {!$attrs.name} ({!$attrs.company})"
-                          }
+                            "gap": "xs",
+                            "align": "start",
+                            "width": "stretch"
+                          },
+                          "children": [
+                            {
+                              "definition": "tile/text",
+                              "attributes": {
+                                "text": "Lead source",
+                                "variant": "caption",
+                                "color": "muted",
+                                "weight": "medium"
+                              }
+                            },
+                            {
+                              "definition": "tile/text",
+                              "attributes": {
+                                "text": "{!$attrs.leadSource}",
+                                "variant": "body",
+                                "weight": "medium"
+                              }
+                            },
+                            {
+                              "definition": "tile/text",
+                              "attributes": {
+                                "text": "Created",
+                                "variant": "caption",
+                                "color": "muted",
+                                "weight": "medium"
+                              }
+                            },
+                            {
+                              "definition": "tile/text",
+                              "attributes": {
+                                "text": "{!$attrs.createdDate}",
+                                "variant": "body",
+                                "weight": "medium"
+                              }
+                            }
+                          ]
                         }
                       ]
                     }
+                  ],
+                  "meta": {
+                    "if": "{!$attrs.found}"
                   }
                 },
                 {
-                  "definition": "tile/link",
+                  "definition": "tile/row",
                   "attributes": {
-                    "href": "{!$attrs.recordUrl}",
-                    "text": "Open in Salesforce"
+                    "gap": "sm",
+                    "align": "center",
+                    "isWrapped": true
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/button",
+                      "attributes": {
+                        "label": "Plan outreach",
+                        "variant": "secondary",
+                        "actions": {
+                          "click": [
+                            {
+                              "definition": "action/sendMessage",
+                              "attributes": {
+                                "content": "Help me plan a follow-up task for the lead at {!$attrs.recordUrl}. Ask me for the subject and due date before creating it."
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "definition": "tile/link",
+                      "attributes": {
+                        "href": "{!$attrs.recordUrl}",
+                        "text": "Open lead",
+                        "underline": "always"
+                      }
+                    }
+                  ],
+                  "meta": {
+                    "if": "{!$attrs.found}"
                   }
                 }
-              ],
-              "meta": {
-                "if": "{!$attrs.found}"
-              }
+              ]
             }
           ]
         }

@@ -1,0 +1,313 @@
+‹
+Light (custom)
+COMMAND CENTER
+Today
+Growth
+20
+Health
+16
+ON THIS PAGE
+Daily brief
+Key metrics
+Tasks & schedule
+Priority queue
+8
+Recommended actions
+7
+PINNED ACCOUNTS
+R
+Russell Household
+Retail · at risk
+✕
+E
+English Household
+Retail · at risk
+✕
+W
+Williams Household
+Retail · at risk
+✕
+TODAY'S ARC
+Speak with Julie Morris about her daughter's 529 account
+Oct 18
+Follow up with Julie Morris - Business Loans
+Oct 4
+Follow up with Julie Morris - Business Loans
+Sep 29
+Follow up with Julie Morris regarding business loans
+Sep 28
+Insurance Outreach - Alexis S Smith
+Sep 23
+J
+Jose Sifontes
+Retail · Cumulus Financial Services
+Relationship Command Center
+VIEW AS
+My book
+Justin Chen · 10.9K accts
+Sarah Smith · 10.5K accts
+Allen Carter · 5.6K accts
+Jose Sifontes · 5.1K accts
+Adam Watson · 1.3K accts
+Vince West · 1.3K accts
+Kim Johnson · 1.3K accts
+▾
+CURRENT
+COCKPIT
+⌘K
+MA
+TODAY · AI DAILY BRIEF
+Good morning, Jose — your book at a glance.
+
+3,450 clients scored for who to call (CSAT, Gong, stress, offers), 143 with two or more risk signals; 8 of the top 8 high-risk. 231 open opportunities worth $18.9B in pipeline. 15 activities scheduled. 1 clients received a bonus or tax refund this week ($4.4K): an idle-cash moment. 32 clients left an employer with a liquidity event in the last 180 days: a rollover / equity-proceeds conversation.
+
+Data freshness 100% · 12 sources
+▷ Listen to brief
+✦
+Ask why this order
+RIGHT NOW · YOUR FIRST MOVE
+Reach out to Julie E Morris — browsing Estate Planning on the website now.
+
+Viewed Estate Planning 8× on the website · 5 other products · last seen Nov 10 Open 360
+
+✦ Prep me
+Schedule call
+Snooze
+NET FLOW
+$5.8K
+Credits − debits, week of 2026-11-02 · 12 accounts · Snowflake
+PIPELINE
+$18.9B
+231 open opportunities
+OPPORTUNITIES
+231
+In progress
+LEADS & REFERRALS
+309
+Open leads
+OPEN CASES
+106
+47 CRM (trend) · 59 ServiceNow · 5,594 open 30d+
+AT-RISK CLIENTS
+8
+Require attention · 108 under persistent financial stress
+CALL TONE SLIDING
+10
+Negative & declining on Gong
+MODELED UPLIFT
+$2.8K
+4 clients with an eligible offer · top: investing account
+HOME EQUITY
+$2.1M
+3 owners HELOC-ready · 1 refi
+ACTIVE GOALS
+1,367
+On track
+YOUR TASKS & MEETINGS · BOOK-WIDE
+Tasks & schedule
++ Task
++ Meeting
+ALL 15
+OVERDUE 15
+TODAY 0
+UPCOMING 0
+ALL TYPES
+TASKS
+MEETINGS
+Speak with Julie Morris about her daughter's 529 account
+Julie E Morris
+OVERDUE
+2026-10-19
+Follow up with Julie Morris - Business Loans
+Julie E Morris
+OVERDUE
+HIGH
+2026-10-05
+Follow up with Julie Morris - Business Loans
+Morris Roasters, LLC
+OVERDUE
+HIGH
+2026-09-30
+Follow up with Julie Morris regarding business loans
+Julie E Morris
+OVERDUE
+HIGH
+2026-09-29
+Insurance Outreach - Alexis S Smith
+OVERDUE
+HIGH
+2026-09-24
+Insurance Outreach - Alexis E Smith
+OVERDUE
+HIGH
+2026-09-24
+SHOW 6 MORE
+SHOW ALL 15
+6 / 15
+RANKED · CLICK TO OPEN 360
+Who to act on today
+✦
+Draft all follow-ups
+TODAY
+8
+CRITICAL
+91
+1
+Ross Household
+TOP PRIORITY
+RETAIL
+›
+
+AML rating Low → High · sanctions · US · case WC-2026-15334
+
+WORLD-CHECK SCREENING
+91
+2
+Steele Household
+RETAIL
+›
+
+AML rating Low → High · sanctions · US · case WC-2026-83847
+
+WORLD-CHECK SCREENING
+91
+3
+Henry Household
+RETAIL
+›
+
+AML rating Low → High · sanctions · US · case WC-2026-62339
+
+WORLD-CHECK SCREENING
+91
+4
+Perez Household
+RETAIL
+›
+
+AML rating Low → High · sanctions · US · case WC-2026-73670
+
+WORLD-CHECK SCREENING
+91
+5
+Reese Household
+RETAIL
+›
+
+AML rating Low → High · sanctions · AE · case WC-2026-35210
+
+WORLD-CHECK SCREENING
+91
+6
+Ramos Household
+RETAIL
+›
+
+AML rating Low → High · sanctions · US · case WC-2026-45048
+
+WORLD-CHECK SCREENING
+91
+7
+Aguilar Household
+RETAIL
+›
+
+AML rating Low → High · sanctions · US · case WC-2026-94865
+
+WORLD-CHECK SCREENING
+83
+8
+Charlotte Y Moyer
+RETAIL
+›
+
+Charlotte Y Moyer left Howard-Lee Practice for Ironbridge Ridge Foods Inc · liquidity event
+
+USERGEMS LIQUIDITY · ORG-WIDE
+AGENTFORCE · PRE-DRAFTED · YOU APPROVE
+Recommended actions
+7 PENDING
+EMAIL
+Account
+Offer David H Chen an investing account
+
+Next-best action #1 for this client: 28% modeled conversion with outreach vs 4% without. Lead with email.
+
+✦
+Offer eligibility model · INV-ACQ · $1.5K expected uplift
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+CALL
+Account
+Offer Julie E Morris a home equity line of credit
+
+Next-best action #1 for this client: 19% modeled conversion with outreach vs 4% without. Lead with a call.
+
+✦
+Offer eligibility model · HEL-ACQ · $1.3K expected uplift
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+EMAIL
+Account
+Offer Julia D Nakamura a high-yield savings
+
+Next-best action #1 for this client: 16% modeled conversion with outreach vs 3% without. Lead with email.
+
+✦
+Offer eligibility model · HYS-ACQ · $20.9 expected uplift
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+TASK
+Task
+Complete overdue task: Speak with Julie Morris about her daughter's 529 account
+
+This task (due 2026-10-19) is still open. Close the loop with the client and log the next step.
+
+✦
+Open Task with ActivityDate 2026-10-19 — from your overdue queue
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+CALL
+Opportunity
+Push United Partners across the finish line
+
+Your largest open opportunity (Innovation Pipeline, $5.3B) needs a next step. Schedule a call to confirm docs and lock a date.
+
+✦
+Highest-value open opportunity at 20% probability
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+EMAIL
+Account
+Re-engage United Partners
+
+A top account has limited recent activity. Reach out on treasury-management needs and explore lending options.
+
+✦
+High-value account with sparse recent engagement history
+
+✕ Dismiss
+Edit
+✓ Approve & execute
+CASE
+Case
+Escalate Russell Household before churn
+
+Low CSAT is a churn signal. Escalate to priority handling and log a service-recovery outreach.
+
+✦
+CSAT 20 · NPS 1 · High stress 4 of 6 months
+
+✕ Dismiss
+Edit
+✓ Approve & execute

@@ -1,3 +1,4 @@
+import type { PersonaKey } from '../theme/themes';
 /**
  * Brand theming client for React UI bundles.
  *
@@ -76,9 +77,9 @@ export async function fetchBrandLogo(url: string): Promise<BrandLogoResult> {
 }
 
 /** Read the saved custom brand themes and which one (if any) is active. */
-export async function listThemes(): Promise<ThemesResult> {
+export async function listThemes(workspace?: PersonaKey): Promise<ThemesResult> {
   const fetch = await sdkFetch();
-  const res = await fetch('/services/apexrest/config/themes', {
+  const res = await fetch('/services/apexrest/config/themes' + (workspace ? '?workspace=' + workspace : ''), {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
   });
@@ -95,12 +96,12 @@ export async function listThemes(): Promise<ThemesResult> {
 }
 
 /** Create or update a custom brand theme. Returns the full updated list. */
-export async function saveTheme(theme: BrandTheme): Promise<ThemesResult> {
+export async function saveTheme(theme: BrandTheme, workspace?: PersonaKey): Promise<ThemesResult> {
   const fetch = await sdkFetch();
   const res = await fetch('/services/apexrest/config/themes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ op: 'upsert', theme }),
+    body: JSON.stringify({ op: 'upsert', theme, workspace }),
   });
   const json = (await res.json()) as { themes?: BrandTheme[]; activeThemeId?: string | null; error?: string };
   if (!res.ok) {
@@ -110,12 +111,12 @@ export async function saveTheme(theme: BrandTheme): Promise<ThemesResult> {
 }
 
 /** Delete a custom brand theme by id. Returns the full updated list. */
-export async function deleteTheme(id: string): Promise<ThemesResult> {
+export async function deleteTheme(id: string, workspace?: PersonaKey): Promise<ThemesResult> {
   const fetch = await sdkFetch();
   const res = await fetch('/services/apexrest/config/themes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ op: 'delete', id }),
+    body: JSON.stringify({ op: 'delete', id, workspace }),
   });
   const json = (await res.json()) as { themes?: BrandTheme[]; activeThemeId?: string | null; error?: string };
   if (!res.ok) {
@@ -125,12 +126,12 @@ export async function deleteTheme(id: string): Promise<ThemesResult> {
 }
 
 /** Set (or clear, when `id` is null) the org's active custom brand theme. */
-export async function setActiveTheme(id: string | null): Promise<{ activeThemeId: string | null }> {
+export async function setActiveTheme(id: string | null, workspace?: PersonaKey): Promise<{ activeThemeId: string | null }> {
   const fetch = await sdkFetch();
   const res = await fetch('/services/apexrest/config/active-theme', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ themeId: id }),
+    body: JSON.stringify({ themeId: id, workspace }),
   });
   const json = (await res.json()) as { activeThemeId?: string | null; error?: string };
   if (!res.ok) {

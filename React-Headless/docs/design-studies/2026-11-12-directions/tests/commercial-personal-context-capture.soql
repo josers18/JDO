@@ -1,0 +1,12 @@
+-- Actual personal Accounts/plans within Allen's mixed Commercial book, captured 2026-11-13.
+-- personalAccounts
+SELECT Id,Name,OwnerId,IsPersonAccount,PersonContactId,Phone,PersonEmail FROM Account WHERE OwnerId='005am000003PbFDAA0' AND IsPersonAccount=true LIMIT 20;
+
+-- personalPlans
+SELECT Id,Name,AccountId FROM FinancialPlan WHERE Account.OwnerId='005am000003PbFDAA0' LIMIT 30;
+
+-- personalGoals
+SELECT Id,Name,Type,Priority,Status,Description,TargetDate,TargetAmount,ActualAmount,FinancialPlanId,FinancialPlan.AccountId,FinancialPlan.Account.Name FROM FinancialGoal WHERE FinancialPlan.Account.OwnerId='005am000003PbFDAA0' LIMIT 30;
+
+-- personalLife
+SELECT Id,Name,EventType,EventDate,PrimaryPersonId,PrimaryPerson.Name,PrimaryPerson.AccountId,PrimaryPerson.Account.Name FROM PersonLifeEvent WHERE PrimaryPerson.AccountId IN ('001am00000qvjt6AAA','001am00000qvjtOAAQ','001am00000qvjtbAAA','001am00000qvjtiAAA') ORDER BY EventDate DESC LIMIT 12;

@@ -1,0 +1,288 @@
+‹
+Light (custom)
+COMMAND CENTER
+Today
+Growth
+20
+Health
+16
+ON THIS PAGE
+Cross-sell white-space
+Pipeline
+8
+Leads & referrals
+12
+PINNED ACCOUNTS
+R
+Russell Household
+Retail · at risk
+✕
+E
+English Household
+Retail · at risk
+✕
+W
+Williams Household
+Retail · at risk
+✕
+TODAY'S ARC
+Speak with Julie Morris about her daughter's 529 account
+Oct 18
+Follow up with Julie Morris - Business Loans
+Oct 4
+Follow up with Julie Morris - Business Loans
+Sep 29
+Follow up with Julie Morris regarding business loans
+Sep 28
+Insurance Outreach - Alexis S Smith
+Sep 23
+J
+Jose Sifontes
+Retail · Cumulus Financial Services
+Relationship Command Center
+VIEW AS
+My book
+Justin Chen · 10.9K accts
+Sarah Smith · 10.5K accts
+Allen Carter · 5.6K accts
+Jose Sifontes · 5.1K accts
+Adam Watson · 1.3K accts
+Vince West · 1.3K accts
+Kim Johnson · 1.3K accts
+▾
+CURRENT
+COCKPIT
+⌘K
+MA
+CROSS-SELL · WHITE-SPACE ANALYSIS
+Where the next product lives
+
+0 opportunities from this grid · $0 est. value · 0 won in 30d
+
+OWNED
+LOW
+HIGH
+▲▼
+MOVED 6 MO
+CLIENT
+Checking
+Savings
+Credit Card
+Auto Loan
+Mortgage
+HELOC
+Personal Loan
+Investing
+Julie E Morris
+Empty Nesters
+✓
+✓
+✓
+11
+✓
+19
+11
+✓
+David H Chen
+Young Families
+20
+28
+Julia D Nakamura
+Young Families
+✓
+16
+✓
+Priya S Venkatesh
+Young Families
+✓
+14
+✓
+✓
+OPPORTUNITY DETAIL
+All white-space opportunities
+All
+▲ Rising1
+▼ Falling0
+$2.9K
+7 OPPORTUNITIES
+CLIENT	PRODUCT	SIGNAL	SCORE	6-MO
+↕
+	EST. VALUE	NEXT STEP
+
+David H Chen
+Young Families
+	Investing	Holds this at Charles Schwab · $783.8K balance	28	+0.3	
+$1,462
+	Email investing intro
+
+
+David H Chen
+Young Families
+	Savings	Model next-best action #3	20	±0.0	
+$21
+	Email high-yield rate
+
+
+Julie E Morris
+Empty Nesters
+	HELOC	Model next-best action #1	19	−0.2	
+$1,257
++$581 since May
+	Call about home equity
+
+
+Julia D Nakamura
+Young Families
+	Savings	Model next-best action #1	16	−0.5	
+$21
+	Email high-yield rate
+
+
+Priya S Venkatesh
+Young Families
+	Savings	Model next-best action #2	14	+0.1	
+$13
+	Email high-yield rate
+
+
+Julie E Morris
+Empty Nesters
+	Auto Loan	Model next-best action #4	11	−0.1	
+$68
+	Call with refinance quote
+
+
+Julie E Morris
+Empty Nesters
+	Personal Loan	Model next-best action #3	11	+0.3	
+$81
+	Call with loan pre-qualification
+LIFE-STAGE MIX
+Claritas · latest month
+5,094
+PROFILED
+STAGE
+MORTG.
+INVEST
+WEALTH
+LEAN
+Empty Nesters
+1,865
+25
+52
+34
+Investment
+Established Families
+1,348
+50
+52
+34
+Investment
+Young Families
+1,031
+80
+37
+31
+Mortgage
+Young Couples
+491
+65
+37
+27
+Mortgage
+Retirees
+359
+5
+52
+27
+Investment
+MORTGAGE 70+
+1,153
+INVEST 70+
+530
+
+Largest segment: Empty Nesters, 1,865 clients leaning investment (52). Propensities are Claritas scores, 0–100 averages per stage.
+
+YOUNG FAMILIES · MORTGAGE 70+ · 3 OF 1,031 · IN YOUR QUEUE
+
+Luna Household
+LEAD
+FIRST HOME
+Mortgage 90
+Jennings Household
+LEAD
+FIRST HOME
+Mortgage 90
+Priya S Venkatesh
+LEAD
+MOVE-UP · RATE
+$514.7K at 3.98%
+Mortgage 87
+BROWSING PRODUCT PAGES
+Website · recognized visitors · 7 days to Nov 10
+
+7 households viewed product pages 49 times. Repeat views of one product are a buying signal — follow up while it's fresh.
+
+Julie E Morris
+NOW
+Estate Planning ×8 · Secured Card ×5 · +4
+Nov 10
+Priya S Venkatesh
+NOW
+Personal Line of Credit ×4 · 36-Month CD ×2
+Nov 10
+Anika A Patel
+NOW
+529 Education Savings ×4 · High-Yield Savings ×2
+Nov 10
+Marcus G Rodriguez
+NOW
+Auto Loan ×4 · Premier Checking ×2
+Nov 10
+Julia D Nakamura
+NOW
+Brokerage Accounts ×3 · Managed Advisory ×2
+Nov 10
+OPEN OPPORTUNITIES · SORTED BY VALUE
+Pipeline
+✦
+Summarize stalled deals
+CLIENT	OPPORTUNITY	STAGE	PROPENSITY	AMOUNT
+United Partners	Innovation Pipeline	Qualification	
+20%	$5.3B
+B2B Commerce Lightning Experience Guest Buyer Account	Innovation Pipeline	Qualification	
+20%	$4.5B
+Jim Morris Estate	Innovation Pipeline	Qualification	
+20%	$3.4B
+IDO House Account	Innovation Pipeline	Qualification	
+20%	$2B
+Frank Household	Innovation Pipeline	Qualification	
+20%	$1.7B
+General Utilities	Innovation Pipeline	Qualification	
+20%	$1.1B
+SHOW 2 DEALS
+SHOW ALL 8
+6 / 8
+INBOUND · ROUTED TO YOU
+Leads & referrals
+NAME	SOURCE	STATUS	VALUE
+James Barker	Sales Bot	NEW	$0
+Anthony R Garcia	Warm intro via Martinez Household	REFERRAL · 95%	$0
+Assa Barak	Sales Bot	NEW	$0
+Matthew P Stein	Warm intro via Rodriguez Household	REFERRAL · 94%	$0
+Daragh Dennehy	—	NEW	$0
+Anna C Wood	Warm intro via Hernandez Household	REFERRAL · 94%	$0
+SHOW 6 LEADS
+SHOW ALL 12
+6 / 12
+PORTFOLIO PULSE
+▷ LISTEN
+
+Your book holds $18.9B open pipeline across 231 opportunities. Recent client touchpoints are running light — schedule outreach to keep relationships warm and move stalled deals this quarter.
+
+WINS · 30D
+$0
+No closes logged in the last 30 days.
+ACTIVITY · 7D
+15
+Low volume — schedule touchpoints.

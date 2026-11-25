@@ -1,0 +1,36 @@
+# Commercial Atlas migration contract
+
+The Atlas design is a local prototype over dated source captures. This contract preserves the current app's behavior when a separately authorized production migration is undertaken. No production edits or deployment are included.
+
+## State, identity and navigation
+
+- Company identity is Account ID; product identity is Account ID + native action code; deal identity is Opportunity ID + Account ID. Labels, repeated names and visual placement establish none of these relationships.
+- Keep current route basename injection from `SFDC_ENV.basePath`. Preserve deep links, Back, selected company/tab/product/deal, directory search, source family/cohort, View As and Workbench context. This mock persists company/tab and explicit selected product/deal deep links; other filters are local state and do not yet provide complete production URL restoration.
+- Separate signed-in actor from viewed book and source assignee. View As may select captured Allen in the mock; other books must show an explicit unavailable state instead of reusing Allen's data. Production must query the selected owner and validate access; it must not relabel an org-wide fallback as that banker's book.
+- Private drafts/notes must be keyed by org, signed-in actor, persona, book/source record context and schema version. The mock's per-tab session storage is a convenience, **not a security or cross-user isolation boundary**. Do not migrate its keys as a production persistence architecture.
+- Search should include Accounts, actual Contacts, Leads, Opportunities, CRM Cases, Tasks and Events with exact object IDs. External ServiceNow references remain separate. Waffle, notifications, Tasks shortcut, avatar, settings/admin/setup and Data Cloud setup must remain reachable through the authorized shell, not persona-local substitutes.
+
+## Current source-to-client boundaries
+
+| Action | Production mapping and constraints |
+|---|---|
+| Read CRM records / live aggregates | `executeGraphQL` via `sdk.graphql`, bounded queries, FLS-optional fields, mandatory first and errors-array inspection. Plain `Id`, other scalar value wrappers. Verify truncation and scope independently of a displayed sample. |
+| Read Data 360/provider sources | Existing `queryDataCloud`/book helpers through `DcBridgeRest`; use current source builders and source periods. Preserve empty, unavailable, stale/future and fallback scope. Compute aggregates/history in Data 360 where possible. |
+| Create Task | `crmWrite` task; subject/description/status/priority/dueDate and supported Who/What links. Current create handler does not apply OwnerId; the session actor owns the insert. Reassignment needs an explicit approved update, never a silent View As assumption. |
+| Update/delete Task | `crmWrite` update/delete with real recordId and sobjectType Task. Current update supports subject/status/priority/dueDate/type/description/What/Owner; Who is not updated. Blank strings leave server values unchanged. |
+| Create Event | event action, ISO activityDateTime, durationMinutes, subject/description and supported Who/What links. Current create ignores OwnerId, location, Type and ShowAs; do not promise those fields were applied. Use explicit UTC/local conversion; preserve source date-only semantics elsewhere. |
+| Update/delete Event | update/delete with original Event ID. Current update supports subject/activityDateTime/type/description/location/showAs/What/Owner. **Duration and Who are not updated.** Changing a source Event never inserts a new Event or adds a new planned-meeting entry. |
+| Create Case | case action with verified Account ID, subject/description/status/priority. Origin is fixed to React Command Center by the bridge. Current bridge does not update/delete existing Cases. A proposed existing-case change is future scope, not a supported execution action. |
+| Create Opportunity | opportunity action with exact Account, reviewed amount/name/stage/closeDate/LeadSource. Cross-sell grid must preserve `Cross-sell grid`, product naming convention, eligibility/owned/existing-opportunity guard and current viewed-owner policy separately from general session-actor writes. Model EV is not default Opportunity amount. Existing Opportunity update is not supported by the current bridge. |
+| Lead create/update | Real Lead ID only for source update; preserve supported first/last/company/status/source/email/annualRevenue and legacy source/status values. Phone, Industry and notes in this design are local context; current Lead bridge create/update does not write them. Verify active org metadata before choosing new values. Blank and zero are distinct. Current Lead update supports its documented fields; graph target/referrer/business IDs stay separate from CRM WhoId. |
+| Goal create/update | Current goal clients require a verified FinancialPlan for creation; query through FinancialPlan.AccountId. Updates preserve supported name/status/type/priority/description/targetDate/targetAmount/actualAmount fields. Blank updates do not imply clearing. No captured company plan means no fabricated executable plan proposal. |
+| Email / preparation | Resolve recipient through current Account/primary Contact lookup and validate recipient explicitly. Generation uses existing configured AI client and supported prompt flow slots; deterministic preparation is not a live LLM answer. Never treat a name or context label as record grounding. |
+| External service / compliance | Read-only exact-company source inspection and local follow-up context. No CRM Case edit using external IDs; no invented compliance resolution, credit approval, facility state or bank transaction. |
+
+## Execution lifecycle and integration preservation
+
+Keep permission/record-ID/object validation, current bridge error propagation and explicit ambiguous-write handling. A failed or unconfirmed write must not mark a proposal executed, change outcome counts or refetch as though it succeeded. After confirmed successful writes, use the existing onSaved/refetch generation behavior; avoid a blank reload and confirm the new/updated source record appears. Prevent duplicate submission, preserve a reviewable retry state and distinguish definite rejection from timeout ambiguity.
+
+Retain real Agentforce Conversation Client teardown and re-embed on agent switch, authenticated session reuse, four-agent selection and supported context/prompt contracts. `contextLabel` alone is chrome, not proof of grounding. Keep `CommandCenterConfigRest`, live model catalog behavior, configured AI action settings, genuinely supported generation parameters and error fallback. Preserve org-shared theme definitions, per-user active brand/display size, Light/Dark baselines, logo handling and the current theme token boundary. A local settings preview or profile edit must not be labeled a saved production change.
+
+Loading/error/empty states need per-source recovery with visible dates and scope. Preserve current company Intel SEC successful-empty handling, mixed provider periods, unavailable balances, actual zero outcomes and external service provenance. The unresolved delinquency direction, rank-derived home health/drop and broad empty-book fallback remain explicit source issues requiring owner decisions; no Atlas layout change silently resolves them.

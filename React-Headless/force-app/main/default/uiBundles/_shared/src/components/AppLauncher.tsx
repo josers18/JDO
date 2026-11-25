@@ -104,7 +104,7 @@ const ORG_APPS: AppLink[] = [
   { label: 'Chatter', durableId: '06mam000002JhFAAA0', icon: MessageSquare, category: 'core' },
 ];
 
-export function AppLauncher() {
+export function AppLauncher({ showAtlas = false }: { showAtlas?: boolean } = {}) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState('');
   const rootRef = useRef<HTMLDivElement>(null);
@@ -113,8 +113,11 @@ export function AppLauncher() {
   // Case-insensitive substring filter across both sections.
   const q = filter.trim().toLowerCase();
   const personas = useMemo(
-    () => (q ? PERSONA_APPS.filter(p => p.label.toLowerCase().includes(q)) : PERSONA_APPS),
-    [q],
+    () => {
+      const apps = showAtlas ? [...PERSONA_APPS.map(app => ({ label: app.label + ' V2', devName: app.devName + 'V2' })), ...PERSONA_APPS] : PERSONA_APPS;
+      return q ? apps.filter(app => app.label.toLowerCase().includes(q)) : apps;
+    },
+    [q, showAtlas],
   );
   const orgApps = useMemo(
     () => (q ? ORG_APPS.filter(a => a.label.toLowerCase().includes(q)) : ORG_APPS),

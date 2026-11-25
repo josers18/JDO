@@ -1,0 +1,36 @@
+{
+  "required" : [ "whatId", "effectiveStartDate", "description" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "whatId" : {
+      "title" : "Account ID",
+      "description" : "The ID of the parent record of the associated record alert record.",
+      "lightning:type" : "lightning__recordIdType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "effectiveStartDate" : {
+      "title" : "Effective Start Date",
+      "description" : "The start date of the record alert. If the user specifies year, month, and day, use that date. If the year isn't specified, use the current year. If the month isn't specified, use the current month. If the day isn't specified, use one.",
+      "lightning:type" : "lightning__dateType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "description" : {
+      "title" : "Description",
+      "description" : "The record alert description. This field is plain text and a maximum of 255 characters.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "subject" : {
+      "title" : "Subject",
+      "description" : "Summarize the description in 10 words or fewer.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

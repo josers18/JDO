@@ -1,0 +1,18 @@
+{
+  "customerStates": 64,
+  "modeStates": 8,
+  "assertions": [
+    "keyboard customer tabs",
+    "selected product survives reload and first-save reassignment clears provenance",
+    "new meeting proposals in distinct planning calendar",
+    "directed referral identities, no invented Contact, zero revenue",
+    "personal goal plan identity, zero actual amount and UTC-safe date",
+    "personal milestone source edit and full Workbench review",
+    "exact Opportunity reload and captured weekly history",
+    "snooze/refill/restore and unavailable source",
+    "retained Profile and Notes & tools at desktop/mobile"
+  ],
+  "preservedStates": 4,
+  "pageErrors": [],
+  "networkWrites": []
+}

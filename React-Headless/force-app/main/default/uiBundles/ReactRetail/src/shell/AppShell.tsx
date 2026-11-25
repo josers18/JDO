@@ -19,6 +19,7 @@ interface AppShellProps {
   title: string;
   /** optional right-of-title slot (e.g. persona pill) */
   titleAside?: ReactNode;
+  headerClassName?: string;
   /**
    * Whether the shell mounts its own Agentforce FAB. Default true (home).
    * Set false on routes that mount their OWN record-scoped `AgentforceChat`
@@ -43,7 +44,7 @@ interface AppShellProps {
  * The Agentforce button here is the NATIVE header entry point (mirrors the
  * in-org `sentos_common-ask-agentforce-button`) — no floating dock.
  */
-export function AppShell({ nav, title, titleAside, agentforce = true, sidebar, children }: AppShellProps) {
+export function AppShell({ nav, title, titleAside, headerClassName, agentforce = true, sidebar, children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
   const brand = useBrandOverride();
   const brandName = useBrandName();
@@ -141,6 +142,7 @@ export function AppShell({ nav, title, titleAside, agentforce = true, sidebar, c
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
         {/* TOP BAR */}
         <header
+          className={headerClassName}
           style={{
             position: 'sticky',
             top: 0,

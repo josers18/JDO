@@ -63,8 +63,8 @@ export interface OutlookResult {
 }
 
 /** C2 — the book's Negative / Watch outlooks (top four + counts). */
-export async function fetchOutlookWatch(ownerId: string | null | undefined): Promise<OutlookResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(outlookRowsSql, ownerId, 4);
+export async function fetchOutlookWatch(ownerId: string | null | undefined, strictBook = false): Promise<OutlookResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(outlookRowsSql, ownerId, 4, strictBook);
   const [total, history] = await Promise.all([
     queryDataCloud<Record<string, unknown>>(outlookSummarySql(res.accountFilter), 1)
       .then(r => r.rows[0] ?? {})
@@ -142,8 +142,8 @@ export interface LeadershipResult {
 const decode = decodeEntities;
 
 /** C3 — exec-turnover accounts: three opportunity + three risk rows, plus counts. */
-export async function fetchLeadershipChanges(ownerId: string | null | undefined): Promise<LeadershipResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(leadershipRowsSql, ownerId, 6);
+export async function fetchLeadershipChanges(ownerId: string | null | undefined, strictBook = false): Promise<LeadershipResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(leadershipRowsSql, ownerId, 6, strictBook);
   const [total, history] = await Promise.all([
     queryDataCloud<Record<string, unknown>>(leadershipSummarySql(res.accountFilter), 1)
       .then(r => r.rows[0] ?? {})
@@ -246,8 +246,8 @@ export interface EsgMoversResult {
 }
 
 /** C4 — the book's corroborated MSCI ESG up/downgrades (top three each) plus counts. */
-export async function fetchEsgMovers(ownerId: string | null | undefined): Promise<EsgMoversResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(esgRowsSql, ownerId, 6);
+export async function fetchEsgMovers(ownerId: string | null | undefined, strictBook = false): Promise<EsgMoversResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(esgRowsSql, ownerId, 6, strictBook);
   const total = await queryDataCloud<Record<string, unknown>>(esgSummarySql(res.accountFilter), 1)
     .then(r => r.rows[0] ?? {})
     .catch((): Record<string, unknown> => ({}));

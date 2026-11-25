@@ -127,6 +127,8 @@ export interface WhitespaceCell {
   action?: string;
   /** Offer-model action code behind the score. */
   code?: string;
+  /** Native model rank when the row qualifies for a recommendation. */
+  recommendationRank?: number;
   /** An open grid-created Opportunity already covers this cell. */
   inPipeline?: boolean;
   /** Conversion % per monthly run, oldest → newest, for this cell's code. */
@@ -140,6 +142,7 @@ export interface WhitespaceCell {
 export interface WhitespaceClient {
   id: string;
   name: string;
+  email?: string;
   segment: string;
   cells: Record<string, WhitespaceCell>;
 }
@@ -267,16 +270,29 @@ const moversSql = (codes: string[], accountFilter: string, dir: 'up' | 'down', e
 
 const idList = (ids: string[]) => ids.map(i => `"${i}"`).join(', ');
 
-const crmQuery = (ids: string[]) => `query WhitespaceCrm {
+const crmQuery = (ids: string[], includeEmail = false) => `query WhitespaceCrm {
   uiapi { query {
     Account(first: ${ids.length}, where: { Id: { in: [${idList(ids)}] } }) {
-      edges { node { Id Name @optional { value } Industry @optional { value } FinServ__ClientCategory__c @optional { value } } }
+      edges { node { Id Name @optional { value } Industry @optional { value } FinServ__ClientCategory__c @optional { value } ${includeEmail ? 'PersonEmail @optional { value }' : ''} } }
     }
     FinServ__FinancialAccount__c(first: 400, where: { FinServ__PrimaryOwner__c: { in: [${idList(ids)}] } }) {
       edges { node { Id Name @optional { value } FinServ__PrimaryOwner__c @optional { value } FinServ__Status__c @optional { value } } }
     }
   } }
 }`;
+
+/** Recheck one selected household, including accounts outside the displayed grid. */
+export async function availableProductLabel(persona: WhitespacePersona, accountId: string, code: string) {
+  const column = COLUMNS[persona].find(item => item.codes.includes(code));
+  if (!column || !/^001[a-z0-9]{12}(?:[a-z0-9]{3})?$/i.test(accountId)) throw new Error('Select a valid household and product.');
+  const crm = await executeGraphQL<{ uiapi: { query: { FinServ__FinancialAccount__c: Conn } } }>(crmQuery([accountId]));
+  const rows = crm.uiapi.query.FinServ__FinancialAccount__c.edges;
+  if (!rows || rows.length >= 400 || rows.some(({node}) => !v(node, 'Name') || !v(node, 'FinServ__Status__c')))
+    throw new Error('Product ownership could not be verified.');
+  if (rows.some(({node}) => !/closed/i.test(v(node, 'FinServ__Status__c')) && column.owned.test(v(node, 'Name'))))
+    throw new Error('This household already holds the selected product.');
+  return column.label;
+}
 
 // Open holders of the reserved product in the banker's book. The FA's own
 // OwnerId is the integration user, so the book is the primary owner's OwnerId.
@@ -355,13 +371,15 @@ async function fetchStats(ownerId: string | null | undefined) {
 export async function fetchWhitespace(
   persona: WhitespacePersona,
   ownerId: string | null | undefined,
+  strictBook = false,
+  includeUnrankedScores = false,
 ): Promise<WhitespaceData> {
   const cols = COLUMNS[persona];
   const codes = cols.flatMap(c => c.codes);
   const products = cols.map(c => ({ key: c.key, label: c.label }));
 
   const [offers, statsRes, holderGroups] = await Promise.all([
-    queryDataCloudForBook<Record<string, unknown>>(offersSql(codes), ownerId, 400),
+    queryDataCloudForBook<Record<string, unknown>>(offersSql(codes), ownerId, 400, strictBook),
     fetchStats(ownerId).catch(() => null),
     fetchHolderOffers(persona, codes, ownerId).catch(() => [] as Record<string, unknown>[][]),
   ]);
@@ -413,7 +431,7 @@ export async function fetchWhitespace(
   });
 
   const [crm, plaid, stages, scoreRows, moverRes] = await Promise.all([
-    executeGraphQL<{ uiapi?: { query?: { Account?: Conn; FinServ__FinancialAccount__c?: Conn } } }>(crmQuery(ids)),
+    executeGraphQL<{ uiapi?: { query?: { Account?: Conn; FinServ__FinancialAccount__c?: Conn } } }>(crmQuery(ids, includeUnrankedScores)),
     queryDataCloud<Record<string, unknown>>(plaidSql(ids), 1000).then(r => r.rows).catch(() => []),
     persona === 'commercial'
       ? Promise.resolve([] as Record<string, unknown>[])
@@ -475,21 +493,26 @@ export async function fetchWhitespace(
         cells[c.key] = { owned: true };
         continue;
       }
-      // Best eligible code in this column by expected value.
-      const best = c.codes
+      const scored = c.codes
         .map(code => offerBy.get(`${id}|${code}`))
-        .filter((r): r is Record<string, unknown> => !!r && r.action_rank != null && Number(r.ev) > 0)
-        .sort((x, y) => Number(y.ev) - Number(x.ev))[0];
+        .filter((r): r is Record<string, unknown> => !!r)
+        .sort((x, y) => Number(y.ev) - Number(x.ev));
+      const eligible = scored.find(r => r.action_rank != null && Number(r.ev) > 0);
+      const best = eligible ?? (includeUnrankedScores
+        ? scored.find(r => r.conv != null && Number.isFinite(Number(r.conv)))
+        : undefined);
       if (!best) continue;
       const code = String(best.code);
       const away = c.plaid
         .map(t => heldAway.get(`${id}|${t}`))
         .filter((h): h is { inst: string; bal: number } => !!h)
         .sort((x, y) => y.bal - x.bal)[0];
-      const rank = Math.round(Number(best.action_rank));
+      const rank = eligible ? Math.round(Number(eligible.action_rank)) : undefined;
       const reason = away
         ? `Holds this at ${away.inst} · ${money(away.bal)} balance`
-        : `Model next-best action #${rank}${c.codes.length > 1 ? ` · ${offerLabel(code)}` : ''}`;
+        : rank != null
+          ? `Model next-best action #${rank}${c.codes.length > 1 ? ` · ${offerLabel(code)}` : ''}`
+          : 'Model returned a score without an eligible recommendation';
       const chans = String(best.channels ?? '').split(',').map(s => s.trim());
       const hist = historyBy.get(`${id}|${code}`);
       const em = chans.includes('EM') ? Number(best.em_p) || 0 : 0;
@@ -497,8 +520,11 @@ export async function fetchWhitespace(
       cells[c.key] = {
         owned: false,
         code,
-        score: Math.round(Number(best.conv) || 0),
-        estValue: Math.round(Number(best.ev) || 0),
+        score: includeUnrankedScores
+          ? best.conv != null && Number.isFinite(Number(best.conv)) ? Number(best.conv) : undefined
+          : Math.round(Number(best.conv) || 0),
+        estValue: includeUnrankedScores && best.ev == null ? undefined : Math.round(Number(best.ev) || 0),
+        ...(rank != null ? { recommendationRank: rank } : {}),
         reason,
         action: cc > em ? c.act[1] : c.act[0],
         inPipeline: statsRes?.openKeys.has(`${id}|${c.label}`) ?? false,
@@ -507,7 +533,8 @@ export async function fetchWhitespace(
           : {}),
       };
     }
-    return { id, name, segment, cells };
+    const email = a && includeUnrankedScores ? v(a, 'PersonEmail') : '';
+    return { id, name, segment, cells, ...(email ? { email } : {}) };
   });
 
   const colByCode = new Map(cols.flatMap(c => c.codes.map(code => [code, c] as const)));

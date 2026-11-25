@@ -1,0 +1,43 @@
+{
+  "required" : [ "recordId", "actionPlanName", "actionPlanTemplateId", "startDate", "actionPlanStatus" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "recordId" : {
+      "title" : "Record ID",
+      "description" : "The ID of the parent record associated with the action plan record.",
+      "lightning:type" : "lightning__recordIdType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "actionPlanName" : {
+      "title" : "Action Plan Name",
+      "description" : "The name of the action plan.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "actionPlanTemplateId" : {
+      "title" : "Action Plan Template ID",
+      "description" : "The ID of the action plan template, must start with key prefix 0PR.",
+      "lightning:type" : "lightning__recordIdType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "startDate" : {
+      "title" : "Start Date",
+      "description" : "The start date of the action plan.",
+      "lightning:type" : "lightning__dateType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "actionPlanStatus" : {
+      "title" : "Action Plan Status",
+      "description" : "The status of the action plan.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}
